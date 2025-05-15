@@ -1,14 +1,16 @@
 import { AgentConfig } from "../types/agent";
-import { callCodex } from "../agents/codex";
-import { callClaude } from "../agents/claude";
+import { callCodex, CodexResponse } from "../agents/codex";
+import { callClaude, ClaudeResponse } from "../agents/claude";
 import { callDevin } from "../agents/devin";
 import { callCodegen } from "../agents/codegen";
 import { callOpenHands } from "../agents/openhands";
 
+export type AgentResponse = CodexResponse | ClaudeResponse | { code: string };
+
 export class VibeKit {
   constructor(private setup: AgentConfig) {}
 
-  async sendPrompt(prompt: string): Promise<{ code: string }> {
+  async sendPrompt(prompt: string): Promise<AgentResponse> {
     switch (this.setup.agent) {
       case "codex":
         return callCodex(prompt, this.setup.config);

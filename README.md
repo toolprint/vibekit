@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="100px" src="./assets/vibekit-logo.png" />
+<img width="200px" src="./assets/vibekit-logo.png" />
 
 # VibeKit
 

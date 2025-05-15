@@ -8,10 +8,7 @@
 
 <p>
 <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/superagent-ai/vibekit" />
-<img alt="GitHub Last Commit" src="https://img.shields.io/github/last-commit/superagent-ai/vibekit" />
-<img alt="" src="https://img.shields.io/github/repo-size/superagent-ai/vibekit" />
 <img alt="GitHub Issues" src="https://img.shields.io/github/issues/superagent-ai/vibekit" />
-<img alt="GitHub Pull Requests" src="https://img.shields.io/github/issues-pr/superagent-ai/vibekit" />
 <img alt="GitHub License" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
 <img alt="Discord" src="https://img.shields.io/discord/1110910277110743103?label=Discord&logo=discord&logoColor=white&style=plastic&color=d7b023)](https://discord.gg/e8j7mgjDUK" />
 </p>

@@ -6,6 +6,8 @@ const mockConfig = {
   githubToken: "ghp-test-123",
   repoUrl: "https://github.com/user/repo",
   e2bApiKey: "e2b-test-123",
+  e2bTemplateId: "54il6fhjjpg6zcziilha",
+  model: "o4-mini",
 };
 
 describe("callCodex", () => {
@@ -14,15 +16,18 @@ describe("callCodex", () => {
     vi.mock("../src/agents/codex", async () => {
       return {
         callCodex: vi.fn().mockResolvedValue({
-          code: `console.log("Hello from Codex");`,
+          stdout: `Hello from Codex`,
+          stderr: "",
+          exitCode: 0,
         }),
       };
     });
 
     const { callCodex } = await import("../src/agents/codex");
+
     const result = await callCodex("Print hello", mockConfig);
 
-    expect(result).toHaveProperty("code");
-    expect(result.code).toContain("console.log");
+    expect(result).toHaveProperty("stdout");
+    expect(result.stdout).toContain("Hello from Codex");
   });
 });

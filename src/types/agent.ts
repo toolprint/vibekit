@@ -8,6 +8,8 @@ export type AgentConfig =
         githubToken: string;
         repoUrl: string;
         e2bApiKey: string;
+        e2bTemplateId: string;
+        model: string;
       };
     }
   | {
@@ -17,6 +19,7 @@ export type AgentConfig =
         githubToken: string;
         repoUrl: string;
         e2bApiKey: string;
+        e2bTemplateId: string;
       };
     }
   | {

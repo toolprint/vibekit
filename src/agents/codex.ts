@@ -10,6 +10,7 @@ export interface CodexConfig {
   e2bApiKey: string;
   e2bTemplateId: string;
   model: string;
+  sandboxId?: string;
 }
 
 /**
@@ -19,6 +20,7 @@ export interface CodexResponse {
   exitCode: number;
   stdout: string;
   stderr: string;
+  sandboxId: string;
 }
 
 /**
@@ -34,17 +36,25 @@ export async function callCodex(
   try {
     // In a real implementation, this would make an API call to OpenAI
     // This is a simple example implementation
-    const sbx = await Sandbox.create(config.e2bTemplateId, {
-      envs: {
-        OPENAI_API_KEY: config.openaiApiKey,
-      },
-      apiKey: config.e2bApiKey,
-    });
+    let sbx: Sandbox;
 
-    await sbx.commands.run(
-      `git clone https://x-access-token:${config.githubToken}@github.com/${config.repoUrl}.git`,
-      { timeoutMs: 300000 } // 5 minute timeout for git clone
-    );
+    if (config.sandboxId) {
+      sbx = await Sandbox.resume(config.sandboxId, {
+        apiKey: config.e2bApiKey,
+      });
+    } else {
+      sbx = await Sandbox.create(config.e2bTemplateId, {
+        envs: {
+          OPENAI_API_KEY: config.openaiApiKey,
+        },
+        apiKey: config.e2bApiKey,
+      });
+
+      await sbx.commands.run(
+        `git clone https://x-access-token:${config.githubToken}@github.com/${config.repoUrl}.git`,
+        { timeoutMs: 300000 } // 5 minute timeout for git clone
+      );
+    }
 
     const result = await sbx.commands.run(
       `cd workspace && codex -a auto-edit -m ${
@@ -53,9 +63,9 @@ export async function callCodex(
       { timeoutMs: 0 } // Disable timeout for codex command
     );
 
-    await sbx.kill();
+    await sbx.pause();
 
-    return result;
+    return { sandboxId: sbx.sandboxId, ...result };
   } catch (error) {
     console.error("Error calling Codex:", error);
     throw new Error(

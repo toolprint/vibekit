@@ -50,17 +50,39 @@ export async function callCodex(
         apiKey: config.e2bApiKey,
       });
 
+      // Create ~/.vibekit/memory.jsonl if it doesn't exist
+      await sbx.commands.run(
+        `mkdir -p ~/.vibekit && [ ! -f ~/.vibekit/memory.jsonl ] && touch ~/.vibekit/memory.jsonl || true`
+      );
+
+      // Check if AGENTS.md exists, create it if not and add to .gitignore
+      await sbx.commands.run(
+        `[ ! -f AGENTS.md ] && echo "ALWAYS check ~/.vibekit/memory.jsonl for conversation history" > AGENTS.md || true`
+      );
+      await sbx.commands.run(
+        `[ ! -f AGENTS.md ] || (grep -q "AGENTS.md" .gitignore 2>/dev/null || echo "AGENTS.md" >> .gitignore)`
+      );
+
       await sbx.commands.run(
         `git clone https://x-access-token:${config.githubToken}@github.com/${config.repoUrl}.git`,
-        { timeoutMs: 300000 } // 5 minute timeout for git clone
+        { timeoutMs: 3600000 } // 5 minute timeout for git clone
       );
     }
 
+    await sbx.commands.run("cd workspace");
+
     const result = await sbx.commands.run(
-      `cd workspace && codex -a auto-edit -m ${
-        config.model || "gpt-4.1"
-      } --quiet "${prompt}"`,
-      { timeoutMs: 0 } // Disable timeout for codex command
+      `codex -a auto-edit -m ${config.model || "gpt-4.1"} --quiet "${prompt}"`,
+      { timeoutMs: 3600000 } // Set timeout to 1 hour for codex command
+    );
+
+    const list = await sbx.commands.run("cd ~/.vibekit/ && ls -la");
+    console.log("list:\n", list.stdout);
+    // Hack for memory in headless codex
+    await sbx.commands.run(
+      `cat <<EOF >> ~/.vibekit/memory.jsonl
+  Timestamp: ${new Date().toLocaleString()}
+  ${result.stdout}`
     );
 
     await sbx.pause();

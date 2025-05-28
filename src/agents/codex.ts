@@ -31,6 +31,7 @@ export interface CodexStreamCallbacks {
 export class CodexAgent {
   private config: CodexConfig;
   private sbx?: Sandbox;
+  private lastPrompt?: string;
 
   constructor(config: CodexConfig) {
     this.config = config;
@@ -131,6 +132,8 @@ export class CodexAgent {
         }", "output": "${JSON.stringify(result)}"}`
       );
 
+      this.lastPrompt = prompt;
+
       return {
         sandboxId: sbx.sandboxId,
         ...result,
@@ -181,7 +184,8 @@ export class CodexAgent {
     const { title, body, branchName, commitMessage } = await generatePRMetadata(
       patch?.stdout || "",
       "codex",
-      this.config.openaiApiKey
+      this.config.openaiApiKey,
+      this.lastPrompt || ""
     );
 
     const checkout = await this.sbx?.commands.run(

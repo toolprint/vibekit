@@ -6,9 +6,10 @@ import { z } from "zod";
 export async function generatePRMetadata(
   patch: string,
   agent: "codex" | "claude",
-  apiKey: string
+  apiKey: string,
+  prompt: string
 ) {
-  const prompt = `You are tasked to create title and body for a pull request based on the following patch:\n\n${patch}`;
+  const _prompt = `You are tasked to create title and body for a pull request based on the following task:\n${prompt}\n\npatch:\n\n${patch}`;
   const model =
     agent === "codex" ? createOpenAI({ apiKey }) : createAnthropic({ apiKey });
 
@@ -17,7 +18,7 @@ export async function generatePRMetadata(
       agent === "codex"
         ? model("gpt-4o-mini")
         : model("claude-3-5-sonnet-20240620"),
-    prompt,
+    prompt: _prompt,
     schema: z.object({
       title: z.string().describe("Suggested title for the pull request"),
       body: z.string().describe("Suggested body for the pull request"),

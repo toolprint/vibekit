@@ -206,7 +206,7 @@ describe("CodexAgent", () => {
         onError: vi.fn(),
       };
 
-      await codexAgent.generateCode("test prompt", callbacks);
+      await codexAgent.generateCode("test prompt", "code", callbacks);
 
       expect(callbacks.onUpdate).toHaveBeenCalledWith(
         '{"type": "start", "sandbox_id": "test-sandbox-id"}'
@@ -230,7 +230,11 @@ describe("CodexAgent", () => {
         onUpdate: vi.fn(),
       };
 
-      await agentWithExistingSandbox.generateCode("test prompt", callbacks);
+      await agentWithExistingSandbox.generateCode(
+        "test prompt",
+        "code",
+        callbacks
+      );
 
       expect(callbacks.onUpdate).toHaveBeenCalledWith(
         '{"type": "start", "sandbox_id": "existing-sandbox-id"}'

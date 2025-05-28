@@ -10,8 +10,6 @@ export interface CodexConfig {
   e2bTemplateId?: string;
   model?: string;
   sandboxId?: string;
-  /** Mode of operation: 'ask' for research mode without file modifications, or 'code' for code generation (default) */
-  mode?: 'ask' | 'code';
 }
 
 export interface CodexResponse {
@@ -85,12 +83,12 @@ export class CodexAgent {
    */
   public async generateCode(
     prompt: string,
+    mode?: "ask" | "code",
     callbacks?: CodexStreamCallbacks
   ): Promise<CodexResponse> {
     const config = this.config;
-    const mode = config.mode ?? 'code';
     let instruction: string;
-    if (mode === 'ask') {
+    if (mode === "ask") {
       instruction =
         "Research the repository and answer the user's questions. " +
         "Do NOT make any changes to any files in the repository.";

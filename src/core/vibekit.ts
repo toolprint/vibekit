@@ -34,6 +34,7 @@ export class VibeKit {
 
   async generateCode(
     prompt: string,
+    mode?: "ask" | "code",
     callbacks?: VibeKitStreamCallbacks
   ): Promise<AgentResponse> {
     switch (this.setup.agent) {
@@ -46,9 +47,13 @@ export class VibeKit {
             onUpdate: callbacks.onUpdate,
             onError: callbacks.onError,
           };
-          return this.codexAgent.generateCode(prompt, codexCallbacks);
+          return this.codexAgent.generateCode(
+            prompt,
+            mode || "code",
+            codexCallbacks
+          );
         }
-        return this.codexAgent.generateCode(prompt);
+        return this.codexAgent.generateCode(prompt, mode || "code");
       case "claude":
         if (callbacks) {
           // Claude doesn't support streaming yet, fall back to regular generation

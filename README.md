@@ -42,24 +42,26 @@ const vk = new VibeKit({
 });
 
 // Regular usage (no streaming)
-const result = await vibeKit.generateCode("Create a React component");
+const result = await vibeKit.generateCode("Create a React component", "code");
 
 // Streaming usage (with callbacks)
-const result = await vibeKit.generateCode("Create a React component", {
+const result = await vibeKit.generateCode("Create a React component", "code", {
   onUpdate: (message) => console.log(message),
   onError: (error) => console.error(error)
 });
 
 // Create a Pull Request
 // First generate code, then create a PR
-await vibeKit.generateCode("Add error handling to the login function");
+await vibeKit.generateCode("Add error handling to the login function", "code");
 
 const prResult = await vibeKit.createPullRequest();
 
 console.log(`PR created: ${prResult.html_url}`);
 // Output: PR created: https://github.com/user/repo/pull/123
 
-// The pull request will be automatically labeled 'codex' or 'claude' based on the agent used.
+// Ask mode
+// Use `ask` mode to research the repository without modifying any files
+const result = await vibeKit.generateCode("What is the purpose of the login function?", "ask");
 
 // Sandbox Management (Codex only)
 // Pause the sandbox to save resources

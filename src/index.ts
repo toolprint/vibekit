@@ -3,7 +3,11 @@ export { VibeKit } from "./core/vibekit";
 
 // Type exports
 export type { AgentName, AgentConfig } from "./types/agent";
-export type { AgentResponse, VibeKitStreamCallbacks } from "./core/vibekit";
+export type {
+  AgentResponse,
+  VibeKitStreamCallbacks,
+  PullRequestResponse,
+} from "./core/vibekit";
 
 // Agent function exports
 export { CodexAgent } from "./agents/codex";

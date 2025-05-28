@@ -49,7 +49,14 @@ const result = await vibeKit.generateCode("Create a React component", {
   onError: (error) => console.error(error)
 });
 
-console.log(result);
+// Create a Pull Request
+// First generate code, then create a PR
+await vibeKit.generateCode("Add error handling to the login function");
+
+const prResult = await vibeKit.createPullRequest();
+
+console.log(`PR created: ${prResult.html_url}`);
+// Output: PR created: https://github.com/user/repo/pull/123
 ```
 
 ## Supported Agents
@@ -85,6 +92,19 @@ export type AgentConfig =
       };
     }
 ```
+
+### Features
+
+- **Automatic Branch Creation**: Creates a new branch with a descriptive name
+- **Smart PR Metadata**: Uses AI to generate meaningful PR titles and descriptions
+- **Commit Management**: Handles staging, committing, and pushing changes
+- **GitHub Integration**: Creates the actual PR using GitHub's REST API
+
+### Requirements
+
+- Only available for the Codex agent
+- Requires a valid GitHub token with repository access
+- Repository must be accessible with the provided GitHub token
 
 ## Contributing
 

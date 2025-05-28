@@ -1,5 +1,4 @@
 import { Sandbox } from "@e2b/code-interpreter";
-import { createOpenAI } from "@ai-sdk/openai";
 
 import { generatePRMetadata } from "./utils.js";
 
@@ -159,9 +158,6 @@ export class CodexAgent {
     branchName: string;
     commitSha?: string;
   }> {
-    const openai = createOpenAI({
-      apiKey: this.config.openaiApiKey,
-    });
     const { githubToken, repoUrl } = this.config;
     const repoDir = repoUrl.split("/")[1];
 
@@ -175,6 +171,8 @@ export class CodexAgent {
       `cd ${repoDir} && git diff --diff-filter=ACMR`,
       { timeoutMs: 3600000 }
     );
+
+    console.log("patch", patch);
 
     if (!patch) {
       throw new Error("No patch found");

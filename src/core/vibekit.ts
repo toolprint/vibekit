@@ -14,8 +14,23 @@ export interface VibeKitStreamCallbacks {
   onError?: (error: string) => void;
 }
 
+// Pull request response interface
+export interface PullRequestResponse {
+  html_url: string;
+  number: number;
+  branchName: string;
+  commitSha?: string;
+}
+
 export class VibeKit {
-  constructor(private setup: AgentConfig) {}
+  private codexAgent?: CodexAgent;
+
+  constructor(private setup: AgentConfig) {
+    // Initialize CodexAgent if the agent type is codex
+    if (this.setup.agent === "codex") {
+      this.codexAgent = new CodexAgent(this.setup.config);
+    }
+  }
 
   async generateCode(
     prompt: string,
@@ -23,15 +38,17 @@ export class VibeKit {
   ): Promise<AgentResponse> {
     switch (this.setup.agent) {
       case "codex":
-        const codexAgent = new CodexAgent(this.setup.config);
+        if (!this.codexAgent) {
+          throw new Error("CodexAgent not initialized");
+        }
         if (callbacks) {
           const codexCallbacks: CodexStreamCallbacks = {
             onUpdate: callbacks.onUpdate,
             onError: callbacks.onError,
           };
-          return codexAgent.generateCode(prompt, codexCallbacks);
+          return this.codexAgent.generateCode(prompt, codexCallbacks);
         }
-        return codexAgent.generateCode(prompt);
+        return this.codexAgent.generateCode(prompt);
       case "claude":
         if (callbacks) {
           // Claude doesn't support streaming yet, fall back to regular generation
@@ -45,5 +62,26 @@ export class VibeKit {
       default:
         throw new Error("Unsupported agent");
     }
+  }
+
+  /**
+   * Create a Pull Request after generating code changes.
+   * This method is only available for the Codex agent.
+   *
+   * @returns Promise<PullRequestResponse> - Contains the PR URL, number, branch name, and commit SHA
+   * @throws Error if the agent is not Codex or if PR creation fails
+   */
+  async createPullRequest(): Promise<PullRequestResponse> {
+    if (this.setup.agent !== "codex") {
+      throw new Error(
+        "Pull request creation is only supported for the Codex agent"
+      );
+    }
+
+    if (!this.codexAgent) {
+      throw new Error("CodexAgent not initialized");
+    }
+
+    return this.codexAgent.createPullRequest();
   }
 }

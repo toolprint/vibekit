@@ -19,6 +19,7 @@
 <p align="center">
   <a href="#-example">Example</a> •
   <a href="#-supported-agents">Supported Agents</a> •
+  <a href="#-sdk">SDK</a> •
   <a href="#-configuration">Configuration</a> •
   <a href="https://discord.com/invite/mhmJUTjW4b" target="_blank">Discord</a> 
 </p>
@@ -59,12 +60,43 @@ console.log(`PR created: ${prResult.html_url}`);
 // Output: PR created: https://github.com/user/repo/pull/123
 
 // The pull request will be automatically labeled 'codex' or 'claude' based on the agent used.
+
+// Sandbox Management (Codex only)
+// Pause the sandbox to save resources
+await vibeKit.pause();
+
+// Resume the sandbox later
+await vibeKit.resume();
+
+// Kill the sandbox when done
+await vibeKit.kill();
 ```
 
 ## Supported Agents
 
 - [x] OpenAI Codex
 - [x] Claude Code
+
+## SDK
+
+```ts
+// Generate code
+await vibeKit.generateCode("Create a React component");
+
+// Generate code with streaming callbacks
+await vibeKit.generateCode("Add error handling", {
+  onUpdate: (message) => console.log(message),
+  onError: (error) => console.error(error)
+});
+
+// Create a pull request
+vibeKit.createPullRequest();
+
+// Sandbox management
+await vibeKit.pause();  // Pause the sandbox
+await vibeKit.resume(); // Resume the sandbox
+await vibeKit.kill();   // Terminate the sandbox
+```
 
 ## Configuration
 
@@ -102,6 +134,7 @@ export type AgentConfig =
 - **Commit Management**: Handles staging, committing, and pushing changes
 - **GitHub Integration**: Creates the actual PR using GitHub's REST API
 - **Agent Labeling**: Automatically labels pull requests with the agent name ('codex' or 'claude')
+- **Sandbox Management**: Kill, pause, and resume sandboxes for resource optimization (Codex only)
 
 ### Requirements
 

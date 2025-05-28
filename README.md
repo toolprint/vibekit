@@ -4,7 +4,7 @@
 
 # VibeKit
 
-### Send Prompts To Any Coding Agent
+### Run OpenAI Codex and Anthropic Claude Agents privately
 
 <p>
 <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/superagent-ai/vibekit" />

@@ -57,6 +57,8 @@ const prResult = await vibeKit.createPullRequest();
 
 console.log(`PR created: ${prResult.html_url}`);
 // Output: PR created: https://github.com/user/repo/pull/123
+
+// The pull request will be automatically labeled 'codex' or 'claude' based on the agent used.
 ```
 
 ## Supported Agents
@@ -99,6 +101,7 @@ export type AgentConfig =
 - **Smart PR Metadata**: Uses AI to generate meaningful PR titles and descriptions
 - **Commit Management**: Handles staging, committing, and pushing changes
 - **GitHub Integration**: Creates the actual PR using GitHub's REST API
+- **Agent Labeling**: Automatically labels pull requests with the agent name ('codex' or 'claude')
 
 ### Requirements
 

@@ -66,7 +66,8 @@ export class VibeKit {
 
   /**
    * Create a Pull Request after generating code changes.
-   * This method is only available for the Codex agent.
+   * This method is only available for the Codex agent and automatically labels
+   * the pull request with the agent name ('codex').
    *
    * @returns Promise<PullRequestResponse> - Contains the PR URL, number, branch name, and commit SHA
    * @throws Error if the agent is not Codex or if PR creation fails

@@ -40,6 +40,9 @@ describe("VibeKit", () => {
     mockCodexAgent = {
       generateCode: vi.fn(),
       createPullRequest: vi.fn(),
+      killSandbox: vi.fn(),
+      pauseSandbox: vi.fn(),
+      resumeSandbox: vi.fn(),
     };
 
     MockedCodexAgent.mockImplementation(() => mockCodexAgent);
@@ -152,6 +155,65 @@ describe("VibeKit", () => {
       await expect(vibeKit.createPullRequest()).rejects.toThrow(
         "Pull request creation is only supported for the Codex agent"
       );
+    });
+  });
+
+  describe("sandbox management", () => {
+    describe("kill", () => {
+      it("should kill sandbox using Codex agent", async () => {
+        const vibeKit = new VibeKit(codexConfig);
+
+        await vibeKit.kill();
+
+        expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
+        expect(mockCodexAgent.killSandbox).toHaveBeenCalled();
+      });
+
+      it("should throw error for non-Codex agents", async () => {
+        const vibeKit = new VibeKit(claudeConfig);
+
+        await expect(vibeKit.kill()).rejects.toThrow(
+          "Sandbox management is only supported for the Codex agent"
+        );
+      });
+    });
+
+    describe("pause", () => {
+      it("should pause sandbox using Codex agent", async () => {
+        const vibeKit = new VibeKit(codexConfig);
+
+        await vibeKit.pause();
+
+        expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
+        expect(mockCodexAgent.pauseSandbox).toHaveBeenCalled();
+      });
+
+      it("should throw error for non-Codex agents", async () => {
+        const vibeKit = new VibeKit(claudeConfig);
+
+        await expect(vibeKit.pause()).rejects.toThrow(
+          "Sandbox management is only supported for the Codex agent"
+        );
+      });
+    });
+
+    describe("resume", () => {
+      it("should resume sandbox using Codex agent", async () => {
+        const vibeKit = new VibeKit(codexConfig);
+
+        await vibeKit.resume();
+
+        expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
+        expect(mockCodexAgent.resumeSandbox).toHaveBeenCalled();
+      });
+
+      it("should throw error for non-Codex agents", async () => {
+        const vibeKit = new VibeKit(claudeConfig);
+
+        await expect(vibeKit.resume()).rejects.toThrow(
+          "Sandbox management is only supported for the Codex agent"
+        );
+      });
     });
   });
 });

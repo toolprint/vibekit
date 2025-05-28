@@ -60,10 +60,13 @@ describe("VibeKit", () => {
 
       mockCodexAgent.generateCode.mockResolvedValue(mockResponse);
 
-      const result = await vibeKit.generateCode("test prompt");
+      const result = await vibeKit.generateCode("test prompt", "code");
 
       expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
-      expect(mockCodexAgent.generateCode).toHaveBeenCalledWith("test prompt");
+      expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
+        "test prompt",
+        "code"
+      );
       expect(result).toBe(mockResponse);
     });
 
@@ -73,7 +76,7 @@ describe("VibeKit", () => {
 
       mockedCallClaude.mockResolvedValue(mockResponse);
 
-      const result = await vibeKit.generateCode("test prompt");
+      const result = await vibeKit.generateCode("test prompt", "code");
 
       expect(mockedCallClaude).toHaveBeenCalledWith(
         "test prompt",
@@ -89,12 +92,16 @@ describe("VibeKit", () => {
         onError: vi.fn(),
       };
 
-      await vibeKit.generateCode("test prompt", callbacks);
+      await vibeKit.generateCode("test prompt", "code", callbacks);
 
-      expect(mockCodexAgent.generateCode).toHaveBeenCalledWith("test prompt", {
-        onUpdate: callbacks.onUpdate,
-        onError: callbacks.onError,
-      });
+      expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
+        "test prompt",
+        "code",
+        {
+          onUpdate: callbacks.onUpdate,
+          onError: callbacks.onError,
+        }
+      );
     });
 
     it("should handle callbacks for Claude agent", async () => {
@@ -107,7 +114,7 @@ describe("VibeKit", () => {
 
       mockedCallClaude.mockResolvedValue(mockResponse);
 
-      await vibeKit.generateCode("test prompt", callbacks);
+      await vibeKit.generateCode("test prompt", "code", callbacks);
 
       expect(callbacks.onUpdate).toHaveBeenCalledWith(
         "Starting Claude code generation..."
@@ -124,7 +131,7 @@ describe("VibeKit", () => {
       };
       const vibeKit = new VibeKit(unsupportedConfig);
 
-      await expect(vibeKit.generateCode("test prompt")).rejects.toThrow(
+      await expect(vibeKit.generateCode("test prompt", "code")).rejects.toThrow(
         "Unsupported agent"
       );
     });

@@ -11,6 +11,8 @@ export type AgentConfig =
         e2bTemplateId?: string;
         model?: string;
         sandboxId?: string;
+        /** Set to 'ask' to research the repository without modifying any files, or 'code' to generate code changes */
+        mode?: 'ask' | 'code';
       };
     }
   | {

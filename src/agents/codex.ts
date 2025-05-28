@@ -83,13 +83,21 @@ export class CodexAgent {
    */
   public async generateCode(
     prompt: string,
+    mode?: "ask" | "code",
     callbacks?: CodexStreamCallbacks
   ): Promise<CodexResponse> {
     const config = this.config;
-    const _prompt =
-      "Do the necessary changes to the codebase based on the users input.\n" +
-      "Don't ask any follow up questions.\n\n" +
-      `User: ${prompt}`;
+    let instruction: string;
+    if (mode === "ask") {
+      instruction =
+        "Research the repository and answer the user's questions. " +
+        "Do NOT make any changes to any files in the repository.";
+    } else {
+      instruction =
+        "Do the necessary changes to the codebase based on the users input.\n" +
+        "Don't ask any follow up questions.";
+    }
+    const _prompt = `${instruction}\n\nUser: ${prompt}`;
     try {
       const sbx = await this.getSandbox();
       const repoDir = config.repoUrl.split("/")[1];

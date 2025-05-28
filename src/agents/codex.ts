@@ -175,8 +175,6 @@ export class CodexAgent {
       { timeoutMs: 3600000 }
     );
 
-    console.log("patch", patch);
-
     if (!patch) {
       throw new Error("No patch found");
     }

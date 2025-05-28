@@ -114,6 +114,8 @@ export type AgentConfig =
         e2bTemplateId?: string; // defaults to "super-codex"
         model?: string; // defaults to codex-mini
         sandboxId?: string; // if you want to resume an existing sandbox
+        /** Set to 'ask' to research the repository without modifying files, or 'code' to generate code changes */
+        mode?: 'ask' | 'code'; // defaults to 'code'
       };
     }
   | {

@@ -40,7 +40,14 @@ const vk = new VibeKit({
   },
 });
 
-const result = await vk.sendPrompt("Create a Next.js app with a login page.");
+// Regular usage (no streaming)
+const result = await vibeKit.generateCode("Create a React component");
+
+// Streaming usage (with callbacks)
+const result = await vibeKit.generateCode("Create a React component", {
+  onUpdate: (message) => console.log(message),
+  onError: (error) => console.error(error)
+});
 
 console.log(result);
 ```
@@ -49,14 +56,11 @@ console.log(result);
 
 - [x] OpenAI Codex
 - [x] Claude Code
-- [x] Devin
-- [x] OpenHands
-- [x] Codegen
 
 ## Configuration
 
 ```ts
-export type AgentName = 'codex' | 'devin' | 'claude' | 'openhands' | 'codegen';
+export type AgentName = 'codex' | 'claude';
 
 export type AgentConfig =
   | {
@@ -66,6 +70,9 @@ export type AgentConfig =
         githubToken: string;
         repoUrl: string;
         e2bApiKey: string;
+        e2bTemplateId?: string; // defaults to "super-codex"
+        model?: string; // defaults to codex-mini
+        sandboxId?: string; // if you want to resume an existing sandbox
       };
     }
   | {
@@ -77,13 +84,6 @@ export type AgentConfig =
         e2bApiKey: string;
       };
     }
-  | {
-      agent: 'devin' | 'codegen' | 'openhands';
-      config: {
-        apiKey: string;
-      };
-    };
-
 ```
 
 ## Contributing

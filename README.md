@@ -4,8 +4,7 @@
 
 # VibeKit
 
-### Run OpenAI Codex and Anthropic Claude Agents privately
-
+### Secure sandboxing for Code and Claude agents, with built-in observability and environment control.
 <p>
 <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/superagent-ai/vibekit" />
 <img alt="GitHub Issues" src="https://img.shields.io/github/issues/superagent-ai/vibekit" />

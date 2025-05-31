@@ -37,6 +37,7 @@ export type Conversation = {
   content: string;
 };
 
+// Codex types
 export interface CodexConfig {
   openaiApiKey: string;
   githubToken: string;

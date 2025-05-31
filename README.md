@@ -4,7 +4,7 @@
 
 # VibeKit
 
-### Run OpenAI Codex and Anthropic Claude Agents privately
+### Secure sandboxing for Code and Claude agents, with built-in observability and environment control.
 
 <p>
 <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/superagent-ai/vibekit" />
@@ -17,134 +17,30 @@
 -----
 
 <p align="center">
-  <a href="#-example">Example</a> •
+  <a href="https://vibekit.sh" target="_blank">Documentation</a> •
   <a href="#-supported-agents">Supported Agents</a> •
-  <a href="#-sdk">SDK</a> •
-  <a href="#-configuration">Configuration</a> •
   <a href="https://discord.com/invite/mhmJUTjW4b" target="_blank">Discord</a> 
 </p>
 
 -----
-
-## Example
-
-```ts
-import { VibeKit } from 'vibekit';
-
-const vk = new VibeKit({
-  agent: 'codex',
-  config: {
-    openaiApiKey: '...',
-    githubToken: '...',
-    repoUrl: 'https://github.com/user/repo',
-    e2bApiKey: '...',
-  },
-});
-
-// Regular usage (no streaming)
-const result = await vibeKit.generateCode("Create a React component", "code");
-
-// Streaming usage (with callbacks)
-const result = await vibeKit.generateCode("Create a React component", "code", {
-  onUpdate: (message) => console.log(message),
-  onError: (error) => console.error(error)
-});
-
-// Create a Pull Request
-// First generate code, then create a PR
-await vibeKit.generateCode("Add error handling to the login function", "code");
-
-const prResult = await vibeKit.createPullRequest();
-
-console.log(`PR created: ${prResult.html_url}`);
-// Output: PR created: https://github.com/user/repo/pull/123
-
-// Ask mode
-// Use `ask` mode to research the repository without modifying any files
-const result = await vibeKit.generateCode("What is the purpose of the login function?", "ask");
-
-// Sandbox Management (Codex only)
-// Pause the sandbox to save resources
-await vibeKit.pause();
-
-// Resume the sandbox later
-await vibeKit.resume();
-
-// Kill the sandbox when done
-await vibeKit.kill();
-```
 
 ## Supported Agents
 
 - [x] OpenAI Codex
 - [x] Claude Code
 
-## SDK
-
-```ts
-// Generate code
-await vibeKit.generateCode("Create a React component");
-
-// Generate code with streaming callbacks
-await vibeKit.generateCode("Add error handling", {
-  onUpdate: (message) => console.log(message),
-  onError: (error) => console.error(error)
-});
-
-// Create a pull request
-vibeKit.createPullRequest();
-
-// Sandbox management
-await vibeKit.pause();  // Pause the sandbox
-await vibeKit.resume(); // Resume the sandbox
-await vibeKit.kill();   // Terminate the sandbox
-```
-
-## Configuration
-
-```ts
-export type AgentName = 'codex' | 'claude';
-
-export type AgentConfig =
-  | {
-      agent: 'codex';
-      config: {
-        openaiApiKey: string;
-        githubToken: string;
-        repoUrl: string;
-        e2bApiKey: string;
-        e2bTemplateId?: string; // defaults to "super-codex"
-        model?: string; // defaults to codex-mini
-        sandboxId?: string; // if you want to resume an existing sandbox
-        /** Set to 'ask' to research the repository without modifying files, or 'code' to generate code changes */
-        mode?: 'ask' | 'code'; // defaults to 'code'
-      };
-    }
-  | {
-      agent: 'claude';
-      config: {
-        anthropicApiKey: string;
-        githubToken: string;
-        repoUrl: string;
-        e2bApiKey: string;
-      };
-    }
-```
 
 ### Features
 
+- **Codex Agent**: Use the Codex agent to generate code
+- **Claude Agent**: Use the Claude agent to generate code
+- **Conversation History**: Pass a conversation history to the agent to continue the conversation
 - **Automatic Branch Creation**: Creates a new branch with a descriptive name
 - **Smart PR Metadata**: Uses AI to generate meaningful PR titles and descriptions
 - **Commit Management**: Handles staging, committing, and pushing changes
 - **GitHub Integration**: Creates the actual PR using GitHub's REST API
 - **Agent Labeling**: Automatically labels pull requests with the agent name ('codex' or 'claude')
 - **Sandbox Management**: Kill, pause, and resume sandboxes for resource optimization (Codex only)
-
-### Requirements
-
-- Only available for the Codex agent
-- Requires a valid GitHub token with repository access
-- Repository must be accessible with the provided GitHub token
 
 ## Contributing
 

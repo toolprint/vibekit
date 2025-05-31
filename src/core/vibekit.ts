@@ -1,9 +1,10 @@
-import { AgentConfig } from "../types/agent";
 import {
-  CodexAgent,
+  AgentConfig,
   CodexResponse,
   CodexStreamCallbacks,
-} from "../agents/codex";
+  Conversation,
+} from "../types";
+import { CodexAgent } from "../agents/codex";
 import { callClaude, ClaudeResponse } from "../agents/claude";
 
 export type AgentResponse = CodexResponse | ClaudeResponse | { code: string };
@@ -35,6 +36,7 @@ export class VibeKit {
   async generateCode(
     prompt: string,
     mode?: "ask" | "code",
+    history?: Conversation[],
     callbacks?: VibeKitStreamCallbacks
   ): Promise<AgentResponse> {
     switch (this.setup.agent) {
@@ -50,10 +52,11 @@ export class VibeKit {
           return this.codexAgent.generateCode(
             prompt,
             mode || "code",
+            history,
             codexCallbacks
           );
         }
-        return this.codexAgent.generateCode(prompt, mode || "code");
+        return this.codexAgent.generateCode(prompt, mode || "code", history);
       case "claude":
         if (callbacks) {
           // Claude doesn't support streaming yet, fall back to regular generation

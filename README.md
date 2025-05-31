@@ -4,7 +4,7 @@
 
 # VibeKit
 
-### Secure sandboxing for Code and Claude agents, with built-in observability and environment control.
+### Secure sandboxing for Codex and Claude Code.
 
 <p>
 <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/superagent-ai/vibekit" />

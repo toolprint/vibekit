@@ -167,21 +167,80 @@ export class CodexAgent {
       { timeoutMs: 3600000 }
     );
 
+    // Debug: Check git status first
+    const gitStatus = await this.sbx?.commands.run(
+      `cd ${repoDir} && git status --porcelain`,
+      { timeoutMs: 3600000 }
+    );
+    console.log("Git status:", gitStatus);
+
+    // Debug: Check for untracked files
+    const untrackedFiles = await this.sbx?.commands.run(
+      `cd ${repoDir} && git ls-files --others --exclude-standard`,
+      { timeoutMs: 3600000 }
+    );
+    console.log("Untracked files:", untrackedFiles);
+
+    // Debug: Try different diff commands
+    const diffWorking = await this.sbx?.commands.run(
+      `cd ${repoDir} && git diff`,
+      { timeoutMs: 3600000 }
+    );
+    console.log("Git diff (working vs index):", diffWorking);
+
+    const diffHead = await this.sbx?.commands.run(
+      `cd ${repoDir} && git diff HEAD`,
+      { timeoutMs: 3600000 }
+    );
+    console.log("Git diff HEAD (working vs last commit):", diffHead);
+
     const patch = await this.sbx?.commands.run(
       `cd ${repoDir} && git diff --diff-filter=ACMR`,
       { timeoutMs: 3600000 }
     );
 
-    if (!patch) {
-      throw new Error("No patch found");
+    console.log("patch", patch);
+
+    if (
+      !patch ||
+      (!patch.stdout && !diffHead?.stdout && !untrackedFiles?.stdout)
+    ) {
+      throw new Error(
+        "No changes found - check if codex actually modified any files"
+      );
+    }
+
+    // Use the diff that has content, preferring the original patch format
+    let patchContent = patch?.stdout || diffHead?.stdout || "";
+
+    // If no diff but there are untracked files, we need to add them first
+    if (!patchContent && untrackedFiles?.stdout) {
+      await this.sbx?.commands.run(`cd ${repoDir} && git add .`, {
+        timeoutMs: 3600000,
+      });
+
+      const patchAfterAdd = await this.sbx?.commands.run(
+        `cd ${repoDir} && git diff --cached`,
+        { timeoutMs: 3600000 }
+      );
+      patchContent = patchAfterAdd?.stdout || "";
+    }
+
+    if (!patchContent) {
+      throw new Error("No patch content found after checking all diff methods");
     }
 
     const { title, body, branchName, commitMessage } = await generatePRMetadata(
-      patch?.stdout || "",
+      patchContent,
       "codex",
       this.config.openaiApiKey,
       this.lastPrompt || ""
     );
+
+    console.log("title", title);
+    console.log("body", body);
+    console.log("branchName", branchName);
+    console.log("commitMessage", commitMessage);
 
     const checkout = await this.sbx?.commands.run(
       `cd ${repoDir} && git checkout -b ${branchName} && git add -A && git commit -m "${commitMessage}"`,

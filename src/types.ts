@@ -1,43 +1,47 @@
-export type AgentName = "codex" | "devin" | "claude" | "openhands" | "codegen";
+// AGENTS
+export type AgentType = "codex" | "claude";
 
-export type AgentConfig =
-  | {
-      agent: "codex";
-      config: {
-        openaiApiKey: string;
-        githubToken: string;
-        repoUrl: string;
-        e2bApiKey: string;
-        e2bTemplateId?: string;
-        model?: string;
-        sandboxId?: string;
-        /** Set to 'ask' to research the repository without modifying any files, or 'code' to generate code changes */
-        mode?: "ask" | "code";
-      };
-    }
-  | {
-      agent: "claude";
-      config: {
-        anthropicApiKey: string;
-        githubToken: string;
-        repoUrl: string;
-        e2bApiKey: string;
-        e2bTemplateId: string;
-      };
-    }
-  | {
-      agent: "devin" | "codegen" | "openhands";
-      config: {
-        apiKey: string;
-      };
-    };
+export type AgentMode = "ask" | "code";
 
+export type AgentModel = {
+  name?: string;
+  apiKey: string;
+};
+
+export type EnvironmentConfig = {
+  e2bApiKey: string;
+  e2bTemplateId?: string;
+};
+
+export type GithubConfig = {
+  token: string;
+  repository: string;
+};
+
+export type AgentConfig = {
+  agent: {
+    type: AgentType;
+    model: AgentModel;
+    mode: AgentMode;
+  };
+  environment: EnvironmentConfig;
+  github: GithubConfig;
+  sessionId?: string;
+};
+
+// CONVERSATION HISTORY
 export type Conversation = {
   role: "user" | "assistant";
   content: string;
 };
 
-// Codex types
+// STREAMING CALLBACKS
+export interface CodexStreamCallbacks {
+  onUpdate?: (message: string) => void;
+  onError?: (error: string) => void;
+}
+
+// CODEX CONFIG
 export interface CodexConfig {
   openaiApiKey: string;
   githubToken: string;
@@ -57,9 +61,4 @@ export interface CodexResponse {
   patchApplyScript?: string;
   branchName?: string;
   commitSha?: string;
-}
-
-export interface CodexStreamCallbacks {
-  onUpdate?: (message: string) => void;
-  onError?: (error: string) => void;
 }

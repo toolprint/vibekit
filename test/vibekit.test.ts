@@ -17,23 +17,39 @@ describe("VibeKit", () => {
 
   beforeEach(() => {
     codexConfig = {
-      agent: "codex",
-      config: {
-        openaiApiKey: "test-openai-key",
-        githubToken: "test-github-token",
-        repoUrl: "octocat/hello-world",
+      agent: {
+        type: "codex",
+        model: {
+          name: "gpt-4",
+          apiKey: "test-openai-key",
+        },
+        mode: "code",
+      },
+      environment: {
         e2bApiKey: "test-e2b-key",
+      },
+      github: {
+        token: "test-github-token",
+        repository: "octocat/hello-world",
       },
     };
 
     claudeConfig = {
-      agent: "claude",
-      config: {
-        anthropicApiKey: "test-anthropic-key",
-        githubToken: "test-github-token",
-        repoUrl: "octocat/hello-world",
+      agent: {
+        type: "claude",
+        model: {
+          name: "claude-3-5-sonnet-20241022",
+          apiKey: "test-anthropic-key",
+        },
+        mode: "code",
+      },
+      environment: {
         e2bApiKey: "test-e2b-key",
         e2bTemplateId: "test-template",
+      },
+      github: {
+        token: "test-github-token",
+        repository: "octocat/hello-world",
       },
     };
 
@@ -62,7 +78,15 @@ describe("VibeKit", () => {
 
       const result = await vibeKit.generateCode("test prompt", "code", []);
 
-      expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
+      expect(MockedCodexAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          openaiApiKey: "test-openai-key",
+          githubToken: "test-github-token",
+          repoUrl: "octocat/hello-world",
+          e2bApiKey: "test-e2b-key",
+          model: "gpt-4",
+        })
+      );
       expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
@@ -81,7 +105,12 @@ describe("VibeKit", () => {
 
       expect(mockedCallClaude).toHaveBeenCalledWith(
         "test prompt",
-        claudeConfig.config
+        expect.objectContaining({
+          anthropicApiKey: "test-anthropic-key",
+          githubToken: "test-github-token",
+          repoUrl: "octocat/hello-world",
+          e2bApiKey: "test-e2b-key",
+        })
       );
       expect(result).toBe(mockResponse);
     });
@@ -128,8 +157,20 @@ describe("VibeKit", () => {
 
     it("should throw error for unsupported agent", async () => {
       const unsupportedConfig = {
-        agent: "devin" as any,
-        config: { apiKey: "test-key" },
+        agent: {
+          type: "devin" as any,
+          model: {
+            apiKey: "test-key",
+          },
+          mode: "code" as any,
+        },
+        environment: {
+          e2bApiKey: "test-e2b-key",
+        },
+        github: {
+          token: "test-github-token",
+          repository: "test/repo",
+        },
       };
       const vibeKit = new VibeKit(unsupportedConfig);
 
@@ -153,7 +194,15 @@ describe("VibeKit", () => {
 
       const result = await vibeKit.createPullRequest();
 
-      expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
+      expect(MockedCodexAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          openaiApiKey: "test-openai-key",
+          githubToken: "test-github-token",
+          repoUrl: "octocat/hello-world",
+          e2bApiKey: "test-e2b-key",
+          model: "gpt-4",
+        })
+      );
       expect(mockCodexAgent.createPullRequest).toHaveBeenCalled();
       expect(result).toBe(mockPRResponse);
     });
@@ -174,7 +223,15 @@ describe("VibeKit", () => {
 
         await vibeKit.kill();
 
-        expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
+        expect(MockedCodexAgent).toHaveBeenCalledWith(
+          expect.objectContaining({
+            openaiApiKey: "test-openai-key",
+            githubToken: "test-github-token",
+            repoUrl: "octocat/hello-world",
+            e2bApiKey: "test-e2b-key",
+            model: "gpt-4",
+          })
+        );
         expect(mockCodexAgent.killSandbox).toHaveBeenCalled();
       });
 
@@ -193,7 +250,15 @@ describe("VibeKit", () => {
 
         await vibeKit.pause();
 
-        expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
+        expect(MockedCodexAgent).toHaveBeenCalledWith(
+          expect.objectContaining({
+            openaiApiKey: "test-openai-key",
+            githubToken: "test-github-token",
+            repoUrl: "octocat/hello-world",
+            e2bApiKey: "test-e2b-key",
+            model: "gpt-4",
+          })
+        );
         expect(mockCodexAgent.pauseSandbox).toHaveBeenCalled();
       });
 
@@ -212,7 +277,15 @@ describe("VibeKit", () => {
 
         await vibeKit.resume();
 
-        expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
+        expect(MockedCodexAgent).toHaveBeenCalledWith(
+          expect.objectContaining({
+            openaiApiKey: "test-openai-key",
+            githubToken: "test-github-token",
+            repoUrl: "octocat/hello-world",
+            e2bApiKey: "test-e2b-key",
+            model: "gpt-4",
+          })
+        );
         expect(mockCodexAgent.resumeSandbox).toHaveBeenCalled();
       });
 

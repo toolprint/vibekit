@@ -1,11 +1,12 @@
 import {
   AgentConfig,
+  CodexConfig,
   CodexResponse,
   CodexStreamCallbacks,
   Conversation,
 } from "../types";
 import { CodexAgent } from "../agents/codex";
-import { callClaude, ClaudeResponse } from "../agents/claude";
+import { callClaude, ClaudeConfig, ClaudeResponse } from "../agents/claude";
 
 export type AgentResponse = CodexResponse | ClaudeResponse | { code: string };
 
@@ -28,8 +29,17 @@ export class VibeKit {
 
   constructor(private setup: AgentConfig) {
     // Initialize CodexAgent if the agent type is codex
-    if (this.setup.agent === "codex") {
-      this.codexAgent = new CodexAgent(this.setup.config);
+    if (this.setup.agent.type === "codex") {
+      const codexConfig: CodexConfig = {
+        openaiApiKey: this.setup.agent.model.apiKey,
+        githubToken: this.setup.github.token,
+        repoUrl: this.setup.github.repository,
+        e2bApiKey: this.setup.environment.e2bApiKey,
+        e2bTemplateId: this.setup.environment.e2bTemplateId,
+        model: this.setup.agent.model.name,
+        sandboxId: this.setup.sessionId,
+      };
+      this.codexAgent = new CodexAgent(codexConfig);
     }
   }
 
@@ -39,11 +49,12 @@ export class VibeKit {
     history?: Conversation[],
     callbacks?: VibeKitStreamCallbacks
   ): Promise<AgentResponse> {
-    switch (this.setup.agent) {
+    switch (this.setup.agent.type) {
       case "codex":
         if (!this.codexAgent) {
           throw new Error("CodexAgent not initialized");
         }
+
         if (callbacks) {
           const codexCallbacks: CodexStreamCallbacks = {
             onUpdate: callbacks.onUpdate,
@@ -51,22 +62,39 @@ export class VibeKit {
           };
           return this.codexAgent.generateCode(
             prompt,
-            mode || "code",
+            mode || this.setup.agent.mode,
             history,
             codexCallbacks
           );
         }
-        return this.codexAgent.generateCode(prompt, mode || "code", history);
+
+        return this.codexAgent.generateCode(
+          prompt,
+          mode || this.setup.agent.mode,
+          history
+        );
       case "claude":
         if (callbacks) {
           // Claude doesn't support streaming yet, fall back to regular generation
           // You can optionally call onProgress to indicate start/end
           callbacks.onUpdate?.("Starting Claude code generation...");
-          const result = await callClaude(prompt, this.setup.config);
+          const claudeConfig: ClaudeConfig = {
+            anthropicApiKey: this.setup.agent.model.apiKey,
+            githubToken: this.setup.github.token,
+            repoUrl: this.setup.github.repository,
+            e2bApiKey: this.setup.environment.e2bApiKey,
+          };
+          const result = await callClaude(prompt, claudeConfig);
           callbacks.onUpdate?.("Claude code generation completed.");
           return result;
         }
-        return callClaude(prompt, this.setup.config);
+        const claudeConfig: ClaudeConfig = {
+          anthropicApiKey: this.setup.agent.model.apiKey,
+          githubToken: this.setup.github.token,
+          repoUrl: this.setup.github.repository,
+          e2bApiKey: this.setup.environment.e2bApiKey,
+        };
+        return callClaude(prompt, claudeConfig);
       default:
         throw new Error("Unsupported agent");
     }
@@ -81,7 +109,7 @@ export class VibeKit {
    * @throws Error if the agent is not Codex or if PR creation fails
    */
   async createPullRequest(): Promise<PullRequestResponse> {
-    if (this.setup.agent !== "codex") {
+    if (this.setup.agent.type !== "codex") {
       throw new Error(
         "Pull request creation is only supported for the Codex agent"
       );
@@ -101,7 +129,7 @@ export class VibeKit {
    * @throws Error if the agent is not Codex
    */
   async kill(): Promise<void> {
-    if (this.setup.agent !== "codex") {
+    if (this.setup.agent.type !== "codex") {
       throw new Error(
         "Sandbox management is only supported for the Codex agent"
       );
@@ -121,7 +149,7 @@ export class VibeKit {
    * @throws Error if the agent is not Codex
    */
   async pause(): Promise<void> {
-    if (this.setup.agent !== "codex") {
+    if (this.setup.agent.type !== "codex") {
       throw new Error(
         "Sandbox management is only supported for the Codex agent"
       );
@@ -141,7 +169,7 @@ export class VibeKit {
    * @throws Error if the agent is not Codex
    */
   async resume(): Promise<void> {
-    if (this.setup.agent !== "codex") {
+    if (this.setup.agent.type !== "codex") {
       throw new Error(
         "Sandbox management is only supported for the Codex agent"
       );

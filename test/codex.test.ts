@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  CodexAgent,
-  CodexConfig,
-  CodexResponse,
-  CodexStreamCallbacks,
-} from "../src/agents/codex.js";
+import { CodexAgent } from "../src/agents/codex.js";
+import { CodexConfig, CodexStreamCallbacks } from "../src/types";
 import { Sandbox } from "@e2b/code-interpreter";
 import { generatePRMetadata } from "../src/agents/utils.js";
 
@@ -14,7 +10,6 @@ vi.mock("@ai-sdk/openai");
 vi.mock("../src/agents/utils.js");
 
 const MockedSandbox = vi.mocked(Sandbox);
-const mockedGeneratePRMetadata = vi.mocked(generatePRMetadata);
 
 describe("CodexAgent", () => {
   let config: CodexConfig;
@@ -206,7 +201,7 @@ describe("CodexAgent", () => {
         onError: vi.fn(),
       };
 
-      await codexAgent.generateCode("test prompt", "code", callbacks);
+      await codexAgent.generateCode("test prompt", "code", [], callbacks);
 
       expect(callbacks.onUpdate).toHaveBeenCalledWith(
         '{"type": "start", "sandbox_id": "test-sandbox-id"}'
@@ -233,6 +228,7 @@ describe("CodexAgent", () => {
       await agentWithExistingSandbox.generateCode(
         "test prompt",
         "code",
+        [],
         callbacks
       );
 

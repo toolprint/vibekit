@@ -1,32 +1,12 @@
 import { Sandbox } from "@e2b/code-interpreter";
 
-import { generatePRMetadata } from "./utils.js";
-
-export interface CodexConfig {
-  openaiApiKey: string;
-  githubToken: string;
-  repoUrl: string; // org/repo, e.g. "octocat/hello-world"
-  e2bApiKey: string;
-  e2bTemplateId?: string;
-  model?: string;
-  sandboxId?: string;
-}
-
-export interface CodexResponse {
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-  sandboxId: string;
-  patch?: string;
-  patchApplyScript?: string;
-  branchName?: string;
-  commitSha?: string;
-}
-
-export interface CodexStreamCallbacks {
-  onUpdate?: (message: string) => void;
-  onError?: (error: string) => void;
-}
+import { generatePRMetadata } from "./utils";
+import {
+  CodexConfig,
+  CodexResponse,
+  CodexStreamCallbacks,
+  Conversation,
+} from "../types";
 
 export class CodexAgent {
   private config: CodexConfig;
@@ -84,6 +64,7 @@ export class CodexAgent {
   public async generateCode(
     prompt: string,
     mode?: "ask" | "code",
+    history?: Conversation[],
     callbacks?: CodexStreamCallbacks
   ): Promise<CodexResponse> {
     const config = this.config;
@@ -97,7 +78,15 @@ export class CodexAgent {
         "Do the necessary changes to the codebase based on the users input.\n" +
         "Don't ask any follow up questions.";
     }
-    const _prompt = `${instruction}\n\nUser: ${prompt}`;
+
+    let _prompt = `${instruction}\n\nUser: ${prompt}`;
+
+    if (history) {
+      _prompt += `\n\Conversation history: ${history
+        .map((h) => `${h.role}\n ${h.content}`)
+        .join("\n\n")}`;
+    }
+
     try {
       const sbx = await this.getSandbox();
       const repoDir = config.repoUrl.split("/")[1];

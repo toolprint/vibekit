@@ -60,12 +60,13 @@ describe("VibeKit", () => {
 
       mockCodexAgent.generateCode.mockResolvedValue(mockResponse);
 
-      const result = await vibeKit.generateCode("test prompt", "code");
+      const result = await vibeKit.generateCode("test prompt", "code", []);
 
       expect(MockedCodexAgent).toHaveBeenCalledWith(codexConfig.config);
       expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
-        "code"
+        "code",
+        []
       );
       expect(result).toBe(mockResponse);
     });
@@ -76,7 +77,7 @@ describe("VibeKit", () => {
 
       mockedCallClaude.mockResolvedValue(mockResponse);
 
-      const result = await vibeKit.generateCode("test prompt", "code");
+      const result = await vibeKit.generateCode("test prompt", "code", []);
 
       expect(mockedCallClaude).toHaveBeenCalledWith(
         "test prompt",
@@ -92,11 +93,12 @@ describe("VibeKit", () => {
         onError: vi.fn(),
       };
 
-      await vibeKit.generateCode("test prompt", "code", callbacks);
+      await vibeKit.generateCode("test prompt", "code", [], callbacks);
 
       expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
+        [],
         {
           onUpdate: callbacks.onUpdate,
           onError: callbacks.onError,
@@ -114,7 +116,7 @@ describe("VibeKit", () => {
 
       mockedCallClaude.mockResolvedValue(mockResponse);
 
-      await vibeKit.generateCode("test prompt", "code", callbacks);
+      await vibeKit.generateCode("test prompt", "code", [], callbacks);
 
       expect(callbacks.onUpdate).toHaveBeenCalledWith(
         "Starting Claude code generation..."

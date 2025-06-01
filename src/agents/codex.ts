@@ -237,11 +237,6 @@ export class CodexAgent {
       this.lastPrompt || ""
     );
 
-    console.log("title", title);
-    console.log("body", body);
-    console.log("branchName", branchName);
-    console.log("commitMessage", commitMessage);
-
     const checkout = await this.sbx?.commands.run(
       `cd ${repoDir} && git checkout -b ${branchName} && git add -A && git commit -m "${commitMessage}"`,
       { timeoutMs: 3600000 }

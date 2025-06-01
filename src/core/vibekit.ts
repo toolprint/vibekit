@@ -28,14 +28,19 @@ export class VibeKit {
   private codexAgent?: CodexAgent;
 
   constructor(private setup: AgentConfig) {
+    // Check for unsupported environment configurations
+    if (this.setup.environment.daytona) {
+      throw new Error("Daytona environment support is not yet implemented");
+    }
+
     // Initialize CodexAgent if the agent type is codex
     if (this.setup.agent.type === "codex") {
       const codexConfig: CodexConfig = {
         openaiApiKey: this.setup.agent.model.apiKey,
         githubToken: this.setup.github.token,
         repoUrl: this.setup.github.repository,
-        e2bApiKey: this.setup.environment.e2bApiKey,
-        e2bTemplateId: this.setup.environment.e2bTemplateId,
+        e2bApiKey: this.setup.environment.e2b?.apiKey || "",
+        e2bTemplateId: this.setup.environment.e2b?.templateId,
         model: this.setup.agent.model.name,
         sandboxId: this.setup.sessionId,
       };
@@ -82,7 +87,7 @@ export class VibeKit {
             anthropicApiKey: this.setup.agent.model.apiKey,
             githubToken: this.setup.github.token,
             repoUrl: this.setup.github.repository,
-            e2bApiKey: this.setup.environment.e2bApiKey,
+            e2bApiKey: this.setup.environment.e2b?.apiKey || "",
           };
           const result = await callClaude(prompt, claudeConfig);
           callbacks.onUpdate?.("Claude code generation completed.");
@@ -92,7 +97,7 @@ export class VibeKit {
           anthropicApiKey: this.setup.agent.model.apiKey,
           githubToken: this.setup.github.token,
           repoUrl: this.setup.github.repository,
-          e2bApiKey: this.setup.environment.e2bApiKey,
+          e2bApiKey: this.setup.environment.e2b?.apiKey || "",
         };
         return callClaude(prompt, claudeConfig);
       default:

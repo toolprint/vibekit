@@ -31,15 +31,21 @@ export type GithubConfig = {
 
 // TELEMETRY
 export type TelemetryConfig = {
+  /** Enable or disable telemetry */
   isEnabled: boolean;
+  /** OTLP HTTP endpoint for traces (e.g., "https://api.honeycomb.io/v1/traces") */
   endpoint?: string;
+  /** Service name for resource attributes (defaults to "vibekit") */
   serviceName?: string;
+  /** Service version for resource attributes (defaults to "1.0.0") */
   serviceVersion?: string;
+  /** Additional headers for OTLP HTTP requests */
   headers?: Record<string, string>;
+  /** Request timeout in milliseconds (defaults to 5000) */
   timeout?: number;
-  exportIntervalMillis?: number;
-  maxExportBatchSize?: number;
+  /** Sampling ratio from 0.0 to 1.0 (defaults to 1.0 for 100% sampling) */
   samplingRatio?: number;
+  /** Additional resource attributes to include in telemetry data */
   resourceAttributes?: Record<string, string>;
 };
 

@@ -41,6 +41,7 @@
 - **GitHub Integration**: Creates the actual PR using GitHub's REST API
 - **Agent Labeling**: Automatically labels pull requests with the agent name ('codex' or 'claude')
 - **Sandbox Management**: Kill, pause, and resume sandboxes for resource optimization (Codex only)
+- **Telemetry**: Supports OpenTelemetry for tracing and metrics
 
 ## Contributing
 
@@ -49,3 +50,4 @@ Contributions are welcome! Please open an issue or submit a pull request.
 ## License
 
 This project is licensed under the MIT License. This means you are free to use, modify, and distribute the code, provided that you include the original license and copyright notice in any copies or substantial portions of the software. The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. For more details, please refer to the LICENSE file included in the repository.
+

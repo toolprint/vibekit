@@ -1,0 +1,8 @@
+src/
+test/
+coverage/
+.github/
+*.ts
+!dist/**/*.ts
+tsconfig.json
+test-*.ts

@@ -2,12 +2,23 @@
 export { VibeKit } from "./core/vibekit";
 
 // Type exports
-export type { AgentType, AgentConfig } from "./types";
 export type {
   AgentResponse,
   VibeKitStreamCallbacks,
   PullRequestResponse,
 } from "./core/vibekit";
+
+export type {
+  AgentConfig,
+  AgentType,
+  AgentMode,
+  AgentModel,
+  E2BConfig,
+  DaytonaConfig,
+  EnvironmentConfig,
+  GithubConfig,
+  TelemetryConfig,
+} from "./types";
 
 // Agent function exports
 export { CodexAgent } from "./agents/codex";
@@ -16,3 +27,7 @@ export { callClaude } from "./agents/claude";
 // Agent config type exports
 export type { CodexConfig, CodexResponse, CodexStreamCallbacks } from "./types";
 export type { ClaudeConfig, ClaudeResponse } from "./agents/claude";
+
+// Telemetry exports
+export { TelemetryService } from "./services/telemetry";
+export type { TelemetryData } from "./services/telemetry";

@@ -158,14 +158,16 @@ describe("VibeKit", () => {
 
       await vibeKit.generateCode("test prompt", "code", [], callbacks);
 
+      // Verify that generateCode was called with the correct parameters
+      // The callbacks will be wrapped functions, so we check that they exist
       expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
         [],
-        {
-          onUpdate: callbacks.onUpdate,
-          onError: callbacks.onError,
-        }
+        expect.objectContaining({
+          onUpdate: expect.any(Function),
+          onError: expect.any(Function),
+        })
       );
     });
 

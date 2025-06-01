@@ -14,15 +14,6 @@
 </p>
 </div>
 
------
-
-<p align="center">
-  <a href="https://vibekit.sh" target="_blank">Documentation</a> •
-  <a href="#-supported-agents">Supported Agents</a> •
-  <a href="https://discord.com/invite/mhmJUTjW4b" target="_blank">Discord</a> 
-</p>
-
------
 
 ## Supported Agents
 
@@ -30,7 +21,7 @@
 - [x] Claude Code
 
 
-### Features
+## Features
 
 - **Codex Agent**: Use the Codex agent to generate code
 - **Claude Agent**: Use the Claude agent to generate code

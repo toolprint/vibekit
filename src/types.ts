@@ -29,6 +29,20 @@ export type GithubConfig = {
   repository: string;
 };
 
+// TELEMETRY
+export type TelemetryConfig = {
+  isEnabled: boolean;
+  endpoint?: string;
+  serviceName?: string;
+  serviceVersion?: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+  exportIntervalMillis?: number;
+  maxExportBatchSize?: number;
+  samplingRatio?: number;
+  resourceAttributes?: Record<string, string>;
+};
+
 export type AgentConfig = {
   agent: {
     type: AgentType;
@@ -37,6 +51,7 @@ export type AgentConfig = {
   };
   environment: EnvironmentConfig;
   github: GithubConfig;
+  telemetry?: TelemetryConfig;
   sessionId?: string;
 };
 
@@ -61,6 +76,7 @@ export interface CodexConfig {
   e2bTemplateId?: string;
   model?: string;
   sandboxId?: string;
+  telemetry?: TelemetryConfig;
 }
 
 export interface CodexResponse {

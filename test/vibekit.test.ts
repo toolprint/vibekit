@@ -26,7 +26,9 @@ describe("VibeKit", () => {
         mode: "code",
       },
       environment: {
-        e2bApiKey: "test-e2b-key",
+        e2b: {
+          apiKey: "test-e2b-key",
+        },
       },
       github: {
         token: "test-github-token",
@@ -44,8 +46,10 @@ describe("VibeKit", () => {
         mode: "code",
       },
       environment: {
-        e2bApiKey: "test-e2b-key",
-        e2bTemplateId: "test-template",
+        e2b: {
+          apiKey: "test-e2b-key",
+          templateId: "test-template",
+        },
       },
       github: {
         token: "test-github-token",
@@ -62,6 +66,36 @@ describe("VibeKit", () => {
     };
 
     MockedCodexAgent.mockImplementation(() => mockCodexAgent);
+  });
+
+  describe("constructor", () => {
+    it("should throw error when daytona environment is configured", () => {
+      const daytonaConfig: AgentConfig = {
+        agent: {
+          type: "codex",
+          model: {
+            name: "gpt-4",
+            apiKey: "test-openai-key",
+          },
+          mode: "code",
+        },
+        environment: {
+          daytona: {
+            apiKey: "test-daytona-key",
+            image: "test-image",
+            serverUrl: "https://test-daytona-server.com",
+          },
+        },
+        github: {
+          token: "test-github-token",
+          repository: "octocat/hello-world",
+        },
+      };
+
+      expect(() => {
+        new VibeKit(daytonaConfig);
+      }).toThrow("Daytona environment support is not yet implemented");
+    });
   });
 
   describe("generateCode", () => {
@@ -165,7 +199,9 @@ describe("VibeKit", () => {
           mode: "code" as any,
         },
         environment: {
-          e2bApiKey: "test-e2b-key",
+          e2b: {
+            apiKey: "test-e2b-key",
+          },
         },
         github: {
           token: "test-github-token",

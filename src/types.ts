@@ -8,9 +8,20 @@ export type AgentModel = {
   apiKey: string;
 };
 
+export type E2BConfig = {
+  apiKey: string;
+  templateId?: string;
+};
+
+export type DaytonaConfig = {
+  apiKey: string;
+  image?: string;
+  serverUrl?: string;
+};
+
 export type EnvironmentConfig = {
-  e2bApiKey: string;
-  e2bTemplateId?: string;
+  e2b?: E2BConfig;
+  daytona?: DaytonaConfig;
 };
 
 export type GithubConfig = {

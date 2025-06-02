@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="400px" src="./assets/vibekit-hero.png" />
+<img width="700px" src="./assets/vibekit-hero.png" />
 
 ### Run Codex and Claude Code In a Secure Sandbox.
 </div>

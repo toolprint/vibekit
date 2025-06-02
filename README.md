@@ -8,7 +8,8 @@
 -----
 
 <p align="center">
-  <a href="https://vibekit.sh" target="_blank">Documentation</a> •
+<a href="https://vibekit.sh" target="_blank">Website</a> •
+  <a href="https://docs.vibekit.sh" target="_blank">Documentation</a> •
   <a href="https://discord.com/invite/mhmJUTjW4b" target="_blank">Discord</a> 
 </p>
 

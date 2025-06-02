@@ -2,14 +2,13 @@
 
 <img width="200px" src="./assets/vibekit-logo.png" />
 
-### Secure sandboxing for Codex and Claude Code.
+### Run Codex and Claude Code in a secure sandbox.
 </div>
 
 -----
 
 <p align="center">
   <a href="https://vibekit.sh" target="_blank">Documentation</a> •
-  <a href="#-supported-agents">Supported Agents</a> •
   <a href="https://discord.com/invite/mhmJUTjW4b" target="_blank">Discord</a> 
 </p>
 

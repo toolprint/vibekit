@@ -419,4 +419,46 @@ export class VibeKit {
 
     return this.codexAgent.resumeSandbox();
   }
+
+  /**
+   * Get the current session ID from the sandbox.
+   * This method is only available for the Codex agent.
+   *
+   * @returns Promise<string | null> - The sandbox session ID or null if not available
+   * @throws Error if the agent is not Codex
+   */
+  async getSession(): Promise<string | null> {
+    if (this.setup.agent.type !== "codex") {
+      throw new Error(
+        "Session management is only supported for the Codex agent"
+      );
+    }
+
+    if (!this.codexAgent) {
+      throw new Error("CodexAgent not initialized");
+    }
+
+    return this.codexAgent.getSession();
+  }
+
+  /**
+   * Set the session ID for the sandbox.
+   * This method is only available for the Codex agent.
+   *
+   * @param sessionId - The session ID to set
+   * @throws Error if the agent is not Codex
+   */
+  async setSession(sessionId: string): Promise<void> {
+    if (this.setup.agent.type !== "codex") {
+      throw new Error(
+        "Session management is only supported for the Codex agent"
+      );
+    }
+
+    if (!this.codexAgent) {
+      throw new Error("CodexAgent not initialized");
+    }
+
+    return this.codexAgent.setSession(sessionId);
+  }
 }

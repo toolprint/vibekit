@@ -1,10 +1,8 @@
 <div align="center">
 
-<img width="200px" src="./assets/vibekit.png" />
+<img width="400px" src="./assets/vibekit-hero.png" />
 
-## VibeKit
-
-### Run Codex and Claude Code in a secure sandbox.
+### Run Codex and Claude Code In a Secure Sandbox.
 </div>
 
 -----
@@ -16,16 +14,12 @@
 
 -----
 
-## Supported Agents
+## About
 
-- [x] OpenAI Codex
-- [x] Claude Code
-
+Vibekit is an open source, secure and pluggable sandbox that lets developers embed OpenAI Codex and Claude Code agents into their apps.
 
 ## Features
 
-- **Codex Agent**: Use the Codex agent to generate code
-- **Claude Agent**: Use the Claude agent to generate code
 - **Conversation History**: Pass a conversation history to the agent to continue the conversation
 - **Automatic Branch Creation**: Creates a new branch with a descriptive name
 - **Smart PR Metadata**: Uses AI to generate meaningful PR titles and descriptions

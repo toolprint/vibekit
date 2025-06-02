@@ -14,11 +14,9 @@ Use Codex or Claude Code in a secure sandbox. Run locally or in the cloud.
 
 ## 🧠 What is VibeKit?
 
-VibeKit is the easiest way to run coding agents—like Codex or Claude—in secure, pluggable sandboxes. Build with AI safely, whether you’re embedding agents in a product, testing them in a dev tool, or using them to automate work inside your codebase.
+VibeKit is an SDK for running powerful coding agents like **OpenAI Codex** or **Claude Code** in secure, customizable sandboxes. You can generate and execute real code safely, stream output to your UI, and run everything locally or in the cloud — with full isolation and flexibility.
 
-No more wiring up execution environments. No GitHub auth headaches. No custom wrappers for every model.
-
-Just one SDK. Any agent. Any sandbox.
+One SDK. Any coding agent. Any sandbox.
 
 ---
 
@@ -56,25 +54,26 @@ console.log("Result:", result);
 
 ## ⚡️ Features
 
-🧠 Simple SDK to embed Codex or Claude agents in your app  
-🔒 Secure sandboxing with full isolation and runtime control  
-🔁 GitHub integration: branches, commits, PRs, all automated  
-💬 Contextual conversations with prompt history  
-🌐 Streaming output directly into your UI  
-🔍 Built-in OpenTelemetry tracing and metrics  
-🧰 Pluggable sandbox support — no vendor lock-in
+🧠 Drop-in SDK for Codex and Claude Code  
+🔒 Secure sandboxing for safe code execution  
+🌐 Works locally or in the cloud  
+🔁 GitHub automation: branches, commits, PRs  
+💬 Prompt history and context continuity  
+📡 Streamed output for real-time UIs  
+🔍 OpenTelemetry support for tracing and metrics  
+🧰 Compatible with any sandbox runtime
 
 ---
 
 ## 🧱 Supported Sandbox Runtimes
 
-Daytona, Modal, Fly.io, E2B, or any provider you configure.
+Daytona, Modal, Fly.io, E2B, and other configurable providers.
 
 ---
 
 ## 🧪 Use Cases
 
-Build internal dev tools, ship AI-powered features in your product, scaffold ideas during prototyping, automate integration tasks, or just explore what coding agents can do in a safe, controlled environment.
+Build internal debugging tools, ship AI-powered features, scaffold new ideas, automate repetitive coding tasks, and test LLM output safely in production or prototyping environments.
 
 ---
 

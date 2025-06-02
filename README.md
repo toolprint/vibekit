@@ -2,18 +2,18 @@
 
 <img width="200px" src="./assets/vibekit-logo.png" />
 
-# VibeKit
-
 ### Secure sandboxing for Codex and Claude Code.
-
-<p>
-<img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/superagent-ai/vibekit" />
-<img alt="GitHub Issues" src="https://img.shields.io/github/issues/superagent-ai/vibekit" />
-<img alt="GitHub License" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
-<img alt="Discord" src="https://img.shields.io/discord/1110910277110743103?label=Discord&logo=discord&logoColor=white&style=plastic&color=d7b023)](https://discord.gg/e8j7mgjDUK" />
-</p>
 </div>
 
+-----
+
+<p align="center">
+  <a href="https://vibekit.sh" target="_blank">Documentation</a> •
+  <a href="#-supported-agents">Supported Agents</a> •
+  <a href="https://discord.com/invite/mhmJUTjW4b" target="_blank">Discord</a> 
+</p>
+
+-----
 
 ## Supported Agents
 

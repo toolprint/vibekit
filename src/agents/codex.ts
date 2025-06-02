@@ -58,6 +58,18 @@ export class CodexAgent {
     }
   }
 
+  public async getSession() {
+    if (this.sbx) {
+      return this.sbx.sandboxId;
+    }
+
+    return null;
+  }
+
+  public async setSession(sessionId: string) {
+    this.config.sandboxId = sessionId;
+  }
+
   /**
    * Call Codex to generate/apply code, return patch and helper script.
    */

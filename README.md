@@ -2,39 +2,90 @@
 
 <img width="700px" src="./assets/vibekit-hero.png" />
 
-### Run Codex and Claude Code In a Secure Sandbox.
+# Run coding agents in a secure sandbox
+
+Use Codex or Claude Code in a secure sandbox. Run locally or in the cloud.
+
+[Website](https://vibekit.sh) • [Docs](https://docs.vibekit.sh) • [Discord](https://discord.com/invite/mhmJUTjW4b)
+
 </div>
 
------
+---
 
-<p align="center">
-<a href="https://vibekit.sh" target="_blank">Website</a> •
-  <a href="https://docs.vibekit.sh" target="_blank">Documentation</a> •
-  <a href="https://discord.com/invite/mhmJUTjW4b" target="_blank">Discord</a> 
-</p>
+## 🧠 What is VibeKit?
 
------
+VibeKit is the easiest way to run coding agents—like Codex or Claude—in secure, pluggable sandboxes. Build with AI safely, whether you’re embedding agents in a product, testing them in a dev tool, or using them to automate work inside your codebase.
 
-## About
+No more wiring up execution environments. No GitHub auth headaches. No custom wrappers for every model.
 
-Vibekit is an open source, secure and pluggable sandbox that lets developers embed OpenAI Codex and Claude Code agents into their apps.
+Just one SDK. Any agent. Any sandbox.
 
-## Features
+---
 
-- **Conversation History**: Pass a conversation history to the agent to continue the conversation
-- **Automatic Branch Creation**: Creates a new branch with a descriptive name
-- **Smart PR Metadata**: Uses AI to generate meaningful PR titles and descriptions
-- **Commit Management**: Handles staging, committing, and pushing changes
-- **GitHub Integration**: Creates the actual PR using GitHub's REST API
-- **Agent Labeling**: Automatically labels pull requests with the agent name ('codex' or 'claude')
-- **Sandbox Management**: Kill, pause, and resume sandboxes for resource optimization (Codex only)
-- **Telemetry**: Supports OpenTelemetry for tracing and metrics
+## 🚀 Quickstart
 
-## Contributing
+```bash
+npm i @vibe-kit/sdk
+```
 
-Contributions are welcome! Please open an issue or submit a pull request.
+```ts
+import { VibeKit, VibeKitConfig } from "@vibe-kit/sdk";
 
-## License
+const config: VibeKitConfig = {
+  agent: { type: "codex", /* or "claude" */ },
+  sandbox: { provider: "daytona" },
+};
 
-This project is licensed under the MIT License. This means you are free to use, modify, and distribute the code, provided that you include the original license and copyright notice in any copies or substantial portions of the software. The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. For more details, please refer to the LICENSE file included in the repository.
+const prompt = "Create a todo list app";
+const vibeKit = new VibeKit(config);
 
+const result = await vibeKit.generateCode(
+  prompt,
+  "code",
+  [{ role: "user", content: "..." }],
+  {
+    onUpdate: (data) => console.log("Update:", data),
+    onError: (err) => console.error("Error:", err),
+  }
+);
+
+console.log("Result:", result);
+```
+
+---
+
+## ⚡️ Features
+
+🧠 Simple SDK to embed Codex or Claude agents in your app  
+🔒 Secure sandboxing with full isolation and runtime control  
+🔁 GitHub integration: branches, commits, PRs, all automated  
+💬 Contextual conversations with prompt history  
+🌐 Streaming output directly into your UI  
+🔍 Built-in OpenTelemetry tracing and metrics  
+🧰 Pluggable sandbox support — no vendor lock-in
+
+---
+
+## 🧱 Supported Sandbox Runtimes
+
+Daytona, Modal, Fly.io, E2B, or any provider you configure.
+
+---
+
+## 🧪 Use Cases
+
+Build internal dev tools, ship AI-powered features in your product, scaffold ideas during prototyping, automate integration tasks, or just explore what coding agents can do in a safe, controlled environment.
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Open an issue, start a discussion, or submit a pull request.
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](./LICENSE) for details.
+
+© 2025 Superagent Technologies Inc.

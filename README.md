@@ -1,6 +1,8 @@
 <div align="center">
 
-<img width="200px" src="./assets/vibekit-logo.png" />
+<img width="200px" src="./assets/vibekit.png" />
+
+## VibeKit
 
 ### Run Codex and Claude Code in a secure sandbox.
 </div>

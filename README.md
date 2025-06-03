@@ -20,38 +20,6 @@ One SDK. Any coding agent. Any sandbox.
 
 ---
 
-## 🚀 Quickstart
-
-```bash
-npm i @vibe-kit/sdk
-```
-
-```ts
-import { VibeKit, VibeKitConfig } from "@vibe-kit/sdk";
-
-const config: VibeKitConfig = {
-  agent: { type: "codex", /* or "claude" */ },
-  sandbox: { provider: "daytona" },
-};
-
-const prompt = "Create a todo list app";
-const vibeKit = new VibeKit(config);
-
-const result = await vibeKit.generateCode(
-  prompt,
-  "code",
-  [{ role: "user", content: "..." }],
-  {
-    onUpdate: (data) => console.log("Update:", data),
-    onError: (err) => console.error("Error:", err),
-  }
-);
-
-console.log("Result:", result);
-```
-
----
-
 ## ⚡️ Features
 
 🧠 Drop-in SDK for Codex and Claude Code  

@@ -50,6 +50,19 @@ describe("ClaudeAgent", () => {
     it("should initialize with provided config", () => {
       expect(claudeAgent).toBeInstanceOf(ClaudeAgent);
     });
+
+    it("should initialize with custom model", () => {
+      const customConfig = { ...config, model: "claude-3-opus" };
+      const customAgent = new ClaudeAgent(customConfig);
+      expect(customAgent).toBeInstanceOf(ClaudeAgent);
+    });
+
+    it("should initialize without model (uses default)", () => {
+      const configWithoutModel = { ...config };
+      delete configWithoutModel.model;
+      const agentWithoutModel = new ClaudeAgent(configWithoutModel);
+      expect(agentWithoutModel).toBeInstanceOf(ClaudeAgent);
+    });
   });
 
   describe("getSandbox", () => {
@@ -172,7 +185,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         3,
-        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --dangerously-skip-permissions',
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --dangerously-skip-permissions --model claude-3-sonnet',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
@@ -184,7 +197,38 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         3,
-        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository." --disallowedTools "Edit" "Replace" "Write" --output-format stream-json --verbose --dangerously-skip-permissions',
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository." --disallowedTools "Edit" "Replace" "Write" --output-format stream-json --verbose --dangerously-skip-permissions --model claude-3-sonnet',
+        expect.objectContaining({
+          timeoutMs: 3600000,
+        })
+      );
+    });
+
+    it("should use default model when none is specified", async () => {
+      const configWithoutModel = { ...config };
+      delete configWithoutModel.model;
+      const agentWithoutModel = new ClaudeAgent(configWithoutModel);
+
+      await agentWithoutModel.generateCode("test prompt", "code");
+
+      expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
+        3,
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --dangerously-skip-permissions --model claude-sonnet-4-20250514',
+        expect.objectContaining({
+          timeoutMs: 3600000,
+        })
+      );
+    });
+
+    it("should use custom model when specified", async () => {
+      const customConfig = { ...config, model: "claude-3-opus" };
+      const customAgent = new ClaudeAgent(customConfig);
+
+      await customAgent.generateCode("test prompt", "code");
+
+      expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
+        3,
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --dangerously-skip-permissions --model claude-3-opus',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
@@ -230,6 +274,23 @@ describe("ClaudeAgent", () => {
           timeoutMs: 3600000,
         })
       );
+    });
+
+    it("should include conversation history and use correct model", async () => {
+      const history = [
+        { role: "user" as const, content: "Previous question" },
+        { role: "assistant" as const, content: "Previous answer" },
+      ];
+
+      await claudeAgent.generateCode("test prompt", "code", history);
+
+      // Verify both history inclusion and model parameter
+      const expectedCall = mockSandbox.commands.run.mock.calls.find(
+        (call) =>
+          call[0].includes("Conversation history") &&
+          call[0].includes("--model claude-3-sonnet")
+      );
+      expect(expectedCall).toBeDefined();
     });
 
     it("should handle errors and call error callback", async () => {

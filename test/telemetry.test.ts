@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { TelemetryService, TelemetryData } from "../src/services/telemetry.js";
-import { VibeKit, AgentConfig } from "../src/index.js";
-import { CodexAgent } from "../src/agents/codex.js";
-import { callClaude } from "../src/agents/claude.js";
+import { TelemetryService } from "../src/services/telemetry";
+import { VibeKit, VibeKitConfig } from "../src/index";
+import { CodexAgent } from "../src/agents/codex";
+import { ClaudeAgent } from "../src/agents/claude";
 
 // Mock dependencies
-vi.mock("../src/agents/codex.js");
-vi.mock("../src/agents/claude.js");
+vi.mock("../src/agents/codex");
+vi.mock("../src/agents/claude");
 
 const MockedCodexAgent = vi.mocked(CodexAgent);
-const mockedCallClaude = vi.mocked(callClaude);
+const MockedClaudeAgent = vi.mocked(ClaudeAgent);
 
 describe("TelemetryService", () => {
   let telemetryConfig: any;
@@ -164,9 +164,10 @@ describe("TelemetryService", () => {
 });
 
 describe("VibeKit Telemetry Integration", () => {
-  let configWithTelemetry: AgentConfig;
-  let configWithoutTelemetry: AgentConfig;
+  let configWithTelemetry: VibeKitConfig;
+  let configWithoutTelemetry: VibeKitConfig;
   let mockCodexAgent: any;
+  let mockClaudeAgent: any;
 
   beforeEach(() => {
     configWithTelemetry = {
@@ -223,7 +224,16 @@ describe("VibeKit Telemetry Integration", () => {
       resumeSandbox: vi.fn(),
     };
 
+    mockClaudeAgent = {
+      generateCode: vi.fn(),
+      createPullRequest: vi.fn(),
+      killSandbox: vi.fn(),
+      pauseSandbox: vi.fn(),
+      resumeSandbox: vi.fn(),
+    };
+
     MockedCodexAgent.mockImplementation(() => mockCodexAgent);
+    MockedClaudeAgent.mockImplementation(() => mockClaudeAgent);
   });
 
   afterEach(() => {
@@ -315,7 +325,7 @@ describe("VibeKit Telemetry Integration", () => {
       const vibeKit = new VibeKit(claudeConfig);
       const mockResponse = { code: "test code generated" };
 
-      mockedCallClaude.mockResolvedValue(mockResponse);
+      mockClaudeAgent.generateCode.mockResolvedValue(mockResponse);
 
       const callbacks = {
         onUpdate: vi.fn(),
@@ -342,7 +352,9 @@ describe("VibeKit Telemetry Integration", () => {
 
       const vibeKit = new VibeKit(claudeConfig);
 
-      mockedCallClaude.mockRejectedValue(new Error("Claude API error"));
+      mockClaudeAgent.generateCode.mockRejectedValue(
+        new Error("Claude API error")
+      );
 
       const callbacks = {
         onUpdate: vi.fn(),

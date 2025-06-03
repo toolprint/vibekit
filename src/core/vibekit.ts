@@ -1,12 +1,16 @@
 import {
-  AgentConfig,
+  VibeKitConfig,
   CodexConfig,
   CodexResponse,
   CodexStreamCallbacks,
+  ClaudeConfig,
+  ClaudeResponse,
+  ClaudeStreamCallbacks,
   Conversation,
 } from "../types";
 import { CodexAgent } from "../agents/codex";
-import { callClaude, ClaudeConfig, ClaudeResponse } from "../agents/claude";
+import { ClaudeAgent } from "../agents/claude";
+import { BaseAgent, AgentResponse as BaseAgentResponse } from "../agents/base";
 import { TelemetryService } from "../services/telemetry";
 
 export type AgentResponse = CodexResponse | ClaudeResponse | { code: string };
@@ -26,11 +30,11 @@ export interface PullRequestResponse {
 }
 
 export class VibeKit {
-  private codexAgent?: CodexAgent;
-  private setup: AgentConfig;
+  private agent: BaseAgent;
+  private setup: VibeKitConfig;
   private telemetryService?: TelemetryService;
 
-  constructor(setup: AgentConfig) {
+  constructor(setup: VibeKitConfig) {
     this.setup = setup;
 
     // Initialize telemetry service if enabled
@@ -46,19 +50,37 @@ export class VibeKit {
       throw new Error("Daytona environment support is not yet implemented");
     }
 
-    // Initialize CodexAgent if the agent type is codex
-    if (this.setup.agent.type === "codex") {
+    // Initialize the appropriate agent
+    this.agent = this.createAgent(setup);
+  }
+
+  private createAgent(setup: VibeKitConfig): BaseAgent {
+    if (setup.agent.type === "codex") {
       const codexConfig: CodexConfig = {
-        openaiApiKey: this.setup.agent.model.apiKey,
-        githubToken: this.setup.github.token,
-        repoUrl: this.setup.github.repository,
-        e2bApiKey: this.setup.environment.e2b?.apiKey || "",
-        e2bTemplateId: this.setup.environment.e2b?.templateId,
-        model: this.setup.agent.model.name,
-        sandboxId: this.setup.sessionId,
-        telemetry: this.setup.telemetry,
+        openaiApiKey: setup.agent.model.apiKey,
+        githubToken: setup.github.token,
+        repoUrl: setup.github.repository,
+        e2bApiKey: setup.environment.e2b?.apiKey || "",
+        e2bTemplateId: setup.environment.e2b?.templateId,
+        model: setup.agent.model.name,
+        sandboxId: setup.sessionId,
+        telemetry: setup.telemetry,
       };
-      this.codexAgent = new CodexAgent(codexConfig);
+      return new CodexAgent(codexConfig);
+    } else if (setup.agent.type === "claude") {
+      const claudeConfig: ClaudeConfig = {
+        anthropicApiKey: setup.agent.model.apiKey,
+        githubToken: setup.github.token,
+        repoUrl: setup.github.repository,
+        e2bApiKey: setup.environment.e2b?.apiKey || "",
+        e2bTemplateId: setup.environment.e2b?.templateId,
+        model: setup.agent.model.name,
+        sandboxId: setup.sessionId,
+        telemetry: setup.telemetry,
+      };
+      return new ClaudeAgent(claudeConfig);
+    } else {
+      throw new Error(`Unsupported agent type: ${setup.agent.type}`);
     }
   }
 
@@ -77,388 +99,177 @@ export class VibeKit {
     history?: Conversation[],
     callbacks?: VibeKitStreamCallbacks
   ): Promise<AgentResponse> {
-    switch (this.setup.agent.type) {
-      case "codex":
-        if (!this.codexAgent) {
-          throw new Error("CodexAgent not initialized");
-        }
+    const agentMode = mode || this.setup.agent.mode;
+    const agentType = this.setup.agent.type;
 
-        const codexMode = mode || this.setup.agent.mode;
+    // Track telemetry start
+    await this.telemetryService?.trackStart(agentType, agentMode, prompt, {
+      repoUrl: this.setup.github.repository,
+      model: this.setup.agent.model.name,
+      hasHistory: !!history?.length,
+    });
 
-        // Track telemetry start for Codex
-        await this.telemetryService?.trackStart("codex", codexMode, prompt, {
-          repoUrl: this.setup.github.repository,
-          model: this.setup.agent.model.name,
-          hasHistory: !!history?.length,
-        });
-
-        if (callbacks) {
-          // Wrap callbacks with telemetry tracking
-          const codexCallbacks: CodexStreamCallbacks = {
-            onUpdate: async (data) => {
-              callbacks.onUpdate?.(data);
-              // Track telemetry for stream data
-              await this.telemetryService?.trackStream(
-                "codex",
-                codexMode,
-                prompt,
-                data,
-                undefined,
-                this.setup.github.repository,
-                {
-                  dataType: this.getDataType(data),
-                }
-              );
-            },
-            onError: async (error) => {
-              callbacks.onError?.(error);
-              // Track telemetry for error
-              await this.telemetryService?.trackError(
-                "codex",
-                codexMode,
-                prompt,
-                error,
-                {
-                  source: "codex_agent",
-                }
-              );
-            },
-          };
-
-          try {
-            const result = await this.codexAgent.generateCode(
-              prompt,
-              codexMode,
-              history,
-              codexCallbacks
-            );
-
-            // Track telemetry for end
-            await this.telemetryService?.trackEnd(
-              "codex",
-              codexMode,
-              prompt,
-              result.sandboxId,
-              this.setup.github.repository,
-              {
-                exitCode: result.exitCode,
-                stdoutLength: result.stdout?.length || 0,
-                stderrLength: result.stderr?.length || 0,
-              }
-            );
-
-            return result;
-          } catch (error) {
-            const errorMessage = `Codex generation failed: ${
-              error instanceof Error ? error.message : String(error)
-            }`;
-
-            // Track telemetry for top-level error
-            await this.telemetryService?.trackError(
-              "codex",
-              codexMode,
-              prompt,
-              errorMessage,
-              {
-                errorType:
-                  error instanceof Error
-                    ? error.constructor.name
-                    : "UnknownError",
-                source: "vibekit",
-              }
-            );
-
-            throw error;
-          }
-        }
-
-        try {
-          const result = await this.codexAgent.generateCode(
-            prompt,
-            codexMode,
-            history
-          );
-
-          // Track telemetry for end (non-streaming)
-          await this.telemetryService?.trackEnd(
-            "codex",
-            codexMode,
-            prompt,
-            result.sandboxId,
-            this.setup.github.repository,
-            {
-              exitCode: result.exitCode,
-              stdoutLength: result.stdout?.length || 0,
-              stderrLength: result.stderr?.length || 0,
-            }
-          );
-
-          return result;
-        } catch (error) {
-          const errorMessage = `Codex generation failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`;
-
-          // Track telemetry for error (non-streaming)
-          await this.telemetryService?.trackError(
-            "codex",
-            codexMode,
-            prompt,
-            errorMessage,
-            {
-              errorType:
-                error instanceof Error
-                  ? error.constructor.name
-                  : "UnknownError",
-              source: "vibekit",
-            }
-          );
-
-          throw error;
-        }
-      case "claude":
-        const claudeMode = mode || this.setup.agent.mode;
-
-        // Track telemetry start for Claude
-        await this.telemetryService?.trackStart("claude", claudeMode, prompt, {
-          repoUrl: this.setup.github.repository,
-          hasHistory: !!history?.length,
-        });
-
-        if (callbacks) {
-          // Claude doesn't support streaming yet, fall back to regular generation
-          // You can optionally call onProgress to indicate start/end
-          const startMessage = "Starting Claude code generation...";
-          callbacks.onUpdate?.(startMessage);
-
-          // Track telemetry for start message
+    if (callbacks) {
+      // Wrap callbacks with telemetry tracking
+      const wrappedCallbacks = {
+        onUpdate: async (data: string) => {
+          callbacks.onUpdate?.(data);
           await this.telemetryService?.trackStream(
-            "claude",
-            claudeMode,
+            agentType,
+            agentMode,
             prompt,
-            startMessage,
-            undefined,
-            this.setup.github.repository
-          );
-
-          try {
-            const claudeConfig: ClaudeConfig = {
-              anthropicApiKey: this.setup.agent.model.apiKey,
-              githubToken: this.setup.github.token,
-              repoUrl: this.setup.github.repository,
-              e2bApiKey: this.setup.environment.e2b?.apiKey || "",
-            };
-            const result = await callClaude(prompt, claudeConfig);
-
-            const endMessage = "Claude code generation completed.";
-            callbacks.onUpdate?.(endMessage);
-
-            // Track telemetry for end
-            await this.telemetryService?.trackEnd(
-              "claude",
-              claudeMode,
-              prompt,
-              undefined,
-              this.setup.github.repository,
-              {
-                codeLength: result.code?.length || 0,
-              }
-            );
-
-            return result;
-          } catch (error) {
-            const errorMessage = `Claude generation failed: ${
-              error instanceof Error ? error.message : String(error)
-            }`;
-
-            // Track telemetry for error
-            await this.telemetryService?.trackError(
-              "claude",
-              claudeMode,
-              prompt,
-              errorMessage,
-              {
-                errorType:
-                  error instanceof Error
-                    ? error.constructor.name
-                    : "UnknownError",
-              }
-            );
-
-            callbacks.onError?.(errorMessage);
-            throw error;
-          }
-        }
-
-        try {
-          const claudeConfig: ClaudeConfig = {
-            anthropicApiKey: this.setup.agent.model.apiKey,
-            githubToken: this.setup.github.token,
-            repoUrl: this.setup.github.repository,
-            e2bApiKey: this.setup.environment.e2b?.apiKey || "",
-          };
-          const result = await callClaude(prompt, claudeConfig);
-
-          // Track telemetry for end (non-streaming)
-          await this.telemetryService?.trackEnd(
-            "claude",
-            claudeMode,
-            prompt,
+            data,
             undefined,
             this.setup.github.repository,
             {
-              codeLength: result.code?.length || 0,
+              dataType: this.getDataType(data),
             }
           );
-
-          return result;
-        } catch (error) {
-          const errorMessage = `Claude generation failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`;
-
-          // Track telemetry for error (non-streaming)
+        },
+        onError: async (error: string) => {
+          callbacks.onError?.(error);
           await this.telemetryService?.trackError(
-            "claude",
-            claudeMode,
+            agentType,
+            agentMode,
             prompt,
-            errorMessage,
+            error,
             {
-              errorType:
-                error instanceof Error
-                  ? error.constructor.name
-                  : "UnknownError",
+              source: `${agentType}_agent`,
             }
           );
+        },
+      };
 
-          throw error;
+      try {
+        const result = await this.agent.generateCode(
+          prompt,
+          agentMode,
+          history,
+          wrappedCallbacks
+        );
+
+        await this.telemetryService?.trackEnd(
+          agentType,
+          agentMode,
+          prompt,
+          result.sandboxId,
+          this.setup.github.repository,
+          {
+            exitCode: result.exitCode,
+            stdoutLength: result.stdout?.length || 0,
+            stderrLength: result.stderr?.length || 0,
+          }
+        );
+
+        return result;
+      } catch (error) {
+        const errorMessage = `${agentType} generation failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`;
+
+        await this.telemetryService?.trackError(
+          agentType,
+          agentMode,
+          prompt,
+          errorMessage,
+          {
+            errorType:
+              error instanceof Error ? error.constructor.name : "UnknownError",
+            source: "vibekit",
+          }
+        );
+
+        throw error;
+      }
+    }
+
+    // Non-streaming path
+    try {
+      const result = await this.agent.generateCode(prompt, agentMode, history);
+
+      await this.telemetryService?.trackEnd(
+        agentType,
+        agentMode,
+        prompt,
+        result.sandboxId,
+        this.setup.github.repository,
+        {
+          exitCode: result.exitCode,
+          stdoutLength: result.stdout?.length || 0,
+          stderrLength: result.stderr?.length || 0,
         }
-      default:
-        throw new Error("Unsupported agent");
+      );
+
+      return result;
+    } catch (error) {
+      const errorMessage = `${agentType} generation failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+
+      await this.telemetryService?.trackError(
+        agentType,
+        agentMode,
+        prompt,
+        errorMessage,
+        {
+          errorType:
+            error instanceof Error ? error.constructor.name : "UnknownError",
+          source: "vibekit",
+        }
+      );
+
+      throw error;
     }
   }
 
   /**
    * Create a Pull Request after generating code changes.
-   * This method is only available for the Codex agent and automatically labels
-   * the pull request with the agent name ('codex').
+   * This method is available for both Codex and Claude agents and automatically labels
+   * the pull request with the agent name ('codex' or 'claude').
    *
    * @returns Promise<PullRequestResponse> - Contains the PR URL, number, branch name, and commit SHA
-   * @throws Error if the agent is not Codex or if PR creation fails
+   * @throws Error if the agent is not supported or if PR creation fails
    */
   async createPullRequest(): Promise<PullRequestResponse> {
-    if (this.setup.agent.type !== "codex") {
-      throw new Error(
-        "Pull request creation is only supported for the Codex agent"
-      );
-    }
-
-    if (!this.codexAgent) {
-      throw new Error("CodexAgent not initialized");
-    }
-
-    return this.codexAgent.createPullRequest();
+    return this.agent.createPullRequest();
   }
 
   /**
    * Kill the active sandbox.
-   * This method is only available for the Codex agent.
-   *
-   * @throws Error if the agent is not Codex
    */
   async kill(): Promise<void> {
-    if (this.setup.agent.type !== "codex") {
-      throw new Error(
-        "Sandbox management is only supported for the Codex agent"
-      );
-    }
-
-    if (!this.codexAgent) {
-      throw new Error("CodexAgent not initialized");
-    }
-
-    return this.codexAgent.killSandbox();
+    return this.agent.killSandbox();
   }
 
   /**
    * Pause the active sandbox.
-   * This method is only available for the Codex agent.
-   *
-   * @throws Error if the agent is not Codex
    */
   async pause(): Promise<void> {
-    if (this.setup.agent.type !== "codex") {
-      throw new Error(
-        "Sandbox management is only supported for the Codex agent"
-      );
-    }
-
-    if (!this.codexAgent) {
-      throw new Error("CodexAgent not initialized");
-    }
-
-    return this.codexAgent.pauseSandbox();
+    return this.agent.pauseSandbox();
   }
 
   /**
    * Resume the paused sandbox.
-   * This method is only available for the Codex agent.
-   *
-   * @throws Error if the agent is not Codex
    */
   async resume(): Promise<void> {
-    if (this.setup.agent.type !== "codex") {
-      throw new Error(
-        "Sandbox management is only supported for the Codex agent"
-      );
-    }
-
-    if (!this.codexAgent) {
-      throw new Error("CodexAgent not initialized");
-    }
-
-    return this.codexAgent.resumeSandbox();
+    return this.agent.resumeSandbox();
   }
 
   /**
    * Get the current session ID from the sandbox.
-   * This method is only available for the Codex agent.
    *
    * @returns Promise<string | null> - The sandbox session ID or null if not available
-   * @throws Error if the agent is not Codex
    */
   async getSession(): Promise<string | null> {
-    if (this.setup.agent.type !== "codex") {
-      throw new Error(
-        "Session management is only supported for the Codex agent"
-      );
-    }
-
-    if (!this.codexAgent) {
-      throw new Error("CodexAgent not initialized");
-    }
-
-    return this.codexAgent.getSession();
+    return this.agent.getSession();
   }
 
   /**
    * Set the session ID for the sandbox.
-   * This method is only available for the Codex agent.
    *
    * @param sessionId - The session ID to set
-   * @throws Error if the agent is not Codex
    */
   async setSession(sessionId: string): Promise<void> {
-    if (this.setup.agent.type !== "codex") {
-      throw new Error(
-        "Session management is only supported for the Codex agent"
-      );
-    }
-
-    if (!this.codexAgent) {
-      throw new Error("CodexAgent not initialized");
-    }
-
-    return this.codexAgent.setSession(sessionId);
+    return this.agent.setSession(sessionId);
   }
 }

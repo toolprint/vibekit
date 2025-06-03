@@ -9,7 +9,7 @@ export type {
 } from "./core/vibekit";
 
 export type {
-  AgentConfig,
+  VibeKitConfig,
   AgentType,
   AgentMode,
   AgentModel,
@@ -22,11 +22,15 @@ export type {
 
 // Agent function exports
 export { CodexAgent } from "./agents/codex";
-export { callClaude } from "./agents/claude";
+export { ClaudeAgent } from "./agents/claude";
 
 // Agent config type exports
 export type { CodexConfig, CodexResponse, CodexStreamCallbacks } from "./types";
-export type { ClaudeConfig, ClaudeResponse } from "./agents/claude";
+export type {
+  ClaudeConfig,
+  ClaudeResponse,
+  ClaudeStreamCallbacks,
+} from "./types";
 
 // Telemetry exports
 export { TelemetryService } from "./services/telemetry";

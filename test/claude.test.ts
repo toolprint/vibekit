@@ -170,8 +170,9 @@ describe("ClaudeAgent", () => {
     it("should run claude command with correct parameters for code mode", async () => {
       await claudeAgent.generateCode("test prompt", "code");
 
-      expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose',
+      expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
+        3,
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --dangerously-skip-permissions',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
@@ -181,8 +182,9 @@ describe("ClaudeAgent", () => {
     it("should run claude command with ask mode restrictions", async () => {
       await claudeAgent.generateCode("test prompt", "ask");
 
-      expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository." --disallowedTools "Edit" "Replace" "Write" --output-format stream-json --verbose',
+      expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
+        3,
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository." --disallowedTools "Edit" "Replace" "Write" --output-format stream-json --verbose --dangerously-skip-permissions',
         expect.objectContaining({
           timeoutMs: 3600000,
         })

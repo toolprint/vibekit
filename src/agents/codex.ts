@@ -25,7 +25,7 @@ export class CodexAgent {
       });
     } else {
       this.sbx = await Sandbox.create(
-        this.config.e2bTemplateId || "super-codex",
+        this.config.e2bTemplateId || "vibekit-codex",
         {
           envs: {
             OPENAI_API_KEY: this.config.openaiApiKey,
@@ -94,7 +94,7 @@ export class CodexAgent {
     let _prompt = `${instruction}\n\nUser: ${prompt}`;
 
     if (history) {
-      _prompt += `\n\Conversation history: ${history
+      _prompt += `\n\nConversation history: ${history
         .map((h) => `${h.role}\n ${h.content}`)
         .join("\n\n")}`;
     }

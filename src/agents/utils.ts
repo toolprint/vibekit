@@ -25,7 +25,7 @@ export async function generatePRMetadata(
       branchName: z
         .string()
         .describe(
-          "Suggested branch name, should start with `codex/` and be unique"
+          `Suggested branch name, should start with \`${agent}/\` and be unique`
         ),
       commitMessage: z
         .string()

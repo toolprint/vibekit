@@ -49,7 +49,7 @@ export type TelemetryConfig = {
   resourceAttributes?: Record<string, string>;
 };
 
-export type AgentConfig = {
+export type VibeKitConfig = {
   agent: {
     type: AgentType;
     model: AgentModel;
@@ -73,6 +73,11 @@ export interface CodexStreamCallbacks {
   onError?: (error: string) => void;
 }
 
+export interface ClaudeStreamCallbacks {
+  onUpdate?: (message: string) => void;
+  onError?: (error: string) => void;
+}
+
 // CODEX CONFIG
 export interface CodexConfig {
   openaiApiKey: string;
@@ -86,6 +91,29 @@ export interface CodexConfig {
 }
 
 export interface CodexResponse {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  sandboxId: string;
+  patch?: string;
+  patchApplyScript?: string;
+  branchName?: string;
+  commitSha?: string;
+}
+
+// CLAUDE CONFIG
+export interface ClaudeConfig {
+  anthropicApiKey: string;
+  githubToken: string;
+  repoUrl: string; // org/repo, e.g. "octocat/hello-world"
+  e2bApiKey: string;
+  e2bTemplateId?: string;
+  model?: string;
+  sandboxId?: string;
+  telemetry?: TelemetryConfig;
+}
+
+export interface ClaudeResponse {
   exitCode: number;
   stdout: string;
   stderr: string;

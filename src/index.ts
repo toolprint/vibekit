@@ -22,7 +22,7 @@ export type {
 
 // Agent function exports
 export { CodexAgent } from "./agents/codex";
-export { ClaudeAgent, callClaude } from "./agents/claude";
+export { ClaudeAgent } from "./agents/claude";
 
 // Agent config type exports
 export type { CodexConfig, CodexResponse, CodexStreamCallbacks } from "./types";

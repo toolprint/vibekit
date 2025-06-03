@@ -8,6 +8,7 @@ import {
 
 export class ClaudeAgent extends BaseAgent {
   private anthropicApiKey: string;
+  private model?: string;
 
   constructor(config: ClaudeConfig) {
     const baseConfig: BaseAgentConfig = {
@@ -21,6 +22,7 @@ export class ClaudeAgent extends BaseAgent {
 
     super(baseConfig);
     this.anthropicApiKey = config.anthropicApiKey;
+    this.model = config.model;
   }
 
   protected getCommandConfig(
@@ -41,7 +43,9 @@ export class ClaudeAgent extends BaseAgent {
     return {
       command: `echo "${prompt}" | claude -p --append-system-prompt "${instruction}"${
         mode === "ask" ? ' --disallowedTools "Edit" "Replace" "Write"' : ""
-      } --output-format stream-json --verbose`,
+      } --output-format stream-json --verbose --model ${
+        this.model || "claude-sonnet-4-20250514"
+      }`,
       errorPrefix: "Claude",
       labelName: "claude",
       labelColor: "FF6B35",
@@ -97,7 +101,9 @@ export class ClaudeAgent extends BaseAgent {
       ...originalGetCommandConfig(p, m),
       command: `echo "${prompt}" | claude -p --append-system-prompt "${instruction}"${
         mode === "ask" ? ' --disallowedTools "Edit" "Replace" "Write"' : ""
-      } --output-format stream-json --verbose --dangerously-skip-permissions`,
+      } --output-format stream-json --verbose --dangerously-skip-permissions --model ${
+        this.model || "claude-sonnet-4-20250514"
+      }`,
     });
 
     const result = await super.generateCode(prompt, mode, history, callbacks);

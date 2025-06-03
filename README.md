@@ -2,7 +2,7 @@
 
 <img width="700px" src="./assets/vibekit-hero.png" />
 
-## Run coding agents in a secure sandbox
+### Run coding agents in a secure sandbox
 
 Use Codex or Claude Code in a secure sandbox. Run locally or in the cloud.
 

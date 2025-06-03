@@ -57,7 +57,8 @@ export class VibeKit {
   private createAgent(setup: VibeKitConfig): BaseAgent {
     if (setup.agent.type === "codex") {
       const codexConfig: CodexConfig = {
-        openaiApiKey: setup.agent.model.apiKey,
+        providerApiKey: setup.agent.model.apiKey,
+        provider: setup.agent.model.provider,
         githubToken: setup.github?.token,
         repoUrl: setup.github?.repository,
         e2bApiKey: setup.environment.e2b?.apiKey || "",
@@ -69,7 +70,8 @@ export class VibeKit {
       return new CodexAgent(codexConfig);
     } else if (setup.agent.type === "claude") {
       const claudeConfig: ClaudeConfig = {
-        anthropicApiKey: setup.agent.model.apiKey,
+        providerApiKey: setup.agent.model.apiKey,
+        provider: setup.agent.model.provider,
         githubToken: setup.github?.token,
         repoUrl: setup.github?.repository,
         e2bApiKey: setup.environment.e2b?.apiKey || "",
@@ -95,15 +97,14 @@ export class VibeKit {
 
   async generateCode(
     prompt: string,
-    mode?: "ask" | "code",
+    mode: "ask" | "code",
     history?: Conversation[],
     callbacks?: VibeKitStreamCallbacks
   ): Promise<AgentResponse> {
-    const agentMode = mode || this.setup.agent.mode;
     const agentType = this.setup.agent.type;
 
     // Track telemetry start
-    await this.telemetryService?.trackStart(agentType, agentMode, prompt, {
+    await this.telemetryService?.trackStart(agentType, mode, prompt, {
       repoUrl: this.setup.github?.repository,
       model: this.setup.agent.model.name,
       hasHistory: !!history?.length,
@@ -116,7 +117,7 @@ export class VibeKit {
           callbacks.onUpdate?.(data);
           await this.telemetryService?.trackStream(
             agentType,
-            agentMode,
+            mode,
             prompt,
             data,
             undefined,
@@ -130,7 +131,7 @@ export class VibeKit {
           callbacks.onError?.(error);
           await this.telemetryService?.trackError(
             agentType,
-            agentMode,
+            mode,
             prompt,
             error,
             {
@@ -143,14 +144,14 @@ export class VibeKit {
       try {
         const result = await this.agent.generateCode(
           prompt,
-          agentMode,
+          mode,
           history,
           wrappedCallbacks
         );
 
         await this.telemetryService?.trackEnd(
           agentType,
-          agentMode,
+          mode,
           prompt,
           result.sandboxId,
           this.setup.github?.repository,
@@ -169,7 +170,7 @@ export class VibeKit {
 
         await this.telemetryService?.trackError(
           agentType,
-          agentMode,
+          mode,
           prompt,
           errorMessage,
           {
@@ -185,11 +186,11 @@ export class VibeKit {
 
     // Non-streaming path
     try {
-      const result = await this.agent.generateCode(prompt, agentMode, history);
+      const result = await this.agent.generateCode(prompt, mode, history);
 
       await this.telemetryService?.trackEnd(
         agentType,
-        agentMode,
+        mode,
         prompt,
         result.sandboxId,
         this.setup.github?.repository,
@@ -208,7 +209,7 @@ export class VibeKit {
 
       await this.telemetryService?.trackError(
         agentType,
-        agentMode,
+        mode,
         prompt,
         errorMessage,
         {

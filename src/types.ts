@@ -3,8 +3,22 @@ export type AgentType = "codex" | "claude";
 
 export type AgentMode = "ask" | "code";
 
+export type ModelProvider =
+  | "openai"
+  | "anthropic"
+  | "openrouter"
+  | "azure"
+  | "gemini"
+  | "ollama"
+  | "mistral"
+  | "deepseek"
+  | "xai"
+  | "groq"
+  | "arceeai";
+
 export type AgentModel = {
   name?: string;
+  provider?: ModelProvider;
   apiKey: string;
 };
 
@@ -53,7 +67,6 @@ export type VibeKitConfig = {
   agent: {
     type: AgentType;
     model: AgentModel;
-    mode: AgentMode;
   };
   environment: EnvironmentConfig;
   github?: GithubConfig;
@@ -80,7 +93,8 @@ export interface ClaudeStreamCallbacks {
 
 // CODEX CONFIG
 export interface CodexConfig {
-  openaiApiKey: string;
+  providerApiKey?: string;
+  provider?: ModelProvider;
   githubToken?: string;
   repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
   e2bApiKey: string;
@@ -103,7 +117,8 @@ export interface CodexResponse {
 
 // CLAUDE CONFIG
 export interface ClaudeConfig {
-  anthropicApiKey: string;
+  providerApiKey: string;
+  provider?: ModelProvider;
   githubToken?: string;
   repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
   e2bApiKey: string;

@@ -13,6 +13,7 @@ export type {
   AgentType,
   AgentMode,
   AgentModel,
+  ModelProvider,
   E2BConfig,
   DaytonaConfig,
   EnvironmentConfig,

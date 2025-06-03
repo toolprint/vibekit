@@ -38,3 +38,4 @@ logs
 test-codex.ts
 test-pr.ts
 test-claude.ts
+test-codex-gemini.ts

@@ -18,7 +18,7 @@ describe("CodexAgent", () => {
 
   beforeEach(() => {
     config = {
-      openaiApiKey: "test-openai-key",
+      providerApiKey: "test-openai-key",
       githubToken: "test-github-token",
       repoUrl: "octocat/hello-world",
       e2bApiKey: "test-e2b-key",
@@ -51,6 +51,33 @@ describe("CodexAgent", () => {
   describe("constructor", () => {
     it("should initialize with provided config", () => {
       expect(codexAgent).toBeInstanceOf(CodexAgent);
+    });
+
+    it("should throw error when no API key is provided", () => {
+      const configWithoutKey = {
+        githubToken: "test-github-token",
+        repoUrl: "octocat/hello-world",
+        e2bApiKey: "test-e2b-key",
+        e2bTemplateId: "test-template-id",
+        model: "gpt-4",
+      };
+      expect(() => new CodexAgent(configWithoutKey as any)).toThrow(
+        "Provider API key is required. Please provide providerApiKey, apiKey, or openaiApiKey."
+      );
+    });
+
+    it("should support custom provider", () => {
+      const configWithProvider = {
+        providerApiKey: "test-openai-key",
+        provider: "anthropic" as const,
+        githubToken: "test-github-token",
+        repoUrl: "octocat/hello-world",
+        e2bApiKey: "test-e2b-key",
+        e2bTemplateId: "test-template-id",
+        model: "gpt-4",
+      };
+      const agent = new CodexAgent(configWithProvider);
+      expect(agent).toBeInstanceOf(CodexAgent);
     });
   });
 
@@ -173,7 +200,7 @@ describe("CodexAgent", () => {
       await codexAgent.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        'cd hello-world && codex --approval-mode auto-edit -m gpt-4 --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        'cd hello-world && codex --approval-mode auto-edit --model gpt-4 --provider openai --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
@@ -188,11 +215,56 @@ describe("CodexAgent", () => {
       await agentWithoutModel.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        'cd hello-world && codex --approval-mode auto-edit --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        'cd hello-world && codex --approval-mode auto-edit --provider openai --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
       );
+    });
+
+    it("should run codex command with custom provider", async () => {
+      const configWithProvider = {
+        providerApiKey: "test-openai-key",
+        provider: "anthropic" as const,
+        githubToken: "test-github-token",
+        repoUrl: "octocat/hello-world",
+        e2bApiKey: "test-e2b-key",
+        e2bTemplateId: "test-template-id",
+        model: "gpt-4",
+      };
+      const agentWithProvider = new CodexAgent(configWithProvider);
+
+      await agentWithProvider.generateCode("test prompt");
+
+      expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
+        3,
+        'cd hello-world && codex --approval-mode auto-edit --model gpt-4 --provider anthropic --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        expect.objectContaining({
+          timeoutMs: 3600000,
+        })
+      );
+    });
+
+    it("should set correct environment variable for custom provider", async () => {
+      const configWithProvider = {
+        providerApiKey: "test-openai-key",
+        provider: "anthropic" as const,
+        githubToken: "test-github-token",
+        repoUrl: "octocat/hello-world",
+        e2bApiKey: "test-e2b-key",
+        e2bTemplateId: "test-template-id",
+        model: "gpt-4",
+      };
+      const agentWithProvider = new CodexAgent(configWithProvider);
+
+      await agentWithProvider.generateCode("test prompt");
+
+      expect(MockedSandbox.create).toHaveBeenCalledWith("test-template-id", {
+        envs: {
+          ANTHROPIC_API_KEY: "test-openai-key",
+        },
+        apiKey: "test-e2b-key",
+      });
     });
 
     it("should call callbacks when provided", async () => {

@@ -4,6 +4,7 @@ import {
   ClaudeResponse,
   ClaudeStreamCallbacks,
   Conversation,
+  ModelProvider,
 } from "../types";
 
 export class ClaudeAgent extends BaseAgent {
@@ -21,7 +22,13 @@ export class ClaudeAgent extends BaseAgent {
     };
 
     super(baseConfig);
-    this.anthropicApiKey = config.anthropicApiKey;
+
+    // Validate that provider is anthropic if specified (Claude only supports anthropic)
+    if (config.provider && config.provider !== "anthropic") {
+      throw new Error("Claude agent only supports 'anthropic' provider");
+    }
+
+    this.anthropicApiKey = config.providerApiKey;
     this.model = config.model;
   }
 

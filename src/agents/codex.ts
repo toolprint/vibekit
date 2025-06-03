@@ -4,10 +4,12 @@ import {
   CodexResponse,
   CodexStreamCallbacks,
   Conversation,
+  ModelProvider,
 } from "../types";
 
 export class CodexAgent extends BaseAgent {
-  private openaiApiKey: string;
+  private providerApiKey: string;
+  private provider: ModelProvider;
   private model?: string;
 
   constructor(config: CodexConfig) {
@@ -21,8 +23,17 @@ export class CodexAgent extends BaseAgent {
     };
 
     super(baseConfig);
-    this.openaiApiKey = config.openaiApiKey;
+
+    // Support new providerApiKey field with fallback to deprecated fields for backward compatibility
+    this.providerApiKey = config.providerApiKey || "";
+    this.provider = config.provider || "openai";
     this.model = config.model;
+
+    if (!this.providerApiKey) {
+      throw new Error(
+        "Provider API key is required. Please provide providerApiKey, apiKey, or openaiApiKey."
+      );
+    }
   }
 
   protected getCommandConfig(
@@ -44,7 +55,9 @@ export class CodexAgent extends BaseAgent {
 
     return {
       command: `codex --approval-mode auto-edit${
-        this.model ? ` -m ${this.model}` : ""
+        this.model ? ` --model ${this.model}` : ""
+      }${
+        this.provider ? ` --provider ${this.provider}` : ""
       } --quiet "${_prompt}"`,
       errorPrefix: "Codex",
       labelName: "codex",
@@ -58,13 +71,14 @@ export class CodexAgent extends BaseAgent {
   }
 
   protected getEnvironmentVariables(): Record<string, string> {
+    const envKey = `${this.provider.toUpperCase()}_API_KEY`;
     return {
-      OPENAI_API_KEY: this.openaiApiKey,
+      [envKey]: this.providerApiKey,
     };
   }
 
   protected getApiKey(): string {
-    return this.openaiApiKey;
+    return this.providerApiKey;
   }
 
   protected getAgentType(): "codex" | "claude" {
@@ -79,6 +93,7 @@ export class CodexAgent extends BaseAgent {
     callbacks?: CodexStreamCallbacks
   ): Promise<CodexResponse> {
     let instruction: string;
+
     if (mode === "ask") {
       instruction =
         "Research the repository and answer the user's questions. " +
@@ -96,13 +111,14 @@ export class CodexAgent extends BaseAgent {
         .map((h) => `${h.role}\n ${h.content}`)
         .join("\n\n")}`;
     }
-
     // Override the command config with history-aware prompt
     const originalGetCommandConfig = this.getCommandConfig.bind(this);
     this.getCommandConfig = (p: string, m?: "ask" | "code") => ({
       ...originalGetCommandConfig(p, m),
       command: `codex --approval-mode auto-edit${
-        this.model ? ` -m ${this.model}` : ""
+        this.model ? ` --model ${this.model}` : ""
+      }${
+        this.provider ? ` --provider ${this.provider}` : ""
       } --quiet "${_prompt}"`,
     });
 

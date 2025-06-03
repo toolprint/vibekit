@@ -16,7 +16,7 @@ describe("ClaudeAgent", () => {
 
   beforeEach(() => {
     config = {
-      anthropicApiKey: "test-anthropic-key",
+      providerApiKey: "test-anthropic-key",
       githubToken: "test-github-token",
       repoUrl: "octocat/hello-world",
       e2bApiKey: "test-e2b-key",
@@ -62,6 +62,30 @@ describe("ClaudeAgent", () => {
       delete configWithoutModel.model;
       const agentWithoutModel = new ClaudeAgent(configWithoutModel);
       expect(agentWithoutModel).toBeInstanceOf(ClaudeAgent);
+    });
+
+    it("should accept anthropic provider", () => {
+      const configWithAnthropicProvider = {
+        ...config,
+        provider: "anthropic" as const,
+      };
+      const agent = new ClaudeAgent(configWithAnthropicProvider);
+      expect(agent).toBeInstanceOf(ClaudeAgent);
+    });
+
+    it("should reject non-anthropic providers", () => {
+      const configWithOpenAiProvider = {
+        ...config,
+        provider: "openai" as const,
+      };
+      expect(() => new ClaudeAgent(configWithOpenAiProvider)).toThrow(
+        "Claude agent only supports 'anthropic' provider"
+      );
+    });
+
+    it("should work without provider specified (defaults to anthropic)", () => {
+      const agent = new ClaudeAgent(config);
+      expect(agent).toBeInstanceOf(ClaudeAgent);
     });
   });
 

@@ -139,6 +139,52 @@ describe("VibeKit", () => {
       expect(result).toBe(mockResponse);
     });
 
+    it("should work with Codex agent when GitHub config is not provided", async () => {
+      const configWithoutGithub: VibeKitConfig = {
+        agent: {
+          type: "codex",
+          model: {
+            name: "gpt-4",
+            apiKey: "test-openai-key",
+          },
+          mode: "code",
+        },
+        environment: {
+          e2b: {
+            apiKey: "test-e2b-key",
+          },
+        },
+      };
+
+      const vibeKit = new VibeKit(configWithoutGithub);
+      const mockResponse = {
+        exitCode: 0,
+        stdout: "test",
+        stderr: "",
+        sandboxId: "test",
+      };
+
+      mockCodexAgent.generateCode.mockResolvedValue(mockResponse);
+
+      const result = await vibeKit.generateCode("test prompt", "code", []);
+
+      expect(MockedCodexAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          openaiApiKey: "test-openai-key",
+          githubToken: undefined,
+          repoUrl: undefined,
+          e2bApiKey: "test-e2b-key",
+          model: "gpt-4",
+        })
+      );
+      expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
+        "test prompt",
+        "code",
+        []
+      );
+      expect(result).toBe(mockResponse);
+    });
+
     it("should use Claude agent when configured", async () => {
       const vibeKit = new VibeKit(claudeConfig);
       const mockResponse = {
@@ -157,6 +203,52 @@ describe("VibeKit", () => {
           anthropicApiKey: "test-anthropic-key",
           githubToken: "test-github-token",
           repoUrl: "octocat/hello-world",
+          e2bApiKey: "test-e2b-key",
+        })
+      );
+      expect(mockClaudeAgent.generateCode).toHaveBeenCalledWith(
+        "test prompt",
+        "code",
+        []
+      );
+      expect(result).toBe(mockResponse);
+    });
+
+    it("should work with Claude agent when GitHub config is not provided", async () => {
+      const configWithoutGithub: VibeKitConfig = {
+        agent: {
+          type: "claude",
+          model: {
+            name: "claude-3-5-sonnet-20241022",
+            apiKey: "test-anthropic-key",
+          },
+          mode: "code",
+        },
+        environment: {
+          e2b: {
+            apiKey: "test-e2b-key",
+            templateId: "test-template",
+          },
+        },
+      };
+
+      const vibeKit = new VibeKit(configWithoutGithub);
+      const mockResponse = {
+        exitCode: 0,
+        stdout: "test code",
+        stderr: "",
+        sandboxId: "test-sandbox-id",
+      };
+
+      mockClaudeAgent.generateCode.mockResolvedValue(mockResponse);
+
+      const result = await vibeKit.generateCode("test prompt", "code", []);
+
+      expect(MockedClaudeAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          anthropicApiKey: "test-anthropic-key",
+          githubToken: undefined,
+          repoUrl: undefined,
           e2bApiKey: "test-e2b-key",
         })
       );
@@ -294,6 +386,69 @@ describe("VibeKit", () => {
       );
       expect(mockClaudeAgent.createPullRequest).toHaveBeenCalled();
       expect(result).toBe(mockPRResponse);
+    });
+
+    it("should throw error when GitHub config is missing for Codex agent", async () => {
+      const configWithoutGithub: VibeKitConfig = {
+        agent: {
+          type: "codex",
+          model: {
+            name: "gpt-4",
+            apiKey: "test-openai-key",
+          },
+          mode: "code",
+        },
+        environment: {
+          e2b: {
+            apiKey: "test-e2b-key",
+          },
+        },
+      };
+
+      const vibeKit = new VibeKit(configWithoutGithub);
+
+      // Mock the agent to throw the expected error
+      mockCodexAgent.createPullRequest.mockRejectedValue(
+        new Error(
+          "GitHub configuration is required for creating pull requests. Please provide githubToken and repoUrl in your configuration."
+        )
+      );
+
+      await expect(vibeKit.createPullRequest()).rejects.toThrow(
+        "GitHub configuration is required for creating pull requests. Please provide githubToken and repoUrl in your configuration."
+      );
+    });
+
+    it("should throw error when GitHub config is missing for Claude agent", async () => {
+      const configWithoutGithub: VibeKitConfig = {
+        agent: {
+          type: "claude",
+          model: {
+            name: "claude-3-5-sonnet-20241022",
+            apiKey: "test-anthropic-key",
+          },
+          mode: "code",
+        },
+        environment: {
+          e2b: {
+            apiKey: "test-e2b-key",
+            templateId: "test-template",
+          },
+        },
+      };
+
+      const vibeKit = new VibeKit(configWithoutGithub);
+
+      // Mock the agent to throw the expected error
+      mockClaudeAgent.createPullRequest.mockRejectedValue(
+        new Error(
+          "GitHub configuration is required for creating pull requests. Please provide githubToken and repoUrl in your configuration."
+        )
+      );
+
+      await expect(vibeKit.createPullRequest()).rejects.toThrow(
+        "GitHub configuration is required for creating pull requests. Please provide githubToken and repoUrl in your configuration."
+      );
     });
   });
 

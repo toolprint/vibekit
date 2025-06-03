@@ -56,7 +56,7 @@ export type VibeKitConfig = {
     mode: AgentMode;
   };
   environment: EnvironmentConfig;
-  github: GithubConfig;
+  github?: GithubConfig;
   telemetry?: TelemetryConfig;
   sessionId?: string;
 };
@@ -81,8 +81,8 @@ export interface ClaudeStreamCallbacks {
 // CODEX CONFIG
 export interface CodexConfig {
   openaiApiKey: string;
-  githubToken: string;
-  repoUrl: string; // org/repo, e.g. "octocat/hello-world"
+  githubToken?: string;
+  repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
   e2bApiKey: string;
   e2bTemplateId?: string;
   model?: string;
@@ -104,8 +104,8 @@ export interface CodexResponse {
 // CLAUDE CONFIG
 export interface ClaudeConfig {
   anthropicApiKey: string;
-  githubToken: string;
-  repoUrl: string; // org/repo, e.g. "octocat/hello-world"
+  githubToken?: string;
+  repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
   e2bApiKey: string;
   e2bTemplateId?: string;
   model?: string;

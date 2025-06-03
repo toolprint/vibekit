@@ -58,8 +58,8 @@ export class VibeKit {
     if (setup.agent.type === "codex") {
       const codexConfig: CodexConfig = {
         openaiApiKey: setup.agent.model.apiKey,
-        githubToken: setup.github.token,
-        repoUrl: setup.github.repository,
+        githubToken: setup.github?.token,
+        repoUrl: setup.github?.repository,
         e2bApiKey: setup.environment.e2b?.apiKey || "",
         e2bTemplateId: setup.environment.e2b?.templateId,
         model: setup.agent.model.name,
@@ -70,8 +70,8 @@ export class VibeKit {
     } else if (setup.agent.type === "claude") {
       const claudeConfig: ClaudeConfig = {
         anthropicApiKey: setup.agent.model.apiKey,
-        githubToken: setup.github.token,
-        repoUrl: setup.github.repository,
+        githubToken: setup.github?.token,
+        repoUrl: setup.github?.repository,
         e2bApiKey: setup.environment.e2b?.apiKey || "",
         e2bTemplateId: setup.environment.e2b?.templateId,
         model: setup.agent.model.name,
@@ -104,7 +104,7 @@ export class VibeKit {
 
     // Track telemetry start
     await this.telemetryService?.trackStart(agentType, agentMode, prompt, {
-      repoUrl: this.setup.github.repository,
+      repoUrl: this.setup.github?.repository,
       model: this.setup.agent.model.name,
       hasHistory: !!history?.length,
     });
@@ -120,7 +120,7 @@ export class VibeKit {
             prompt,
             data,
             undefined,
-            this.setup.github.repository,
+            this.setup.github?.repository,
             {
               dataType: this.getDataType(data),
             }
@@ -153,7 +153,7 @@ export class VibeKit {
           agentMode,
           prompt,
           result.sandboxId,
-          this.setup.github.repository,
+          this.setup.github?.repository,
           {
             exitCode: result.exitCode,
             stdoutLength: result.stdout?.length || 0,
@@ -192,7 +192,7 @@ export class VibeKit {
         agentMode,
         prompt,
         result.sandboxId,
-        this.setup.github.repository,
+        this.setup.github?.repository,
         {
           exitCode: result.exitCode,
           stdoutLength: result.stdout?.length || 0,

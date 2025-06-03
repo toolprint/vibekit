@@ -3,8 +3,8 @@ import { generatePRMetadata } from "./utils";
 import { Conversation } from "../types";
 
 export interface BaseAgentConfig {
-  githubToken: string;
-  repoUrl: string;
+  githubToken?: string;
+  repoUrl?: string;
   e2bApiKey: string;
   e2bTemplateId?: string;
   sandboxId?: string;
@@ -115,37 +115,47 @@ export abstract class BaseAgent {
 
     try {
       const sbx = await this.getSandbox();
-      const repoDir = this.config.repoUrl.split("/")[1];
+      const repoDir = this.config.repoUrl?.split("/")[1] || "";
 
       if (!this.config.sandboxId && sbx.sandboxId) {
         callbacks?.onUpdate?.(
           `{"type": "start", "sandbox_id": "${sbx.sandboxId}"}`
         );
-        callbacks?.onUpdate?.(
-          `{"type": "git", "output": "Cloning repository: ${this.config.repoUrl}"}`
-        );
-        await sbx.commands.run(
-          `git clone https://x-access-token:${this.config.githubToken}@github.com/${this.config.repoUrl}.git`,
-          { timeoutMs: 3600000 }
-        );
-        await sbx.commands.run(
-          `cd ${repoDir} && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"`,
-          { timeoutMs: 60000 }
-        );
+
+        // Only clone repository if GitHub config is provided
+        if (this.config.githubToken && this.config.repoUrl) {
+          callbacks?.onUpdate?.(
+            `{"type": "git", "output": "Cloning repository: ${this.config.repoUrl}"}`
+          );
+          await sbx.commands.run(
+            `git clone https://x-access-token:${this.config.githubToken}@github.com/${this.config.repoUrl}.git`,
+            { timeoutMs: 3600000 }
+          );
+          await sbx.commands.run(
+            `cd ${repoDir} && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"`,
+            { timeoutMs: 60000 }
+          );
+        } else {
+          callbacks?.onUpdate?.(
+            `{"type": "info", "output": "No GitHub configuration provided - running in sandbox-only mode"}`
+          );
+        }
       } else if (this.config.sandboxId) {
         callbacks?.onUpdate?.(
           `{"type": "start", "sandbox_id": "${this.config.sandboxId}"}`
         );
       }
 
-      const result = await sbx.commands.run(
-        `cd ${repoDir} && ${commandConfig.command}`,
-        {
-          timeoutMs: 3600000,
-          onStdout: (data) => callbacks?.onUpdate?.(data),
-          onStderr: (data) => callbacks?.onUpdate?.(data),
-        }
-      );
+      // Adjust command execution based on whether we have a repository
+      const executeCommand = this.config.repoUrl
+        ? `cd ${repoDir} && ${commandConfig.command}`
+        : commandConfig.command;
+
+      const result = await sbx.commands.run(executeCommand, {
+        timeoutMs: 3600000,
+        onStdout: (data) => callbacks?.onUpdate?.(data),
+        onStderr: (data) => callbacks?.onUpdate?.(data),
+      });
 
       callbacks?.onUpdate?.(
         `{"type": "end", "sandbox_id": "${
@@ -170,8 +180,15 @@ export abstract class BaseAgent {
   }
 
   public async createPullRequest(): Promise<PullRequestResult> {
+    // Validate GitHub configuration is provided
+    if (!this.config.githubToken || !this.config.repoUrl) {
+      throw new Error(
+        "GitHub configuration is required for creating pull requests. Please provide githubToken and repoUrl in your configuration."
+      );
+    }
+
     const { githubToken, repoUrl } = this.config;
-    const repoDir = repoUrl.split("/")[1];
+    const repoDir = repoUrl?.split("/")[1] || "";
     const commandConfig = this.getCommandConfig("", "code");
 
     // Get the current branch (base branch) BEFORE creating a new branch
@@ -268,7 +285,7 @@ export abstract class BaseAgent {
     const commitSha = commitMatch ? commitMatch[1] : undefined;
 
     // Create Pull Request using GitHub API
-    const [owner, repo] = repoUrl.split("/");
+    const [owner, repo] = repoUrl?.split("/") || [];
     const prResponse = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/pulls`,
       {

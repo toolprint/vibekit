@@ -117,7 +117,11 @@ describe("VibeKit", () => {
 
       mockCodexAgent.generateCode.mockResolvedValue(mockResponse);
 
-      const result = await vibeKit.generateCode("test prompt", "code", []);
+      const result = await vibeKit.generateCode({
+        prompt: "test prompt",
+        mode: "code",
+        history: [],
+      });
 
       expect(MockedCodexAgent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -131,6 +135,7 @@ describe("VibeKit", () => {
       expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
+        undefined,
         []
       );
       expect(result).toBe(mockResponse);
@@ -162,7 +167,11 @@ describe("VibeKit", () => {
 
       mockCodexAgent.generateCode.mockResolvedValue(mockResponse);
 
-      const result = await vibeKit.generateCode("test prompt", "code", []);
+      const result = await vibeKit.generateCode({
+        prompt: "test prompt",
+        mode: "code",
+        history: [],
+      });
 
       expect(MockedCodexAgent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -176,6 +185,7 @@ describe("VibeKit", () => {
       expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
+        undefined,
         []
       );
       expect(result).toBe(mockResponse);
@@ -192,7 +202,11 @@ describe("VibeKit", () => {
 
       mockClaudeAgent.generateCode.mockResolvedValue(mockResponse);
 
-      const result = await vibeKit.generateCode("test prompt", "code", []);
+      const result = await vibeKit.generateCode({
+        prompt: "test prompt",
+        mode: "code",
+        history: [],
+      });
 
       expect(MockedClaudeAgent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -205,6 +219,7 @@ describe("VibeKit", () => {
       expect(mockClaudeAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
+        undefined,
         []
       );
       expect(result).toBe(mockResponse);
@@ -237,7 +252,11 @@ describe("VibeKit", () => {
 
       mockClaudeAgent.generateCode.mockResolvedValue(mockResponse);
 
-      const result = await vibeKit.generateCode("test prompt", "code", []);
+      const result = await vibeKit.generateCode({
+        prompt: "test prompt",
+        mode: "code",
+        history: [],
+      });
 
       expect(MockedClaudeAgent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -250,6 +269,7 @@ describe("VibeKit", () => {
       expect(mockClaudeAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
+        undefined,
         []
       );
       expect(result).toBe(mockResponse);
@@ -262,13 +282,19 @@ describe("VibeKit", () => {
         onError: vi.fn(),
       };
 
-      await vibeKit.generateCode("test prompt", "code", [], callbacks);
+      await vibeKit.generateCode({
+        prompt: "test prompt",
+        mode: "code",
+        history: [],
+        callbacks,
+      });
 
       // Verify that generateCode was called with the correct parameters
       // The callbacks will be wrapped functions, so we check that they exist
       expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
+        undefined,
         [],
         expect.objectContaining({
           onUpdate: expect.any(Function),
@@ -292,11 +318,17 @@ describe("VibeKit", () => {
 
       mockClaudeAgent.generateCode.mockResolvedValue(mockResponse);
 
-      await vibeKit.generateCode("test prompt", "code", [], callbacks);
+      await vibeKit.generateCode({
+        prompt: "test prompt",
+        mode: "code",
+        history: [],
+        callbacks,
+      });
 
       expect(mockClaudeAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
+        undefined,
         [],
         expect.objectContaining({
           onUpdate: expect.any(Function),
@@ -327,6 +359,93 @@ describe("VibeKit", () => {
       expect(() => {
         new VibeKit(unsupportedConfig);
       }).toThrow("Unsupported agent type: devin");
+    });
+
+    it("should pass branch parameter to Codex agent", async () => {
+      const vibeKit = new VibeKit(codexConfig);
+      const mockResponse = {
+        exitCode: 0,
+        stdout: "test",
+        stderr: "",
+        sandboxId: "test",
+      };
+
+      mockCodexAgent.generateCode.mockResolvedValue(mockResponse);
+
+      await vibeKit.generateCode({
+        prompt: "test prompt",
+        mode: "code",
+        branch: "feature-branch",
+        history: [],
+      });
+
+      expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
+        "test prompt",
+        "code",
+        "feature-branch",
+        []
+      );
+    });
+
+    it("should pass branch parameter to Claude agent", async () => {
+      const vibeKit = new VibeKit(claudeConfig);
+      const mockResponse = {
+        exitCode: 0,
+        stdout: "test code",
+        stderr: "",
+        sandboxId: "test-sandbox-id",
+      };
+
+      mockClaudeAgent.generateCode.mockResolvedValue(mockResponse);
+
+      await vibeKit.generateCode({
+        prompt: "test prompt",
+        mode: "code",
+        branch: "feature-branch",
+        history: [],
+      });
+
+      expect(mockClaudeAgent.generateCode).toHaveBeenCalledWith(
+        "test prompt",
+        "code",
+        "feature-branch",
+        []
+      );
+    });
+
+    it("should pass branch parameter with callbacks", async () => {
+      const vibeKit = new VibeKit(codexConfig);
+      const callbacks = {
+        onUpdate: vi.fn(),
+        onError: vi.fn(),
+      };
+      const mockResponse = {
+        exitCode: 0,
+        stdout: "test",
+        stderr: "",
+        sandboxId: "test",
+      };
+
+      mockCodexAgent.generateCode.mockResolvedValue(mockResponse);
+
+      await vibeKit.generateCode({
+        prompt: "test prompt",
+        mode: "code",
+        branch: "feature-branch",
+        history: [],
+        callbacks,
+      });
+
+      expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
+        "test prompt",
+        "code",
+        "feature-branch",
+        [],
+        expect.objectContaining({
+          onUpdate: expect.any(Function),
+          onError: expect.any(Function),
+        })
+      );
     });
   });
 

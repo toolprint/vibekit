@@ -177,7 +177,6 @@ describe("VibeKit Telemetry Integration", () => {
           name: "gpt-4",
           apiKey: "test-openai-key",
         },
-        mode: "code",
       },
       environment: {
         e2b: {
@@ -203,7 +202,6 @@ describe("VibeKit Telemetry Integration", () => {
           name: "gpt-4",
           apiKey: "test-openai-key",
         },
-        mode: "code",
       },
       environment: {
         e2b: {
@@ -251,7 +249,7 @@ describe("VibeKit Telemetry Integration", () => {
       };
 
       mockCodexAgent.generateCode.mockImplementation(
-        async (prompt, mode, history, callbacks) => {
+        async (prompt, mode, branch, history, callbacks) => {
           if (callbacks) {
             callbacks.onUpdate(
               '{"type": "start", "sandbox_id": "sandbox-123"}'
@@ -272,7 +270,12 @@ describe("VibeKit Telemetry Integration", () => {
       };
 
       await expect(
-        vibeKit.generateCode("test prompt", "code", [], callbacks)
+        vibeKit.generateCode({
+          prompt: "test prompt",
+          mode: "code",
+          history: [],
+          callbacks,
+        })
       ).resolves.not.toThrow();
     });
 
@@ -287,7 +290,12 @@ describe("VibeKit Telemetry Integration", () => {
       };
 
       await expect(
-        vibeKit.generateCode("test prompt", "code", [], callbacks)
+        vibeKit.generateCode({
+          prompt: "test prompt",
+          mode: "code",
+          history: [],
+          callbacks,
+        })
       ).rejects.toThrow("Codex failed");
     });
 
@@ -303,7 +311,11 @@ describe("VibeKit Telemetry Integration", () => {
       mockCodexAgent.generateCode.mockResolvedValue(mockResponse);
 
       await expect(
-        vibeKit.generateCode("test prompt", "code", [])
+        vibeKit.generateCode({
+          prompt: "test prompt",
+          mode: "code",
+          history: [],
+        })
       ).resolves.not.toThrow();
     });
   });
@@ -318,7 +330,6 @@ describe("VibeKit Telemetry Integration", () => {
             name: "claude-3-5-sonnet",
             apiKey: "test-anthropic-key",
           },
-          mode: "code" as const,
         },
       };
 
@@ -333,7 +344,12 @@ describe("VibeKit Telemetry Integration", () => {
       };
 
       await expect(
-        vibeKit.generateCode("test prompt", "code", [], callbacks)
+        vibeKit.generateCode({
+          prompt: "test prompt",
+          mode: "code",
+          history: [],
+          callbacks,
+        })
       ).resolves.not.toThrow();
     });
 
@@ -346,7 +362,6 @@ describe("VibeKit Telemetry Integration", () => {
             name: "claude-3-5-sonnet",
             apiKey: "test-anthropic-key",
           },
-          mode: "code" as const,
         },
       };
 
@@ -362,7 +377,12 @@ describe("VibeKit Telemetry Integration", () => {
       };
 
       await expect(
-        vibeKit.generateCode("test prompt", "code", [], callbacks)
+        vibeKit.generateCode({
+          prompt: "test prompt",
+          mode: "code",
+          history: [],
+          callbacks,
+        })
       ).rejects.toThrow("Claude API error");
     });
   });
@@ -380,7 +400,11 @@ describe("VibeKit Telemetry Integration", () => {
       mockCodexAgent.generateCode.mockResolvedValue(mockResponse);
 
       await expect(
-        vibeKit.generateCode("test prompt", "code", [])
+        vibeKit.generateCode({
+          prompt: "test prompt",
+          mode: "code",
+          history: [],
+        })
       ).resolves.not.toThrow();
     });
   });

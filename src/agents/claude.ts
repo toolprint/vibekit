@@ -82,6 +82,7 @@ export class ClaudeAgent extends BaseAgent {
   public async generateCode(
     prompt: string,
     mode?: "ask" | "code",
+    branch?: string,
     history?: Conversation[],
     callbacks?: ClaudeStreamCallbacks
   ): Promise<ClaudeResponse> {
@@ -113,7 +114,13 @@ export class ClaudeAgent extends BaseAgent {
       }`,
     });
 
-    const result = await super.generateCode(prompt, mode, history, callbacks);
+    const result = await super.generateCode(
+      prompt,
+      mode,
+      branch,
+      history,
+      callbacks
+    );
 
     // Restore original method
     this.getCommandConfig = originalGetCommandConfig;

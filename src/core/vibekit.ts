@@ -95,12 +95,19 @@ export class VibeKit {
     }
   }
 
-  async generateCode(
-    prompt: string,
-    mode: "ask" | "code",
-    history?: Conversation[],
-    callbacks?: VibeKitStreamCallbacks
-  ): Promise<AgentResponse> {
+  async generateCode({
+    prompt,
+    mode,
+    branch,
+    history,
+    callbacks,
+  }: {
+    prompt: string;
+    mode: "ask" | "code";
+    branch?: string;
+    history?: Conversation[];
+    callbacks?: VibeKitStreamCallbacks;
+  }): Promise<AgentResponse> {
     const agentType = this.setup.agent.type;
 
     // Track telemetry start
@@ -145,6 +152,7 @@ export class VibeKit {
         const result = await this.agent.generateCode(
           prompt,
           mode,
+          branch,
           history,
           wrappedCallbacks
         );
@@ -186,7 +194,12 @@ export class VibeKit {
 
     // Non-streaming path
     try {
-      const result = await this.agent.generateCode(prompt, mode, history);
+      const result = await this.agent.generateCode(
+        prompt,
+        mode,
+        branch,
+        history
+      );
 
       await this.telemetryService?.trackEnd(
         agentType,
@@ -233,6 +246,10 @@ export class VibeKit {
    */
   async createPullRequest(): Promise<PullRequestResponse> {
     return this.agent.createPullRequest();
+  }
+
+  async pushToBranch(branch?: string): Promise<void> {
+    return this.agent.pushToBranch(branch);
   }
 
   /**

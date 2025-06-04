@@ -276,7 +276,13 @@ describe("ClaudeAgent", () => {
         });
       });
 
-      await claudeAgent.generateCode("test prompt", "code", [], callbacks);
+      await claudeAgent.generateCode(
+        "test prompt",
+        "code",
+        undefined,
+        [],
+        callbacks
+      );
 
       expect(callbacks.onUpdate).toHaveBeenCalledWith("test stdout data");
       expect(callbacks.onUpdate).toHaveBeenCalledWith("test stderr data");
@@ -288,7 +294,7 @@ describe("ClaudeAgent", () => {
         { role: "assistant" as const, content: "Previous answer" },
       ];
 
-      await claudeAgent.generateCode("test prompt", "code", history);
+      await claudeAgent.generateCode("test prompt", "code", undefined, history);
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
         expect.stringContaining(
@@ -306,7 +312,7 @@ describe("ClaudeAgent", () => {
         { role: "assistant" as const, content: "Previous answer" },
       ];
 
-      await claudeAgent.generateCode("test prompt", "code", history);
+      await claudeAgent.generateCode("test prompt", "code", undefined, history);
 
       // Verify both history inclusion and model parameter
       const expectedCall = mockSandbox.commands.run.mock.calls.find(
@@ -327,7 +333,13 @@ describe("ClaudeAgent", () => {
       mockSandbox.commands.run.mockRejectedValue(error);
 
       await expect(
-        claudeAgent.generateCode("test prompt", "code", [], callbacks)
+        claudeAgent.generateCode(
+          "test prompt",
+          "code",
+          undefined,
+          [],
+          callbacks
+        )
       ).rejects.toThrow("Failed to generate code: Test error");
 
       expect(callbacks.onError).toHaveBeenCalledWith(

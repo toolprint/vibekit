@@ -4,7 +4,7 @@
 
 ### Run coding agents in a secure sandbox
 
-Use Codex or Claude Code in a secure sandbox. Run locally or in the cloud.
+A simple SDK for safely running Codex and Claude in your app or workflow.
 
 ---
 
@@ -32,7 +32,7 @@ One SDK. Any coding agent. Any sandbox.
 
 ## 📦 Supported Sandbox Runtimes
 
-Daytona, Modal, Fly.io, E2B, and other configurable providers.
+Currently supports E2B with Daytona, Modal, Fly.io, and other providers coming soon.
 
 ## 🧪 Use Cases
 

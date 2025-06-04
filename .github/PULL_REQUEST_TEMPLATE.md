@@ -4,8 +4,3 @@
 ## Related Issue
 Fixes #<issue number>
 
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation update
-- [ ] Other (please describe)

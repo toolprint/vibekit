@@ -1,6 +1,6 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
-import { generateObject, LanguageModel } from "ai";
+import { generateObject, generateText, LanguageModel } from "ai";
 import { z } from "zod";
 
 export async function generatePRMetadata(
@@ -30,6 +30,32 @@ export async function generatePRMetadata(
       commitMessage: z
         .string()
         .describe("Suggested commit message for the pull request"),
+    }),
+  });
+
+  return object;
+}
+
+export async function generateCommitMessage(
+  patch: string,
+  agent: "codex" | "claude",
+  apiKey: string,
+  prompt: string
+) {
+  const _prompt = `You are tasked to create a commit message based on the following task:\n${prompt}\n\npatch:\n\n${patch}`;
+  const model =
+    agent === "codex" ? createOpenAI({ apiKey }) : createAnthropic({ apiKey });
+
+  const { object } = await generateObject({
+    model:
+      agent === "codex"
+        ? model("gpt-4o-mini")
+        : model("claude-3-5-sonnet-20240620"),
+    prompt: _prompt,
+    schema: z.object({
+      commitMessage: z
+        .string()
+        .describe("Suggested commit message for the changes"),
     }),
   });
 

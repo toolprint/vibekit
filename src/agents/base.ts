@@ -1,5 +1,5 @@
 import { Sandbox } from "@e2b/code-interpreter";
-import { generatePRMetadata } from "./utils";
+import { generateCommitMessage, generatePRMetadata } from "./utils";
 import { Conversation } from "../types";
 
 export interface BaseAgentConfig {
@@ -42,6 +42,7 @@ export abstract class BaseAgent {
   protected config: BaseAgentConfig;
   protected sbx?: Sandbox;
   protected lastPrompt?: string;
+  protected currentBranch?: string;
 
   constructor(config: BaseAgentConfig) {
     this.config = config;
@@ -105,10 +106,15 @@ export abstract class BaseAgent {
     this.config.sandboxId = sessionId;
   }
 
+  public getCurrentBranch(): string | undefined {
+    return this.currentBranch;
+  }
+
   public async generateCode(
     prompt: string,
     mode?: "ask" | "code",
-    history?: Conversation[],
+    branch?: string,
+    _history?: Conversation[],
     callbacks?: StreamCallbacks
   ): Promise<AgentResponse> {
     const commandConfig = this.getCommandConfig(prompt, mode);
@@ -146,6 +152,37 @@ export abstract class BaseAgent {
         );
       }
 
+      // Switch to specified branch if provided and repository is available
+      if (branch && this.config.repoUrl) {
+        // Store the branch for later use
+        this.currentBranch = branch;
+
+        callbacks?.onUpdate?.(
+          `{"type": "git", "output": "Switching to branch: ${branch}"}`
+        );
+        try {
+          // Try to checkout existing branch first
+          await sbx.commands.run(`cd ${repoDir} && git checkout ${branch}`, {
+            timeoutMs: 60000,
+          });
+          // Pull latest changes from the remote branch
+          callbacks?.onUpdate?.(
+            `{"type": "git", "output": "Pulling latest changes from ${branch}"}`
+          );
+          await sbx.commands.run(`cd ${repoDir} && git pull origin ${branch}`, {
+            timeoutMs: 60000,
+          });
+        } catch (error) {
+          // If branch doesn't exist, create it
+          callbacks?.onUpdate?.(
+            `{"type": "git", "output": "Branch ${branch} not found, creating new branch"}`
+          );
+          await sbx.commands.run(`cd ${repoDir} && git checkout -b ${branch}`, {
+            timeoutMs: 60000,
+          });
+        }
+      }
+
       // Adjust command execution based on whether we have a repository
       const executeCommand = this.config.repoUrl
         ? `cd ${repoDir} && ${commandConfig.command}`
@@ -177,6 +214,94 @@ export abstract class BaseAgent {
       callbacks?.onError?.(errorMessage);
       throw new Error(errorMessage);
     }
+  }
+
+  public async pushToBranch(branch?: string): Promise<void> {
+    const targetBranch = branch || this.currentBranch;
+
+    if (!targetBranch) {
+      throw new Error(
+        "No branch specified. Either pass a branch name or call generateCode with a branch first."
+      );
+    }
+
+    // Validate GitHub configuration is provided
+    if (!this.config.githubToken || !this.config.repoUrl) {
+      throw new Error(
+        "GitHub configuration is required for pushing to branches. Please provide githubToken and repoUrl in your configuration."
+      );
+    }
+
+    const { repoUrl } = this.config;
+    const repoDir = repoUrl?.split("/")[1] || "";
+
+    // Check git status for changes
+    const gitStatus = await this.sbx?.commands.run(
+      `cd ${repoDir} && git status --porcelain`,
+      { timeoutMs: 3600000 }
+    );
+
+    // Check for untracked files
+    const untrackedFiles = await this.sbx?.commands.run(
+      `cd ${repoDir} && git ls-files --others --exclude-standard`,
+      { timeoutMs: 3600000 }
+    );
+
+    // Check if there are any changes to commit
+    if (!gitStatus?.stdout && !untrackedFiles?.stdout) {
+      throw new Error("No changes found to commit and push");
+    }
+
+    // Switch to the specified branch (create if it doesn't exist)
+    try {
+      await this.sbx?.commands.run(
+        `cd ${repoDir} && git checkout ${targetBranch}`,
+        {
+          timeoutMs: 60000,
+        }
+      );
+    } catch (error) {
+      // If branch doesn't exist, create it
+      await this.sbx?.commands.run(
+        `cd ${repoDir} && git checkout -b ${targetBranch}`,
+        {
+          timeoutMs: 60000,
+        }
+      );
+    }
+
+    const diffHead = await this.sbx?.commands.run(
+      `cd ${repoDir} && git diff HEAD`,
+      { timeoutMs: 3600000 }
+    );
+
+    const patch = await this.sbx?.commands.run(
+      `cd ${repoDir} && git diff --diff-filter=ACMR`,
+      { timeoutMs: 3600000 }
+    );
+
+    let patchContent = patch?.stdout || diffHead?.stdout || "";
+
+    // Add all changes and commit
+    const { commitMessage } = await generateCommitMessage(
+      patchContent,
+      this.getAgentType(),
+      this.getApiKey(),
+      this.lastPrompt || ""
+    );
+
+    await this.sbx?.commands.run(
+      `cd ${repoDir} && git add -A && git commit -m "${commitMessage}"`,
+      { timeoutMs: 3600000 }
+    );
+
+    // Push the branch to GitHub
+    await this.sbx?.commands.run(
+      `cd ${repoDir} && git push origin ${targetBranch}`,
+      {
+        timeoutMs: 3600000,
+      }
+    );
   }
 
   public async createPullRequest(): Promise<PullRequestResult> {

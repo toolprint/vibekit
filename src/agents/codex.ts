@@ -89,6 +89,7 @@ export class CodexAgent extends BaseAgent {
   public async generateCode(
     prompt: string,
     mode?: "ask" | "code",
+    branch?: string,
     history?: Conversation[],
     callbacks?: CodexStreamCallbacks
   ): Promise<CodexResponse> {
@@ -122,7 +123,13 @@ export class CodexAgent extends BaseAgent {
       } --quiet "${_prompt}"`,
     });
 
-    const result = await super.generateCode(prompt, mode, history, callbacks);
+    const result = await super.generateCode(
+      prompt,
+      mode,
+      branch,
+      history,
+      callbacks
+    );
 
     // Restore original method
     this.getCommandConfig = originalGetCommandConfig;

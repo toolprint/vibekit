@@ -4,7 +4,7 @@
 
 ### Run coding agents in a secure sandbox
 
-Use Codex or Claude Code in a secure sandbox. Run locally or in the cloud.
+A simple SDK for safely running Codex and Claude in your app or workflow.
 
 ---
 
@@ -15,7 +15,7 @@ Use Codex or Claude Code in a secure sandbox. Run locally or in the cloud.
 
 ## 🧠 What is VibeKit?
 
-VibeKit is an SDK for running powerful coding agents like **OpenAI Codex** or **Claude Code** in secure, customizable sandboxes. You can generate and execute real code safely, stream output to your UI, and run everything locally or in the cloud — with full isolation and flexibility.
+VibeKit is an SDK for running powerful coding agents like **OpenAI Codex** or **Claude Code** in secure, customizable sandboxes. You can generate and execute real code safely, stream output to your UI, and run everything in the cloud — with full isolation and flexibility. Local execution coming soon.
 
 One SDK. Any coding agent. Any sandbox.
 
@@ -23,7 +23,7 @@ One SDK. Any coding agent. Any sandbox.
 
 🧠 Drop-in SDK for Codex and Claude Code  
 🔒 Secure sandboxing for safe code execution  
-🌐 Works locally or in the cloud  
+🌐 Cloud-based execution (local support coming soon)  
 🔁 GitHub automation: branches, commits, PRs  
 💬 Prompt history and context continuity  
 📡 Streamed output for real-time UIs  
@@ -32,7 +32,7 @@ One SDK. Any coding agent. Any sandbox.
 
 ## 📦 Supported Sandbox Runtimes
 
-Daytona, Modal, Fly.io, E2B, and other configurable providers.
+Currently supports E2B with Daytona, Modal, Fly.io, and other providers coming soon.
 
 ## 🧪 Use Cases
 

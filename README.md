@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="700px" src="./assets/vibekit-hero.png" />
+<img width="500px" src="./assets/vibekit-hero.svg" />
 
 ### Run coding agents in a secure sandbox
 

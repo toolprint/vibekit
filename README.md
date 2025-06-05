@@ -1,7 +1,6 @@
 <div align="center">
 
-<h1 align="center">🖖</h1>
-<img width="500px" src="./assets/vibekit-hero.svg" />
+<img width="500px" src="./assets/vibekit-hero.png" />
 
 ### Run coding agents in a secure sandbox
 

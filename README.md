@@ -1,5 +1,6 @@
 <div align="center">
 
+<p align="center" style="font-size: 200px;">🖖</p>
 <img width="500px" src="./assets/vibekit-hero.svg" />
 
 ### Run coding agents in a secure sandbox

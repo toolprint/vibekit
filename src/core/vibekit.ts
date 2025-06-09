@@ -7,11 +7,13 @@ import {
   ClaudeResponse,
   ClaudeStreamCallbacks,
   Conversation,
+  SandboxConfig,
 } from "../types";
 import { CodexAgent } from "../agents/codex";
 import { ClaudeAgent } from "../agents/claude";
 import { BaseAgent, AgentResponse as BaseAgentResponse } from "../agents/base";
 import { TelemetryService } from "../services/telemetry";
+import { createSandboxConfigFromEnvironment } from "../services/sandbox";
 
 export type AgentResponse = CodexResponse | ClaudeResponse | { code: string };
 
@@ -45,27 +47,28 @@ export class VibeKit {
       );
     }
 
-    // Check for unsupported environment configurations
-    if (this.setup.environment.daytona) {
-      throw new Error("Daytona environment support is not yet implemented");
-    }
-
     // Initialize the appropriate agent
     this.agent = this.createAgent(setup);
   }
 
   private createAgent(setup: VibeKitConfig): BaseAgent {
+    // Create sandbox configuration from the environment
+    const sandboxConfig = createSandboxConfigFromEnvironment(setup.environment);
+
     if (setup.agent.type === "codex") {
       const codexConfig: CodexConfig = {
         providerApiKey: setup.agent.model.apiKey,
         provider: setup.agent.model.provider,
         githubToken: setup.github?.token,
         repoUrl: setup.github?.repository,
-        e2bApiKey: setup.environment.e2b?.apiKey || "",
-        e2bTemplateId: setup.environment.e2b?.templateId,
+        // Keep backward compatibility for E2B-specific configs
+        e2bApiKey: sandboxConfig.type === "e2b" ? sandboxConfig.apiKey : "",
+        e2bTemplateId: sandboxConfig.templateId,
         model: setup.agent.model.name,
         sandboxId: setup.sessionId,
         telemetry: setup.telemetry,
+        // Add new sandbox config
+        sandboxConfig,
       };
       return new CodexAgent(codexConfig);
     } else if (setup.agent.type === "claude") {
@@ -74,11 +77,14 @@ export class VibeKit {
         provider: setup.agent.model.provider,
         githubToken: setup.github?.token,
         repoUrl: setup.github?.repository,
-        e2bApiKey: setup.environment.e2b?.apiKey || "",
-        e2bTemplateId: setup.environment.e2b?.templateId,
+        // Keep backward compatibility for E2B-specific configs
+        e2bApiKey: sandboxConfig.type === "e2b" ? sandboxConfig.apiKey : "",
+        e2bTemplateId: sandboxConfig.templateId,
         model: setup.agent.model.name,
         sandboxId: setup.sessionId,
         telemetry: setup.telemetry,
+        // Add new sandbox config
+        sandboxConfig,
       };
       return new ClaudeAgent(claudeConfig);
     } else {

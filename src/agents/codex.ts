@@ -18,6 +18,7 @@ export class CodexAgent extends BaseAgent {
       repoUrl: config.repoUrl,
       e2bApiKey: config.e2bApiKey,
       e2bTemplateId: config.e2bTemplateId,
+      sandboxConfig: config.sandboxConfig,
       sandboxId: config.sandboxId,
       telemetry: config.telemetry,
     };

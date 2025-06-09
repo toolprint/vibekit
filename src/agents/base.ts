@@ -1,12 +1,14 @@
 import { Sandbox } from "@e2b/code-interpreter";
 import { generateCommitMessage, generatePRMetadata } from "./utils";
-import { Conversation } from "../types";
+import { Conversation, SandboxInstance, SandboxConfig } from "../types";
+import { createSandboxProvider, E2BSandboxInstance } from "../services/sandbox";
 
 export interface BaseAgentConfig {
   githubToken?: string;
   repoUrl?: string;
-  e2bApiKey: string;
-  e2bTemplateId?: string;
+  e2bApiKey: string; // Keep for backward compatibility
+  e2bTemplateId?: string; // Keep for backward compatibility
+  sandboxConfig?: SandboxConfig; // New unified sandbox config
   sandboxId?: string;
   telemetry?: any;
 }
@@ -40,7 +42,8 @@ export interface AgentCommandConfig {
 
 export abstract class BaseAgent {
   protected config: BaseAgentConfig;
-  protected sbx?: Sandbox;
+  protected sbx?: Sandbox; // Keep for E2B backward compatibility
+  protected sandboxInstance?: SandboxInstance; // New abstraction
   protected lastPrompt?: string;
   protected currentBranch?: string;
 
@@ -54,14 +57,43 @@ export abstract class BaseAgent {
   ): AgentCommandConfig;
   protected abstract getDefaultTemplate(): string;
 
-  private async getSandbox(): Promise<Sandbox> {
-    if (this.sbx) return this.sbx;
+  private async getSandbox(): Promise<SandboxInstance> {
+    // ALWAYS prioritize sandboxConfig if available
+    if (this.config.sandboxConfig) {
+      if (this.sandboxInstance) return this.sandboxInstance;
+
+      const provider = createSandboxProvider(this.config.sandboxConfig.type);
+
+      if (this.config.sandboxId) {
+        this.sandboxInstance = await provider.resume(
+          this.config.sandboxId,
+          this.config.sandboxConfig
+        );
+      } else {
+        this.sandboxInstance = await provider.create(
+          this.config.sandboxConfig,
+          this.getEnvironmentVariables()
+        );
+      }
+      return this.sandboxInstance;
+    }
+
+    // Fallback to E2B for backward compatibility - but only if we have a valid API key
+    if (!this.config.e2bApiKey || this.config.e2bApiKey.trim() === "") {
+      throw new Error(
+        "No valid sandbox configuration found. Please provide either sandboxConfig or e2bApiKey."
+      );
+    }
+
+    if (this.sandboxInstance) return this.sandboxInstance;
+
+    let e2bSandbox: Sandbox;
     if (this.config.sandboxId) {
-      this.sbx = await Sandbox.resume(this.config.sandboxId, {
+      e2bSandbox = await Sandbox.resume(this.config.sandboxId, {
         apiKey: this.config.e2bApiKey,
       });
     } else {
-      this.sbx = await Sandbox.create(
+      e2bSandbox = await Sandbox.create(
         this.config.e2bTemplateId || this.getDefaultTemplate(),
         {
           envs: this.getEnvironmentVariables(),
@@ -69,26 +101,41 @@ export abstract class BaseAgent {
         }
       );
     }
-    return this.sbx;
+
+    // Wrap E2B sandbox in abstraction and cache both
+    this.sbx = e2bSandbox;
+    this.sandboxInstance = new E2BSandboxInstance(e2bSandbox);
+    return this.sandboxInstance;
   }
 
   protected abstract getEnvironmentVariables(): Record<string, string>;
 
   public async killSandbox() {
-    if (this.sbx) {
+    if (this.sandboxInstance) {
+      await this.sandboxInstance.kill();
+      this.sandboxInstance = undefined;
+    } else if (this.sbx) {
       await this.sbx.kill();
       this.sbx = undefined;
     }
   }
 
   public async pauseSandbox() {
-    if (this.sbx) {
+    if (this.sandboxInstance) {
+      await this.sandboxInstance.pause();
+    } else if (this.sbx) {
       await this.sbx.pause();
     }
   }
 
   public async resumeSandbox() {
-    if (this.sbx) {
+    if (this.sandboxInstance && this.config.sandboxConfig) {
+      const provider = createSandboxProvider(this.config.sandboxConfig.type);
+      this.sandboxInstance = await provider.resume(
+        this.sandboxInstance.sandboxId,
+        this.config.sandboxConfig
+      );
+    } else if (this.sbx) {
       this.sbx = await Sandbox.resume(this.sbx.sandboxId, {
         apiKey: this.config.e2bApiKey,
       });
@@ -96,7 +143,9 @@ export abstract class BaseAgent {
   }
 
   public async getSession() {
-    if (this.sbx) {
+    if (this.sandboxInstance) {
+      return this.sandboxInstance.sandboxId;
+    } else if (this.sbx) {
       return this.sbx.sandboxId;
     }
     return this.config.sandboxId || null;

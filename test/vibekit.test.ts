@@ -77,7 +77,7 @@ describe("VibeKit", () => {
   });
 
   describe("constructor", () => {
-    it("should throw error when daytona environment is configured", () => {
+    it("should accept daytona environment configuration", () => {
       const daytonaConfig: VibeKitConfig = {
         agent: {
           type: "codex",
@@ -99,9 +99,10 @@ describe("VibeKit", () => {
         },
       };
 
+      // Daytona support is now implemented, so it should not throw an error
       expect(() => {
         new VibeKit(daytonaConfig);
-      }).toThrow("Daytona environment support is not yet implemented");
+      }).not.toThrow();
     });
   });
 

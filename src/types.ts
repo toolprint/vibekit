@@ -99,6 +99,7 @@ export interface CodexConfig {
   repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
   e2bApiKey: string;
   e2bTemplateId?: string;
+  sandboxConfig?: SandboxConfig; // New unified sandbox config
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
@@ -123,6 +124,7 @@ export interface ClaudeConfig {
   repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
   e2bApiKey: string;
   e2bTemplateId?: string;
+  sandboxConfig?: SandboxConfig; // New unified sandbox config
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
@@ -137,4 +139,48 @@ export interface ClaudeResponse {
   patchApplyScript?: string;
   branchName?: string;
   commitSha?: string;
+}
+
+// SANDBOX ABSTRACTION
+export interface SandboxExecutionResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
+export interface SandboxCommandOptions {
+  timeoutMs?: number;
+  onStdout?: (data: string) => void;
+  onStderr?: (data: string) => void;
+}
+
+export interface SandboxCommands {
+  run(
+    command: string,
+    options?: SandboxCommandOptions
+  ): Promise<SandboxExecutionResult>;
+}
+
+export interface SandboxInstance {
+  sandboxId: string;
+  commands: SandboxCommands;
+  kill(): Promise<void>;
+  pause(): Promise<void>;
+}
+
+export interface SandboxConfig {
+  type: "e2b" | "daytona";
+  apiKey: string;
+  templateId?: string; // for E2B
+  image?: string; // for Daytona
+  serverUrl?: string; // for Daytona
+}
+
+export interface SandboxProvider {
+  create(
+    config: SandboxConfig,
+    envs?: Record<string, string>,
+    agentType?: "codex" | "claude"
+  ): Promise<SandboxInstance>;
+  resume(sandboxId: string, config: SandboxConfig): Promise<SandboxInstance>;
 }

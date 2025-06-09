@@ -179,7 +179,8 @@ export interface SandboxConfig {
 export interface SandboxProvider {
   create(
     config: SandboxConfig,
-    envs?: Record<string, string>
+    envs?: Record<string, string>,
+    agentType?: "codex" | "claude"
   ): Promise<SandboxInstance>;
   resume(sandboxId: string, config: SandboxConfig): Promise<SandboxInstance>;
 }

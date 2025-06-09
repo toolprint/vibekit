@@ -53,7 +53,10 @@ export class VibeKit {
 
   private createAgent(setup: VibeKitConfig): BaseAgent {
     // Create sandbox configuration from the environment
-    const sandboxConfig = createSandboxConfigFromEnvironment(setup.environment);
+    const sandboxConfig = createSandboxConfigFromEnvironment(
+      setup.environment,
+      setup.agent.type
+    );
 
     if (setup.agent.type === "codex") {
       const codexConfig: CodexConfig = {

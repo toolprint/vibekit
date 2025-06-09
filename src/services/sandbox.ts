@@ -38,15 +38,19 @@ export class E2BSandboxInstance implements SandboxInstance {
 export class E2BSandboxProvider implements SandboxProvider {
   async create(
     config: SandboxConfig,
-    envs?: Record<string, string>
+    envs?: Record<string, string>,
+    agentType?: "codex" | "claude"
   ): Promise<SandboxInstance> {
-    const sandbox = await E2BSandbox.create(
-      config.templateId || "vibekit-codex",
-      {
-        envs,
-        apiKey: config.apiKey,
-      }
-    );
+    // Determine default template based on agent type if not specified in config
+    let templateId = config.templateId;
+    if (!templateId) {
+      templateId = agentType === "claude" ? "vibekit-claude" : "vibekit-codex";
+    }
+
+    const sandbox = await E2BSandbox.create(templateId, {
+      envs,
+      apiKey: config.apiKey,
+    });
     return new E2BSandboxInstance(sandbox);
   }
 
@@ -80,7 +84,7 @@ class DaytonaSandboxInstance implements SandboxInstance {
             command,
             undefined, // cwd - use default working directory
             this.envs, // env - use instance environment variables
-            (options?.timeoutMs || 360000) / 1000 // timeout in seconds, default 6 minutes
+            options?.timeoutMs || 360000 // timeout in seconds, default 6 minutes
           );
 
           // Handle streaming callbacks if provided
@@ -130,7 +134,8 @@ class DaytonaSandboxInstance implements SandboxInstance {
 export class DaytonaSandboxProvider implements SandboxProvider {
   async create(
     config: SandboxConfig,
-    envs?: Record<string, string>
+    envs?: Record<string, string>,
+    agentType?: "codex" | "claude"
   ): Promise<SandboxInstance> {
     try {
       // Dynamic import to avoid dependency issues if daytona-sdk is not installed
@@ -141,9 +146,20 @@ export class DaytonaSandboxProvider implements SandboxProvider {
 
       const daytona = new Daytona(daytonaConfig);
 
+      // Determine default image based on agent type if not specified in config
+      let image = config.image;
+
+      if (!image) {
+        if (agentType === "codex") {
+          image = "superagentai/vibekit-codex:1.0";
+        } else if (agentType === "claude") {
+          image = "superagentai/vibekit-claude:1.0";
+        }
+      }
+
       // Create workspace with specified image or default
       const workspace = await daytona.create({
-        image: config.image || "ubuntu:22.04",
+        image,
       });
 
       // Set up environment variables if provided
@@ -218,24 +234,39 @@ export function createSandboxProvider(
 
 // Helper function to create SandboxConfig from VibeKitConfig environment
 export function createSandboxConfigFromEnvironment(
-  environment: any
+  environment: any,
+  agentType?: "codex" | "claude"
 ): SandboxConfig {
   // Try Daytona first if configured
   if (environment.daytona) {
+    // Determine default image based on agent type
+    let defaultImage = "ubuntu:22.04"; // fallback
+    if (agentType === "codex") {
+      defaultImage = "superagentai/vibekit-codex:1.0";
+    } else if (agentType === "claude") {
+      defaultImage = "superagentai/vibekit-claude:1.0";
+    }
+
     return {
       type: "daytona",
       apiKey: environment.daytona.apiKey,
-      image: environment.daytona.image,
+      image: environment.daytona.image || defaultImage,
       serverUrl: environment.daytona.serverUrl,
     };
   }
 
   // Fall back to E2B if configured
   if (environment.e2b) {
+    // Determine default template based on agent type
+    let defaultTemplate = "vibekit-codex"; // fallback
+    if (agentType === "claude") {
+      defaultTemplate = "vibekit-claude";
+    }
+
     return {
       type: "e2b",
       apiKey: environment.e2b.apiKey,
-      templateId: environment.e2b.templateId,
+      templateId: environment.e2b.templateId || defaultTemplate,
     };
   }
 

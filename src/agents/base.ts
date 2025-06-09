@@ -72,7 +72,8 @@ export abstract class BaseAgent {
       } else {
         this.sandboxInstance = await provider.create(
           this.config.sandboxConfig,
-          this.getEnvironmentVariables()
+          this.getEnvironmentVariables(),
+          this.getAgentType()
         );
       }
       return this.sandboxInstance;

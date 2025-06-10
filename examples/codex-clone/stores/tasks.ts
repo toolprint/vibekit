@@ -15,6 +15,7 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   isArchived: boolean;
+  mode: "code" | "ask";
 }
 
 interface TaskStore {

@@ -1,16 +1,56 @@
 "use client";
-import { Archive, Check, Trash2 } from "lucide-react";
+import { Archive, Check, Dot, Trash2 } from "lucide-react";
+import { useInngestSubscription } from "@inngest/realtime/hooks";
+import { useEffect } from "react";
+import { formatDistanceToNow } from "date-fns";
 
 import { useTaskStore } from "@/stores/tasks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { fetchRealtimeSubscriptionToken } from "@/app/actions/inngest";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 
 export default function TaskList() {
-  const { getActiveTasks, getArchivedTasks, archiveTask, removeTask } =
-    useTaskStore();
-
+  const {
+    getActiveTasks,
+    getArchivedTasks,
+    archiveTask,
+    removeTask,
+    updateTask,
+  } = useTaskStore();
   const activeTasks = getActiveTasks();
   const archivedTasks = getArchivedTasks();
+  const { latestData } = useInngestSubscription({
+    refreshToken: fetchRealtimeSubscriptionToken,
+    bufferInterval: 0,
+    enabled: true,
+  });
+
+  useEffect(() => {
+    if (latestData?.channel === "tasks" && latestData.topic === "status") {
+      updateTask(latestData.data.taskId, {
+        status: latestData.data.status,
+        hasChanges: true,
+      });
+    }
+
+    if (latestData?.channel === "tasks" && latestData.topic === "update") {
+      console.log(latestData.data.message);
+      if (latestData.data.message.type === "git") {
+        updateTask(latestData.data.taskId, {
+          statusMessage: latestData.data.message.output as string,
+        });
+      }
+
+      if (latestData.data.message.type === "local_shell_call") {
+        updateTask(latestData.data.taskId, {
+          statusMessage: `Running command ${(
+            latestData.data.message as { action: { command: string[] } }
+          ).action.command.join(" ")}`,
+        });
+      }
+    }
+  }, [latestData]);
 
   return (
     <div className="max-w-3xl mx-auto w-full p-1 rounded-lg bg-muted">
@@ -37,18 +77,41 @@ export default function TaskList() {
                   className="border rounded-lg bg-background p-4 flex items-center justify-between"
                 >
                   <div>
-                    <h3 className="font-medium">{task.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Status: {task.status} • Branch: {task.branch}
-                    </p>
+                    <div className="flex items-center gap-x-2">
+                      {task.hasChanges && (
+                        <div className="size-2 rounded-full bg-blue-500 " />
+                      )}
+                      <h3 className="font-medium">{task.title}</h3>
+                    </div>
+                    {task.status === "IN_PROGRESS" ? (
+                      <div>
+                        <TextShimmer className="text-sm">
+                          {`${task.statusMessage || "Working on your task"}...`}
+                        </TextShimmer>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-0">
+                        <p className="text-sm text-muted-foreground">
+                          {formatDistanceToNow(new Date(task.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </p>
+                        <Dot className="size-4 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          {task.repository}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => archiveTask(task.id)}
-                  >
-                    <Archive />
-                  </Button>
+                  {task.status === "DONE" && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => archiveTask(task.id)}
+                    >
+                      <Archive />
+                    </Button>
+                  )}
                 </div>
               ))
             )}

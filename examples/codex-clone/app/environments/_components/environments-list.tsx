@@ -41,6 +41,8 @@ export default function EnvironmentsList() {
     );
   }
 
+  console.log(isAuthenticated);
+
   return (
     <>
       <div className="max-w-2xl mx-auto w-full flex flex-col gap-y-10 mt-14">
@@ -94,8 +96,8 @@ export default function EnvironmentsList() {
                   </div>
                 </div>
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="outline"
+                  size="icon"
                   onClick={() => handleDeleteEnvironment(environment.id)}
                 >
                   <Trash2 className="h-4 w-4" />

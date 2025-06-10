@@ -12,17 +12,20 @@ export interface Task {
   status: TaskStatus;
   branch: string;
   sessionId: string;
+  repository: string;
   createdAt: string;
   updatedAt: string;
+  statusMessage?: string;
   isArchived: boolean;
   mode: "code" | "ask";
+  hasChanges: boolean;
 }
 
 interface TaskStore {
   tasks: Task[];
   addTask: (
     task: Omit<Task, "id" | "createdAt" | "updatedAt" | "isArchived">
-  ) => void;
+  ) => Task;
   updateTask: (
     id: string,
     updates: Partial<Omit<Task, "id" | "createdAt">>
@@ -47,18 +50,17 @@ export const useTaskStore = create<TaskStore>()(
       addTask: (task) => {
         const now = new Date().toISOString();
         const id = crypto.randomUUID();
+        const newTask = {
+          ...task,
+          id,
+          createdAt: now,
+          updatedAt: now,
+          isArchived: false,
+        };
         set((state) => ({
-          tasks: [
-            ...state.tasks,
-            {
-              ...task,
-              id,
-              createdAt: now,
-              updatedAt: now,
-              isArchived: false,
-            },
-          ],
+          tasks: [...state.tasks, newTask],
         }));
+        return newTask;
       },
       updateTask: (id, updates) => {
         set((state) => ({
@@ -103,7 +105,10 @@ export const useTaskStore = create<TaskStore>()(
       },
       clear: () => set({ tasks: [] }),
       getTasks: () => get().tasks,
-      getActiveTasks: () => get().tasks.filter((task) => !task.isArchived),
+      getActiveTasks: () =>
+        get()
+          .tasks.filter((task) => !task.isArchived)
+          .reverse(),
       getArchivedTasks: () => get().tasks.filter((task) => task.isArchived),
       getTaskById: (id) => get().tasks.find((task) => task.id === id),
       getTasksByStatus: (status) =>

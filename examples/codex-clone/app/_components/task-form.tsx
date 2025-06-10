@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { useTaskStore } from "@/stores/tasks";
+import { createTaskAction } from "@/app/actions/inngest";
 
 export default function TaskForm() {
   const { environments } = useEnvironmentStore();
@@ -35,17 +36,22 @@ export default function TaskForm() {
     }
   };
 
-  const handleAddTask = (mode: "code" | "ask") => {
+  const handleAddTask = async (mode: "code" | "ask") => {
     if (value) {
-      addTask({
+      const task = addTask({
         title: value,
+        hasChanges: false,
         description: "",
         messages: [],
         status: "IN_PROGRESS",
         branch: selectedBranch,
         sessionId: "",
+        repository:
+          environments.find((env) => env.id === selectedEnvironment)
+            ?.githubRepository || "",
         mode,
       });
+      await createTaskAction(task);
       setValue("");
     }
   };

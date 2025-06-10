@@ -11,7 +11,11 @@ export type TaskChannelToken = Realtime.Token<
   ["status", "update"]
 >;
 
-export const createTaskAction = async (task: Task) => {
+export const createTaskAction = async (
+  task: Task,
+  sessionId?: string,
+  prompt?: string
+) => {
   const cookieStore = await cookies();
   const githubToken = cookieStore.get("github_access_token")?.value;
 
@@ -24,6 +28,8 @@ export const createTaskAction = async (task: Task) => {
     data: {
       task,
       token: githubToken,
+      sessionId: sessionId,
+      prompt: prompt,
     },
   });
 };

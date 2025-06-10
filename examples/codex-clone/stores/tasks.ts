@@ -8,7 +8,11 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  messages: string[];
+  messages: {
+    role: "user" | "assistant";
+    type: string;
+    data: Record<string, unknown>;
+  }[];
   status: TaskStatus;
   branch: string;
   sessionId: string;

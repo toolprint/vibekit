@@ -13,6 +13,7 @@ export const taskChannel = channel("tasks")
     topic("status").type<{
       taskId: string;
       status: "IN_PROGRESS" | "DONE" | "MERGED";
+      sessionId: string;
     }>()
   )
   .addTopic(
@@ -26,7 +27,7 @@ export const createTask = inngest.createFunction(
   { id: "create-task" },
   { event: "clonedex/create.task" },
   async ({ event, step, publish }) => {
-    const { task, token } = event.data;
+    const { task, token, sessionId, prompt } = event.data;
     const config: VibeKitConfig = {
       agent: {
         type: "codex",
@@ -43,12 +44,13 @@ export const createTask = inngest.createFunction(
         token,
         repository: task.repository,
       },
+      ...(sessionId && { sessionId }),
     };
 
     const result = await step.run("generate-code", async () => {
       const vibekit = new VibeKit(config);
       const response = await vibekit.generateCode({
-        prompt: task.title,
+        prompt: prompt || task.title,
         mode: task.mode,
         callbacks: {
           onUpdate(message) {
@@ -68,7 +70,13 @@ export const createTask = inngest.createFunction(
     if ("stdout" in result) {
       const lines = result.stdout.trim().split("\n");
       const parsedLines = lines.map((line) => JSON.parse(line));
-      await publish(taskChannel().status({ taskId: task.id, status: "DONE" }));
+      await publish(
+        taskChannel().status({
+          taskId: task.id,
+          status: "DONE",
+          sessionId: result.sandboxId,
+        })
+      );
       return { message: parsedLines };
     } else {
       return { message: result };

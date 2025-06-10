@@ -1,14 +1,11 @@
-import { Sandbox } from "@e2b/code-interpreter";
 import { generateCommitMessage, generatePRMetadata } from "./utils";
 import { Conversation, SandboxInstance, SandboxConfig } from "../types";
-import { createSandboxProvider, E2BSandboxInstance } from "../services/sandbox";
+import { createSandboxProvider } from "../services/sandbox";
 
 export interface BaseAgentConfig {
   githubToken?: string;
   repoUrl?: string;
-  e2bApiKey: string; // Keep for backward compatibility
-  e2bTemplateId?: string; // Keep for backward compatibility
-  sandboxConfig?: SandboxConfig; // New unified sandbox config
+  sandboxConfig: SandboxConfig; // Now required - no more fallback
   sandboxId?: string;
   telemetry?: any;
 }
@@ -42,8 +39,7 @@ export interface AgentCommandConfig {
 
 export abstract class BaseAgent {
   protected config: BaseAgentConfig;
-  protected sbx?: Sandbox; // Keep for E2B backward compatibility
-  protected sandboxInstance?: SandboxInstance; // New abstraction
+  protected sandboxInstance?: SandboxInstance;
   protected lastPrompt?: string;
   protected currentBranch?: string;
 
@@ -58,54 +54,22 @@ export abstract class BaseAgent {
   protected abstract getDefaultTemplate(): string;
 
   private async getSandbox(): Promise<SandboxInstance> {
-    // ALWAYS prioritize sandboxConfig if available
-    if (this.config.sandboxConfig) {
-      if (this.sandboxInstance) return this.sandboxInstance;
-
-      const provider = createSandboxProvider(this.config.sandboxConfig.type);
-
-      if (this.config.sandboxId) {
-        this.sandboxInstance = await provider.resume(
-          this.config.sandboxId,
-          this.config.sandboxConfig
-        );
-      } else {
-        this.sandboxInstance = await provider.create(
-          this.config.sandboxConfig,
-          this.getEnvironmentVariables(),
-          this.getAgentType()
-        );
-      }
-      return this.sandboxInstance;
-    }
-
-    // Fallback to E2B for backward compatibility - but only if we have a valid API key
-    if (!this.config.e2bApiKey || this.config.e2bApiKey.trim() === "") {
-      throw new Error(
-        "No valid sandbox configuration found. Please provide either sandboxConfig or e2bApiKey."
-      );
-    }
-
     if (this.sandboxInstance) return this.sandboxInstance;
 
-    let e2bSandbox: Sandbox;
+    const provider = createSandboxProvider(this.config.sandboxConfig.type);
+
     if (this.config.sandboxId) {
-      e2bSandbox = await Sandbox.resume(this.config.sandboxId, {
-        apiKey: this.config.e2bApiKey,
-      });
+      this.sandboxInstance = await provider.resume(
+        this.config.sandboxId,
+        this.config.sandboxConfig
+      );
     } else {
-      e2bSandbox = await Sandbox.create(
-        this.config.e2bTemplateId || this.getDefaultTemplate(),
-        {
-          envs: this.getEnvironmentVariables(),
-          apiKey: this.config.e2bApiKey,
-        }
+      this.sandboxInstance = await provider.create(
+        this.config.sandboxConfig,
+        this.getEnvironmentVariables(),
+        this.getAgentType()
       );
     }
-
-    // Wrap E2B sandbox in abstraction and cache both
-    this.sbx = e2bSandbox;
-    this.sandboxInstance = new E2BSandboxInstance(e2bSandbox);
     return this.sandboxInstance;
   }
 
@@ -115,39 +79,28 @@ export abstract class BaseAgent {
     if (this.sandboxInstance) {
       await this.sandboxInstance.kill();
       this.sandboxInstance = undefined;
-    } else if (this.sbx) {
-      await this.sbx.kill();
-      this.sbx = undefined;
     }
   }
 
   public async pauseSandbox() {
     if (this.sandboxInstance) {
       await this.sandboxInstance.pause();
-    } else if (this.sbx) {
-      await this.sbx.pause();
     }
   }
 
   public async resumeSandbox() {
-    if (this.sandboxInstance && this.config.sandboxConfig) {
+    if (this.sandboxInstance) {
       const provider = createSandboxProvider(this.config.sandboxConfig.type);
       this.sandboxInstance = await provider.resume(
         this.sandboxInstance.sandboxId,
         this.config.sandboxConfig
       );
-    } else if (this.sbx) {
-      this.sbx = await Sandbox.resume(this.sbx.sandboxId, {
-        apiKey: this.config.e2bApiKey,
-      });
     }
   }
 
   public async getSession() {
     if (this.sandboxInstance) {
       return this.sandboxInstance.sandboxId;
-    } else if (this.sbx) {
-      return this.sbx.sandboxId;
     }
     return this.config.sandboxId || null;
   }
@@ -284,15 +237,16 @@ export abstract class BaseAgent {
 
     const { repoUrl } = this.config;
     const repoDir = repoUrl?.split("/")[1] || "";
+    const sbx = await this.getSandbox();
 
     // Check git status for changes
-    const gitStatus = await this.sbx?.commands.run(
+    const gitStatus = await sbx.commands.run(
       `cd ${repoDir} && git status --porcelain`,
       { timeoutMs: 3600000 }
     );
 
     // Check for untracked files
-    const untrackedFiles = await this.sbx?.commands.run(
+    const untrackedFiles = await sbx.commands.run(
       `cd ${repoDir} && git ls-files --others --exclude-standard`,
       { timeoutMs: 3600000 }
     );
@@ -304,15 +258,12 @@ export abstract class BaseAgent {
 
     // Switch to the specified branch (create if it doesn't exist)
     try {
-      await this.sbx?.commands.run(
-        `cd ${repoDir} && git checkout ${targetBranch}`,
-        {
-          timeoutMs: 60000,
-        }
-      );
+      await sbx.commands.run(`cd ${repoDir} && git checkout ${targetBranch}`, {
+        timeoutMs: 60000,
+      });
     } catch (error) {
       // If branch doesn't exist, create it
-      await this.sbx?.commands.run(
+      await sbx.commands.run(
         `cd ${repoDir} && git checkout -b ${targetBranch}`,
         {
           timeoutMs: 60000,
@@ -320,12 +271,11 @@ export abstract class BaseAgent {
       );
     }
 
-    const diffHead = await this.sbx?.commands.run(
-      `cd ${repoDir} && git diff HEAD`,
-      { timeoutMs: 3600000 }
-    );
+    const diffHead = await sbx.commands.run(`cd ${repoDir} && git diff HEAD`, {
+      timeoutMs: 3600000,
+    });
 
-    const patch = await this.sbx?.commands.run(
+    const patch = await sbx.commands.run(
       `cd ${repoDir} && git diff --diff-filter=ACMR`,
       { timeoutMs: 3600000 }
     );
@@ -340,18 +290,15 @@ export abstract class BaseAgent {
       this.lastPrompt || ""
     );
 
-    await this.sbx?.commands.run(
+    await sbx.commands.run(
       `cd ${repoDir} && git add -A && git commit -m "${commitMessage}"`,
       { timeoutMs: 3600000 }
     );
 
     // Push the branch to GitHub
-    await this.sbx?.commands.run(
-      `cd ${repoDir} && git push origin ${targetBranch}`,
-      {
-        timeoutMs: 3600000,
-      }
-    );
+    await sbx.commands.run(`cd ${repoDir} && git push origin ${targetBranch}`, {
+      timeoutMs: 3600000,
+    });
   }
 
   public async createPullRequest(): Promise<PullRequestResult> {
@@ -365,41 +312,40 @@ export abstract class BaseAgent {
     const { githubToken, repoUrl } = this.config;
     const repoDir = repoUrl?.split("/")[1] || "";
     const commandConfig = this.getCommandConfig("", "code");
+    const sbx = await this.getSandbox();
 
     // Get the current branch (base branch) BEFORE creating a new branch
-    const baseBranch = await this.sbx?.commands.run(
+    const baseBranch = await sbx.commands.run(
       `cd ${repoDir} && git rev-parse --abbrev-ref HEAD`,
       { timeoutMs: 3600000 }
     );
 
     // Debug: Check git status first
-    const gitStatus = await this.sbx?.commands.run(
+    const gitStatus = await sbx.commands.run(
       `cd ${repoDir} && git status --porcelain`,
       { timeoutMs: 3600000 }
     );
     console.log("Git status:", gitStatus);
 
     // Debug: Check for untracked files
-    const untrackedFiles = await this.sbx?.commands.run(
+    const untrackedFiles = await sbx.commands.run(
       `cd ${repoDir} && git ls-files --others --exclude-standard`,
       { timeoutMs: 3600000 }
     );
     console.log("Untracked files:", untrackedFiles);
 
     // Debug: Try different diff commands
-    const diffWorking = await this.sbx?.commands.run(
-      `cd ${repoDir} && git diff`,
-      { timeoutMs: 3600000 }
-    );
+    const diffWorking = await sbx.commands.run(`cd ${repoDir} && git diff`, {
+      timeoutMs: 3600000,
+    });
     console.log("Git diff (working vs index):", diffWorking);
 
-    const diffHead = await this.sbx?.commands.run(
-      `cd ${repoDir} && git diff HEAD`,
-      { timeoutMs: 3600000 }
-    );
+    const diffHead = await sbx.commands.run(`cd ${repoDir} && git diff HEAD`, {
+      timeoutMs: 3600000,
+    });
     console.log("Git diff HEAD (working vs last commit):", diffHead);
 
-    const patch = await this.sbx?.commands.run(
+    const patch = await sbx.commands.run(
       `cd ${repoDir} && git diff --diff-filter=ACMR`,
       { timeoutMs: 3600000 }
     );
@@ -420,11 +366,11 @@ export abstract class BaseAgent {
 
     // If no diff but there are untracked files, we need to add them first
     if (!patchContent && untrackedFiles?.stdout) {
-      await this.sbx?.commands.run(`cd ${repoDir} && git add .`, {
+      await sbx.commands.run(`cd ${repoDir} && git add .`, {
         timeoutMs: 3600000,
       });
 
-      const patchAfterAdd = await this.sbx?.commands.run(
+      const patchAfterAdd = await sbx.commands.run(
         `cd ${repoDir} && git diff --cached`,
         { timeoutMs: 3600000 }
       );
@@ -442,18 +388,15 @@ export abstract class BaseAgent {
       this.lastPrompt || ""
     );
 
-    const checkout = await this.sbx?.commands.run(
+    const checkout = await sbx.commands.run(
       `cd ${repoDir} && git checkout -b ${branchName} && git add -A && git commit -m "${commitMessage}"`,
       { timeoutMs: 3600000 }
     );
 
     // Push the branch to GitHub
-    await this.sbx?.commands.run(
-      `cd ${repoDir} && git push origin ${branchName}`,
-      {
-        timeoutMs: 3600000,
-      }
-    );
+    await sbx.commands.run(`cd ${repoDir} && git push origin ${branchName}`, {
+      timeoutMs: 3600000,
+    });
 
     // Extract commit SHA from checkout output
     const commitMatch = checkout?.stdout.match(/\[[\w-]+ ([a-f0-9]+)\]/);

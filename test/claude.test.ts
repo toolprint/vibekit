@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ClaudeAgent } from "../src/agents/claude";
 import { ClaudeConfig, ClaudeStreamCallbacks } from "../src/types";
-import { Sandbox } from "@e2b/code-interpreter";
+import { Sandbox } from "e2b";
+import { createSandboxProvider } from "../src/services/sandbox.js";
 
 // Mock dependencies
-vi.mock("@e2b/code-interpreter");
+vi.mock("e2b");
 vi.mock("../src/agents/utils.js");
+vi.mock("../src/services/sandbox.js");
 
 const MockedSandbox = vi.mocked(Sandbox);
+const MockedCreateSandboxProvider = vi.mocked(createSandboxProvider);
 
 describe("ClaudeAgent", () => {
   let config: ClaudeConfig;
@@ -21,6 +24,11 @@ describe("ClaudeAgent", () => {
       repoUrl: "octocat/hello-world",
       e2bApiKey: "test-e2b-key",
       e2bTemplateId: "vibekit-claude",
+      sandboxConfig: {
+        type: "e2b" as const,
+        apiKey: "test-e2b-key",
+        templateId: "vibekit-claude",
+      },
       model: "claude-3-sonnet",
     };
 
@@ -33,8 +41,11 @@ describe("ClaudeAgent", () => {
       pause: vi.fn(),
     };
 
-    MockedSandbox.create = vi.fn().mockResolvedValue(mockSandbox);
-    MockedSandbox.resume = vi.fn().mockResolvedValue(mockSandbox);
+    const mockProvider = {
+      create: vi.fn().mockResolvedValue(mockSandbox),
+      resume: vi.fn().mockResolvedValue(mockSandbox),
+    };
+    MockedCreateSandboxProvider.mockReturnValue(mockProvider);
 
     claudeAgent = new ClaudeAgent(config);
 
@@ -91,17 +102,34 @@ describe("ClaudeAgent", () => {
 
   describe("getSandbox", () => {
     it("should create a new sandbox when no sandboxId is provided", async () => {
+      const mockProvider = {
+        create: vi.fn().mockResolvedValue(mockSandbox),
+        resume: vi.fn().mockResolvedValue(mockSandbox),
+      };
+      MockedCreateSandboxProvider.mockReturnValue(mockProvider);
+
       await claudeAgent.generateCode("test prompt");
 
-      expect(MockedSandbox.create).toHaveBeenCalledWith("vibekit-claude", {
-        envs: {
+      expect(mockProvider.create).toHaveBeenCalledWith(
+        {
+          type: "e2b",
+          apiKey: "test-e2b-key",
+          templateId: "vibekit-claude",
+        },
+        {
           ANTHROPIC_API_KEY: "test-anthropic-key",
         },
-        apiKey: "test-e2b-key",
-      });
+        "claude"
+      );
     });
 
     it("should resume existing sandbox when sandboxId is provided", async () => {
+      const mockProvider = {
+        create: vi.fn().mockResolvedValue(mockSandbox),
+        resume: vi.fn().mockResolvedValue(mockSandbox),
+      };
+      MockedCreateSandboxProvider.mockReturnValue(mockProvider);
+
       const configWithSandboxId = {
         ...config,
         sandboxId: "existing-sandbox-id",
@@ -110,16 +138,24 @@ describe("ClaudeAgent", () => {
 
       await agentWithExistingSandbox.generateCode("test prompt");
 
-      expect(MockedSandbox.resume).toHaveBeenCalledWith("existing-sandbox-id", {
+      expect(mockProvider.resume).toHaveBeenCalledWith("existing-sandbox-id", {
+        type: "e2b",
         apiKey: "test-e2b-key",
+        templateId: "vibekit-claude",
       });
     });
 
     it("should reuse existing sandbox instance", async () => {
+      const mockProvider = {
+        create: vi.fn().mockResolvedValue(mockSandbox),
+        resume: vi.fn().mockResolvedValue(mockSandbox),
+      };
+      MockedCreateSandboxProvider.mockReturnValue(mockProvider);
+
       await claudeAgent.generateCode("test prompt 1");
       await claudeAgent.generateCode("test prompt 2");
 
-      expect(MockedSandbox.create).toHaveBeenCalledTimes(1);
+      expect(mockProvider.create).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -151,11 +187,19 @@ describe("ClaudeAgent", () => {
 
   describe("resumeSandbox", () => {
     it("should resume the sandbox if it exists", async () => {
+      const mockProvider = {
+        create: vi.fn().mockResolvedValue(mockSandbox),
+        resume: vi.fn().mockResolvedValue(mockSandbox),
+      };
+      MockedCreateSandboxProvider.mockReturnValue(mockProvider);
+
       await claudeAgent.generateCode("test prompt");
       await claudeAgent.resumeSandbox();
 
-      expect(MockedSandbox.resume).toHaveBeenCalledWith("test-sandbox-id", {
+      expect(mockProvider.resume).toHaveBeenCalledWith("test-sandbox-id", {
+        type: "e2b",
         apiKey: "test-e2b-key",
+        templateId: "vibekit-claude",
       });
     });
 

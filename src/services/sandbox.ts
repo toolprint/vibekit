@@ -1,4 +1,4 @@
-import { Sandbox as E2BSandbox } from "@e2b/code-interpreter";
+import { Sandbox as E2BSandbox } from "e2b";
 import { Daytona, DaytonaConfig } from "@daytonaio/sdk";
 
 import {
@@ -58,9 +58,7 @@ export class E2BSandboxProvider implements SandboxProvider {
     sandboxId: string,
     config: SandboxConfig
   ): Promise<SandboxInstance> {
-    const sandbox = await E2BSandbox.resume(sandboxId, {
-      apiKey: config.apiKey,
-    });
+    const sandbox = await E2BSandbox.resume(sandboxId);
     return new E2BSandboxInstance(sandbox);
   }
 }

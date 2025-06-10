@@ -51,7 +51,7 @@ export default function TaskForm() {
             ?.githubRepository || "",
         mode,
       });
-      await createTaskAction(task);
+      await createTaskAction({ task });
       setValue("");
     }
   };

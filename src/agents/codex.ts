@@ -13,11 +13,13 @@ export class CodexAgent extends BaseAgent {
   private model?: string;
 
   constructor(config: CodexConfig) {
+    if (!config.sandboxConfig) {
+      throw new Error("sandboxConfig is required");
+    }
+
     const baseConfig: BaseAgentConfig = {
       githubToken: config.githubToken,
       repoUrl: config.repoUrl,
-      e2bApiKey: config.e2bApiKey,
-      e2bTemplateId: config.e2bTemplateId,
       sandboxConfig: config.sandboxConfig,
       sandboxId: config.sandboxId,
       telemetry: config.telemetry,

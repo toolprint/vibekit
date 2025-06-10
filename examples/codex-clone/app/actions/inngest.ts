@@ -11,11 +11,15 @@ export type TaskChannelToken = Realtime.Token<
   ["status", "update"]
 >;
 
-export const createTaskAction = async (
-  task: Task,
-  sessionId?: string,
-  prompt?: string
-) => {
+export const createTaskAction = async ({
+  task,
+  sessionId,
+  prompt,
+}: {
+  task: Task;
+  sessionId?: string;
+  prompt?: string;
+}) => {
   const cookieStore = await cookies();
   const githubToken = cookieStore.get("github_access_token")?.value;
 

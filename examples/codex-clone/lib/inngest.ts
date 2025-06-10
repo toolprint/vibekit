@@ -44,11 +44,15 @@ export const createTask = inngest.createFunction(
         token,
         repository: task.repository,
       },
-      ...(sessionId && { sessionId }),
     };
 
     const result = await step.run("generate-code", async () => {
       const vibekit = new VibeKit(config);
+
+      if (sessionId) {
+        await vibekit.setSession(sessionId);
+      }
+
       const response = await vibekit.generateCode({
         prompt: prompt || task.title,
         mode: task.mode,

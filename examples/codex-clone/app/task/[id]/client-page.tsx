@@ -10,6 +10,12 @@ import { useTaskStore } from "@/stores/tasks";
 import { Terminal } from "lucide-react";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import { Markdown } from "@/components/markdown";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Props {
   id: string;
@@ -64,21 +70,9 @@ export default function TaskClientPage({ id }: Props) {
         <div className="w-150 border-r border-border bg-card flex flex-col">
           <ScrollArea className="flex-1">
             <div className="p-4 flex flex-col gap-y-4">
-              <div className="bg-muted rounded-xl px-4 py-4">
+              <div className="bg-muted rounded-xl px-4 py-3 text-right w-fit self-end">
                 <p>{task?.title}</p>
               </div>
-              {task?.status === "IN_PROGRESS" && (
-                <div className="flex items-start gap-x-2 mt-4">
-                  <Terminal className="size-4 text-muted-foreground" />
-                  <p className="-mt-1">
-                    <TextShimmer>
-                      {task?.statusMessage
-                        ? `${task.statusMessage}...`
-                        : "Working on task..."}
-                    </TextShimmer>
-                  </p>
-                </div>
-              )}
               {task?.messages
                 .filter(
                   (message) =>
@@ -90,7 +84,7 @@ export default function TaskClientPage({ id }: Props) {
                   return (
                     <div
                       key={message.data?.id as string}
-                      className="mt-4 flex-wrap"
+                      className="mt-4 flex-wrap flex flex-col"
                     >
                       {message.role === "assistant" && (
                         <Markdown
@@ -104,9 +98,26 @@ export default function TaskClientPage({ id }: Props) {
                           {message.data?.text as string}
                         </Markdown>
                       )}
+                      {message.role === "user" && (
+                        <div className="bg-muted rounded-xl px-4 py-3 text-right self-end w-fit">
+                          <p>{message.data?.text as string}</p>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+              {task?.status === "IN_PROGRESS" && (
+                <div className="flex items-start gap-x-2 mt-4">
+                  <Terminal className="size-4 text-muted-foreground" />
+                  <p className="-mt-1">
+                    <TextShimmer>
+                      {task?.statusMessage
+                        ? `${task.statusMessage}...`
+                        : "Working on task..."}
+                    </TextShimmer>
+                  </p>
+                </div>
+              )}
             </div>
           </ScrollArea>
 
@@ -133,15 +144,32 @@ export default function TaskClientPage({ id }: Props) {
                         className="flex flex-col"
                       >
                         <div className="flex items-start gap-x-2">
-                          <p className="font-medium font-mono text-sm -mt-1">
-                            {(
-                              message.data as {
-                                action?: { command?: string[] };
-                              }
-                            )?.action?.command
-                              ?.slice(1)
-                              .join(" ")}
-                          </p>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <p className="font-medium font-mono text-sm -mt-1 truncate max-w-md cursor-help">
+                                  {(
+                                    message.data as {
+                                      action?: { command?: string[] };
+                                    }
+                                  )?.action?.command
+                                    ?.slice(1)
+                                    .join(" ")}
+                                </p>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-sm break-words">
+                                  {(
+                                    message.data as {
+                                      action?: { command?: string[] };
+                                    }
+                                  )?.action?.command
+                                    ?.slice(1)
+                                    .join(" ")}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                         {output && (
                           <div className="mt-2">

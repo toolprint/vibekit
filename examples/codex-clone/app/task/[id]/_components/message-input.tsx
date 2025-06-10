@@ -4,8 +4,10 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Task } from "@/stores/tasks";
 import { createTaskAction } from "@/app/actions/inngest";
+import { useTaskStore } from "@/stores/tasks";
 
 export default function MessageInput({ task }: { task: Task }) {
+  const { updateTask } = useTaskStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [messageValue, setMessageValue] = useState("");
 
@@ -19,13 +21,31 @@ export default function MessageInput({ task }: { task: Task }) {
 
   const handleSendMessage = async () => {
     if (messageValue.trim()) {
+      await createTaskAction({
+        task,
+        prompt: messageValue,
+      });
+
+      updateTask(task.id, {
+        ...task,
+        status: "IN_PROGRESS",
+        statusMessage: "Working on task...",
+        messages: [
+          ...task.messages,
+          {
+            role: "user",
+            type: "message",
+            data: { text: messageValue, id: crypto.randomUUID() },
+          },
+        ],
+      });
+
       setMessageValue("");
-      await createTaskAction(task, task.sessionId);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }

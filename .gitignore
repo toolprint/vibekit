@@ -39,3 +39,4 @@ test-pr.ts
 test-claude.ts
 test-codex-gemini.ts
 test-daytona.ts
+test-package.ts

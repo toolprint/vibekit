@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ClaudeAgent } from "../src/agents/claude";
 import { ClaudeConfig, ClaudeStreamCallbacks } from "../src/types";
-import { Sandbox } from "e2b";
+import { Sandbox } from "@e2b/code-interpreter";
 import { createSandboxProvider } from "../src/services/sandbox.js";
 
 // Mock dependencies

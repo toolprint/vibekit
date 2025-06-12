@@ -22,7 +22,7 @@ interface Props {
 }
 
 export default function TaskClientPage({ id }: Props) {
-  const { getTaskById } = useTaskStore();
+  const { getTaskById, updateTask } = useTaskStore();
   const task = getTaskById(id);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +61,14 @@ export default function TaskClientPage({ id }: Props) {
       }
     }
   }, [task?.messages]);
+
+  useEffect(() => {
+    if (task) {
+      updateTask(task.id, {
+        hasChanges: false,
+      });
+    }
+  }, []);
 
   return (
     <div className="flex flex-col h-screen">

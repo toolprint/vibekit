@@ -38,6 +38,27 @@ export const createTaskAction = async ({
   });
 };
 
+export const createPullRequestAction = async ({
+  sessionId,
+}: {
+  sessionId?: string;
+}) => {
+  const cookieStore = await cookies();
+  const githubToken = cookieStore.get("github_access_token")?.value;
+
+  if (!githubToken) {
+    throw new Error("No GitHub token found. Please authenticate first.");
+  }
+
+  await inngest.send({
+    name: "clonedex/create.pull-request",
+    data: {
+      token: githubToken,
+      sessionId: sessionId,
+    },
+  });
+};
+
 export async function fetchRealtimeSubscriptionToken(): Promise<TaskChannelToken> {
   const token = await getSubscriptionToken(getInngestApp(), {
     channel: taskChannel(),

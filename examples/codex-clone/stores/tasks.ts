@@ -1,6 +1,7 @@
 // stores/useTaskStore.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { PullRequestResponse } from "@vibe-kit/sdk";
 
 type TaskStatus = "IN_PROGRESS" | "DONE" | "MERGED";
 
@@ -23,6 +24,7 @@ export interface Task {
   isArchived: boolean;
   mode: "code" | "ask";
   hasChanges: boolean;
+  pullRequest?: PullRequestResponse;
 }
 
 interface TaskStore {

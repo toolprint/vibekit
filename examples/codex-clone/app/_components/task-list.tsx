@@ -27,7 +27,6 @@ export default function TaskList() {
             Archive
           </TabsTrigger>
         </TabsList>
-
         <TabsContent value="active">
           <div className="flex flex-col gap-1">
             {activeTasks.length === 0 ? (
@@ -36,7 +35,7 @@ export default function TaskList() {
               activeTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="border rounded-lg bg-background p-4 flex items-center justify-between"
+                  className="border rounded-lg bg-background p-4 flex items-center justify-between hover:bg-sidebar"
                 >
                   <Link href={`/task/${task.id}`} className="flex-1">
                     <div>

@@ -24,6 +24,7 @@ export default function MessageInput({ task }: { task: Task }) {
       await createTaskAction({
         task,
         prompt: messageValue,
+        sessionId: task.sessionId,
       });
 
       updateTask(task.id, {
@@ -45,7 +46,7 @@ export default function MessageInput({ task }: { task: Task }) {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -56,7 +57,7 @@ export default function MessageInput({ task }: { task: Task }) {
   }, [messageValue]);
 
   return (
-    <div className="p-4">
+    <div className="p-4 absolute bottom-0 w-full">
       <div className="p-0.5 rounded-xl bg-muted">
         <div className="flex flex-col gap-y-2 border bg-background rounded-xl p-3">
           <textarea

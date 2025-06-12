@@ -58,7 +58,9 @@ export class E2BSandboxProvider implements SandboxProvider {
     sandboxId: string,
     config: SandboxConfig
   ): Promise<SandboxInstance> {
-    const sandbox = await E2BSandbox.resume(sandboxId);
+    const sandbox = await E2BSandbox.resume(sandboxId, {
+      timeoutMs: 3600000,
+    });
     return new E2BSandboxInstance(sandbox);
   }
 }
@@ -82,7 +84,7 @@ class DaytonaSandboxInstance implements SandboxInstance {
             command,
             undefined, // cwd - use default working directory
             this.envs, // env - use instance environment variables
-            options?.timeoutMs || 360000 // timeout in seconds, default 6 minutes
+            options?.timeoutMs || 3600000 // timeout in seconds, default 60 minutes
           );
 
           // Handle streaming callbacks if provided

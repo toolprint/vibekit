@@ -68,6 +68,8 @@ export const createTask = inngest.createFunction(
         },
       });
 
+      await vibekit.pause();
+
       return response;
     });
 
@@ -81,6 +83,7 @@ export const createTask = inngest.createFunction(
           sessionId: result.sandboxId,
         })
       );
+
       return { message: parsedLines };
     } else {
       return { message: result };

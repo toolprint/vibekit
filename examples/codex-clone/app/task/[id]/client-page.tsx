@@ -67,9 +67,9 @@ export default function TaskClientPage({ id }: Props) {
       <TaskNavbar id={id} />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar for chat messages */}
-        <div className="w-150 border-r border-border bg-card flex flex-col">
-          <ScrollArea className="flex-1">
-            <div className="p-4 flex flex-col gap-y-4">
+        <div className="w-150 border-r border-border bg-card flex flex-col relative">
+          <ScrollArea className="flex-1 pb-[120px]">
+            <div className="p-4 flex flex-col gap-y-4 h-[calc(100vh-200px)]">
               <div className="bg-muted rounded-xl px-4 py-3 text-right w-fit self-end">
                 <p>{task?.title}</p>
               </div>

@@ -12,6 +12,11 @@ export class CodexAgent extends BaseAgent {
   private provider: ModelProvider;
   private model?: string;
 
+  private escapePrompt(prompt: string): string {
+    // Escape backticks and other special characters
+    return prompt.replace(/[`"$\\]/g, "\\$&");
+  }
+
   constructor(config: CodexConfig) {
     if (!config.sandboxConfig) {
       throw new Error("sandboxConfig is required");
@@ -54,7 +59,8 @@ export class CodexAgent extends BaseAgent {
         "Don't ask any follow up questions.";
     }
 
-    let _prompt = `${instruction}\n\nUser: ${prompt}`;
+    const escapedPrompt = this.escapePrompt(prompt);
+    let _prompt = `${instruction}\n\nUser: ${escapedPrompt}`;
 
     return {
       command: `codex --approval-mode auto-edit${
@@ -108,7 +114,8 @@ export class CodexAgent extends BaseAgent {
         "Don't ask any follow up questions.";
     }
 
-    let _prompt = `${instruction}\n\nUser: ${prompt}`;
+    const escapedPrompt = this.escapePrompt(prompt);
+    let _prompt = `${instruction}\n\nUser: ${escapedPrompt}`;
 
     if (history) {
       _prompt += `\n\nConversation history: ${history

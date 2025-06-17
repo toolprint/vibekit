@@ -11,6 +11,11 @@ export class ClaudeAgent extends BaseAgent {
   private anthropicApiKey: string;
   private model?: string;
 
+  private escapePrompt(prompt: string): string {
+    // Escape backticks and other special characters
+    return prompt.replace(/[`"$\\]/g, "\\$&");
+  }
+
   constructor(config: ClaudeConfig) {
     if (!config.sandboxConfig) {
       throw new Error("sandboxConfig is required");
@@ -50,8 +55,10 @@ export class ClaudeAgent extends BaseAgent {
         "Don't ask any follow up questions.";
     }
 
+    const escapedPrompt = this.escapePrompt(prompt);
+
     return {
-      command: `echo "${prompt}" | claude -p --append-system-prompt "${instruction}"${
+      command: `echo "${escapedPrompt}" | claude -p --append-system-prompt "${instruction}"${
         mode === "ask" ? ' --disallowedTools "Edit" "Replace" "Write"' : ""
       } --output-format stream-json --verbose --model ${
         this.model || "claude-sonnet-4-20250514"
@@ -106,11 +113,13 @@ export class ClaudeAgent extends BaseAgent {
         .join("\n\n")}`;
     }
 
+    const escapedPrompt = this.escapePrompt(prompt);
+
     // Override the command config with history-aware instruction
     const originalGetCommandConfig = this.getCommandConfig.bind(this);
     this.getCommandConfig = (p: string, m?: "ask" | "code") => ({
       ...originalGetCommandConfig(p, m),
-      command: `echo "${prompt}" | claude -p --append-system-prompt "${instruction}"${
+      command: `echo "${escapedPrompt}" | claude -p --append-system-prompt "${instruction}"${
         mode === "ask" ? ' --disallowedTools "Edit" "Replace" "Write"' : ""
       } --output-format stream-json --verbose --dangerously-skip-permissions --model ${
         this.model || "claude-sonnet-4-20250514"

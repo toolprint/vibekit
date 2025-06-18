@@ -88,10 +88,10 @@ export default function TaskClientPage({ id }: Props) {
                     message.type === "message"
                 )
 
-                .map((message) => {
+                .map((message, index) => {
                   return (
                     <div
-                      key={message.data?.id as string}
+                      key={message.data?.id || `message-${index}-${message.role}`}
                       className="mt-4 flex-wrap flex flex-col"
                     >
                       {message.role === "assistant" && (

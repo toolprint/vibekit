@@ -4,7 +4,7 @@ An OpenAI Codex clone built with Next.js, VibeKit SDK, and Inngest. This applica
 
 ## 🔗 Demo 
 
-![https://clonedex.vercel.app/](https://clonedex.vercel.app/)
+[https://clonedex.vercel.app/](https://clonedex.vercel.app/)
 
 ## ✨ Features
 

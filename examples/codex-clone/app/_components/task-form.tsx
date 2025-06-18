@@ -14,6 +14,7 @@ import {
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { useTaskStore } from "@/stores/tasks";
 import { createTaskAction } from "@/app/actions/inngest";
+import Link from "next/link";
 
 export default function TaskForm() {
   const { environments } = useEnvironmentStore();
@@ -125,10 +126,12 @@ export default function TaskForm() {
                   </SelectContent>
                 </Select>
               ) : (
-                <Button className="rounded-lg" variant="outline">
-                  <HardDrive />
-                  Create an environment
-                </Button>
+                <Link passHref href="/environments">
+                  <Button className="rounded-lg" variant="outline">
+                    <HardDrive />
+                    Create an environment
+                  </Button>
+                </Link>
               )}
               {selectedEnvironment && (
                 <Select

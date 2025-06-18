@@ -2,6 +2,10 @@
 
 An OpenAI Codex clone built with Next.js, VibeKit SDK, and Inngest. This application allows you to generate code using AI models with real-time updates and GitHub integration.
 
+## 🔗 Demo 
+
+![https://clonedex.vercel.app/](https://clonedex.vercel.app/)
+
 ## ✨ Features
 
 - 🤖 AI-powered code generation using OpenAI

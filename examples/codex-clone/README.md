@@ -139,11 +139,11 @@ The app integrates with VibeKit SDK for AI code generation, supporting:
 Make sure to set all required environment variables in your production environment:
 
 ```bash
-OPENAI_API_KEY=your_production_openai_key
-E2B_API_KEY=your_production_e2b_key
-GITHUB_CLIENT_ID=your_production_github_client_id
-GITHUB_CLIENT_SECRET=your_production_github_client_secret
-NODE_ENV=production
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+E2B_API_KEY=
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
 ```
 
 ### Deploy to Vercel

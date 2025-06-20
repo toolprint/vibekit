@@ -117,13 +117,11 @@ export default function TaskClientPage({ id }: Props) {
               {task?.status === "IN_PROGRESS" && (
                 <div className="flex items-start gap-x-2 mt-4">
                   <Terminal className="size-4 text-muted-foreground" />
-                  <p className="-mt-1">
-                    <TextShimmer>
-                      {task?.statusMessage
-                        ? `${task.statusMessage}...`
-                        : "Working on task..."}
-                    </TextShimmer>
-                  </p>
+                  <TextShimmer className="-mt-1">
+                    {task?.statusMessage
+                      ? `${task.statusMessage}...`
+                      : "Working on task..."}
+                  </TextShimmer>
                 </div>
               )}
             </div>

@@ -1,6 +1,7 @@
 "use client";
 import { Archive, Check, Dot, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect, useState } from "react";
 
 import { useTaskStore } from "@/stores/tasks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,10 +10,15 @@ import { TextShimmer } from "@/components/ui/text-shimmer";
 import Link from "next/link";
 
 export default function TaskList() {
+  const [isHydrated, setIsHydrated] = useState(false);
   const { getActiveTasks, getArchivedTasks, archiveTask, removeTask } =
     useTaskStore();
   const activeTasks = getActiveTasks();
   const archivedTasks = getArchivedTasks();
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto w-full p-1 rounded-lg bg-muted">
@@ -29,7 +35,9 @@ export default function TaskList() {
         </TabsList>
         <TabsContent value="active">
           <div className="flex flex-col gap-1">
-            {activeTasks.length === 0 ? (
+            {!isHydrated ? (
+              <p className="text-muted-foreground p-2">Loading tasks...</p>
+            ) : activeTasks.length === 0 ? (
               <p className="text-muted-foreground p-2">No active tasks yet.</p>
             ) : (
               activeTasks.map((task) => (
@@ -84,7 +92,9 @@ export default function TaskList() {
         </TabsContent>
         <TabsContent value="archived">
           <div className="flex flex-col gap-1">
-            {archivedTasks.length === 0 ? (
+            {!isHydrated ? (
+              <p className="text-muted-foreground p-2">Loading tasks...</p>
+            ) : archivedTasks.length === 0 ? (
               <p className="text-muted-foreground p-2">
                 No archived tasks yet.
               </p>

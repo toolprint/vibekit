@@ -26,6 +26,8 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 
   // Check authentication status on mount
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const checkAuth = async () => {
       try {
         setIsLoading(true);
@@ -39,7 +41,9 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
           );
 
           // Verify the access token is still valid by making a test API call
-          const response = await fetch("/api/auth/github/repositories");
+          const response = await fetch("/api/auth/github/repositories", {
+            signal: abortController.signal,
+          });
 
           if (response.ok) {
             setUser(userData);
@@ -67,6 +71,10 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
     };
 
     checkAuth();
+    
+    return () => {
+      abortController.abort();
+    };
   }, []);
 
   // Listen for auth success from popup
@@ -160,11 +168,16 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
   const fetchRepositories = async (): Promise<void> => {
     if (!isAuthenticated) return;
     console.log("isAuthenticated", isAuthenticated);
+    
+    const abortController = new AbortController();
+    
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch("/api/auth/github/repositories");
+      const response = await fetch("/api/auth/github/repositories", {
+        signal: abortController.signal,
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch repositories");

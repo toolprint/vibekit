@@ -40,5 +40,7 @@ test-claude.ts
 test-codex-gemini.ts
 test-daytona.ts
 test-package.ts
+test-envs.ts
+test-run-tests.ts
 .cluso/config.json
 .inngest/main.db

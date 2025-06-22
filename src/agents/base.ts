@@ -6,6 +6,7 @@ export interface BaseAgentConfig {
   githubToken?: string;
   repoUrl?: string;
   sandboxConfig: SandboxConfig; // Now required - no more fallback
+  secrets?: Record<string, string>;
   sandboxId?: string;
   telemetry?: any;
 }
@@ -64,9 +65,15 @@ export abstract class BaseAgent {
         this.config.sandboxConfig
       );
     } else {
+      // Merge agent-specific environment variables with user-defined secrets
+      const envVars = {
+        ...this.getEnvironmentVariables(),
+        ...(this.config.secrets || {}),
+      };
+
       this.sandboxInstance = await provider.create(
         this.config.sandboxConfig,
-        this.getEnvironmentVariables(),
+        envVars,
         this.getAgentType()
       );
     }
@@ -438,6 +445,20 @@ export abstract class BaseAgent {
       branchName,
       commitSha,
     };
+  }
+
+  public async runTests(
+    branch?: string,
+    history?: Conversation[],
+    callbacks?: StreamCallbacks
+  ): Promise<AgentResponse> {
+    return await this.generateCode(
+      "Install dependencies and run tests",
+      "code",
+      branch,
+      history,
+      callbacks
+    );
   }
 
   protected abstract getApiKey(): string;

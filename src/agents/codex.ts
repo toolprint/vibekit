@@ -26,6 +26,7 @@ export class CodexAgent extends BaseAgent {
       githubToken: config.githubToken,
       repoUrl: config.repoUrl,
       sandboxConfig: config.sandboxConfig,
+      secrets: config.secrets,
       sandboxId: config.sandboxId,
       telemetry: config.telemetry,
     };

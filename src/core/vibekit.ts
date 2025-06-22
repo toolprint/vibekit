@@ -72,6 +72,8 @@ export class VibeKit {
         telemetry: setup.telemetry,
         // Add new sandbox config
         sandboxConfig,
+        // Pass secrets to agent
+        secrets: setup.secrets,
       };
       return new CodexAgent(codexConfig);
     } else if (setup.agent.type === "claude") {
@@ -88,6 +90,8 @@ export class VibeKit {
         telemetry: setup.telemetry,
         // Add new sandbox config
         sandboxConfig,
+        // Pass secrets to agent
+        secrets: setup.secrets,
       };
       return new ClaudeAgent(claudeConfig);
     } else {
@@ -255,6 +259,27 @@ export class VibeKit {
    */
   async createPullRequest(): Promise<PullRequestResponse> {
     return this.agent.createPullRequest();
+  }
+
+  /**
+   * Run tests in the sandbox environment.
+   * This method executes common test commands and automatically detects the appropriate test runner.
+   *
+   * @param branch - Optional branch to run tests on
+   * @param history - Optional conversation history for context
+   * @param callbacks - Optional callbacks for streaming updates and errors
+   * @returns Promise<AgentResponse> - Contains the test execution results
+   */
+  async runTests({
+    branch,
+    history,
+    callbacks,
+  }: {
+    branch?: string;
+    history?: Conversation[];
+    callbacks?: VibeKitStreamCallbacks;
+  }): Promise<AgentResponse> {
+    return this.agent.runTests(branch, history, callbacks);
   }
 
   async pushToBranch(branch?: string): Promise<void> {

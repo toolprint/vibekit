@@ -447,6 +447,20 @@ export abstract class BaseAgent {
     };
   }
 
+  public async runTests(
+    branch?: string,
+    history?: Conversation[],
+    callbacks?: StreamCallbacks
+  ): Promise<AgentResponse> {
+    return await this.generateCode(
+      "Install dependencies and run tests",
+      "code",
+      branch,
+      history,
+      callbacks
+    );
+  }
+
   protected abstract getApiKey(): string;
   protected abstract getAgentType(): "codex" | "claude";
 

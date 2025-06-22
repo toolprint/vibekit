@@ -261,6 +261,27 @@ export class VibeKit {
     return this.agent.createPullRequest();
   }
 
+  /**
+   * Run tests in the sandbox environment.
+   * This method executes common test commands and automatically detects the appropriate test runner.
+   *
+   * @param branch - Optional branch to run tests on
+   * @param history - Optional conversation history for context
+   * @param callbacks - Optional callbacks for streaming updates and errors
+   * @returns Promise<AgentResponse> - Contains the test execution results
+   */
+  async runTests({
+    branch,
+    history,
+    callbacks,
+  }: {
+    branch?: string;
+    history?: Conversation[];
+    callbacks?: VibeKitStreamCallbacks;
+  }): Promise<AgentResponse> {
+    return this.agent.runTests(branch, history, callbacks);
+  }
+
   async pushToBranch(branch?: string): Promise<void> {
     return this.agent.pushToBranch(branch);
   }

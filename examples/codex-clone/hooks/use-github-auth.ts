@@ -26,6 +26,8 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 
   // Check authentication status on mount
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const checkAuth = async () => {
       try {
         setIsLoading(true);
@@ -39,7 +41,9 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
           );
 
           // Verify the access token is still valid by making a test API call
-          const response = await fetch("/api/auth/github/repositories");
+          const response = await fetch("/api/auth/github/repositories", {
+            signal: abortController.signal,
+          });
 
           if (response.ok) {
             setUser(userData);
@@ -58,15 +62,25 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
           setUser(null);
         }
       } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          // Ignore abort errors
+          return;
+        }
         console.error("Error checking auth status:", error);
         setIsAuthenticated(false);
         setUser(null);
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkAuth();
+    
+    return () => {
+      abortController.abort("Component unmounted");
+    };
   }, []);
 
   // Listen for auth success from popup
@@ -160,6 +174,7 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
   const fetchRepositories = async (): Promise<void> => {
     if (!isAuthenticated) return;
     console.log("isAuthenticated", isAuthenticated);
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -173,6 +188,10 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
       const data = await response.json();
       setRepositories(data.repositories || []);
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Ignore abort errors
+        return;
+      }
       setError(
         error instanceof Error ? error.message : "Failed to fetch repositories"
       );

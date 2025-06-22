@@ -64,9 +64,11 @@ export default function TaskList() {
                       ) : (
                         <div className="flex items-center gap-0">
                           <p className="text-sm text-muted-foreground">
-                            {formatDistanceToNow(new Date(task.createdAt), {
-                              addSuffix: true,
-                            })}
+                            {task.createdAt
+                              ? formatDistanceToNow(new Date(task.createdAt), {
+                                  addSuffix: true,
+                                })
+                              : "Just now"}
                           </p>
                           <Dot className="size-4 text-muted-foreground" />
                           <p className="text-sm text-muted-foreground">

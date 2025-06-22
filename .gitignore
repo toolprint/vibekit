@@ -41,3 +41,4 @@ test-codex-gemini.ts
 test-daytona.ts
 test-package.ts
 .cluso/config.json
+.inngest/main.db

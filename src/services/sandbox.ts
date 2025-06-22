@@ -157,17 +157,11 @@ export class DaytonaSandboxProvider implements SandboxProvider {
         }
       }
 
-      // Create workspace with specified image or default
+      // Create workspace with specified image or default and environment variables
       const workspace = await daytona.create({
         image,
+        envVars: envs || {},
       });
-
-      // Set up environment variables if provided
-      if (envs && Object.keys(envs).length > 0) {
-        for (const [key, value] of Object.entries(envs)) {
-          await workspace.process.executeCommand(`export ${key}="${value}"`);
-        }
-      }
 
       return new DaytonaSandboxInstance(workspace, daytona, workspace.id, envs);
     } catch (error) {

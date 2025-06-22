@@ -6,6 +6,7 @@ export interface BaseAgentConfig {
   githubToken?: string;
   repoUrl?: string;
   sandboxConfig: SandboxConfig; // Now required - no more fallback
+  secrets?: Record<string, string>;
   sandboxId?: string;
   telemetry?: any;
 }
@@ -64,9 +65,15 @@ export abstract class BaseAgent {
         this.config.sandboxConfig
       );
     } else {
+      // Merge agent-specific environment variables with user-defined secrets
+      const envVars = {
+        ...this.getEnvironmentVariables(),
+        ...(this.config.secrets || {}),
+      };
+
       this.sandboxInstance = await provider.create(
         this.config.sandboxConfig,
-        this.getEnvironmentVariables(),
+        envVars,
         this.getAgentType()
       );
     }

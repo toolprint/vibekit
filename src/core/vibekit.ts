@@ -72,6 +72,8 @@ export class VibeKit {
         telemetry: setup.telemetry,
         // Add new sandbox config
         sandboxConfig,
+        // Pass secrets to agent
+        secrets: setup.secrets,
       };
       return new CodexAgent(codexConfig);
     } else if (setup.agent.type === "claude") {
@@ -88,6 +90,8 @@ export class VibeKit {
         telemetry: setup.telemetry,
         // Add new sandbox config
         sandboxConfig,
+        // Pass secrets to agent
+        secrets: setup.secrets,
       };
       return new ClaudeAgent(claudeConfig);
     } else {

@@ -43,6 +43,12 @@ export type GithubConfig = {
   repository: string;
 };
 
+// SECRETS
+export type SecretsConfig = {
+  /** Environment variables to be passed to the sandbox */
+  [key: string]: string;
+};
+
 // TELEMETRY
 export type TelemetryConfig = {
   /** Enable or disable telemetry */
@@ -69,6 +75,7 @@ export type VibeKitConfig = {
     model: AgentModel;
   };
   environment: EnvironmentConfig;
+  secrets?: SecretsConfig;
   github?: GithubConfig;
   telemetry?: TelemetryConfig;
   sessionId?: string;
@@ -100,6 +107,7 @@ export interface CodexConfig {
   e2bApiKey: string;
   e2bTemplateId?: string;
   sandboxConfig?: SandboxConfig; // New unified sandbox config
+  secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
@@ -125,6 +133,7 @@ export interface ClaudeConfig {
   e2bApiKey: string;
   e2bTemplateId?: string;
   sandboxConfig?: SandboxConfig; // New unified sandbox config
+  secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;

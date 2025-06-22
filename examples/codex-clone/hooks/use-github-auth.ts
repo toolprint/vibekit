@@ -62,18 +62,24 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
           setUser(null);
         }
       } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          // Ignore abort errors
+          return;
+        }
         console.error("Error checking auth status:", error);
         setIsAuthenticated(false);
         setUser(null);
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkAuth();
     
     return () => {
-      abortController.abort();
+      abortController.abort("Component unmounted");
     };
   }, []);
 
@@ -169,15 +175,11 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
     if (!isAuthenticated) return;
     console.log("isAuthenticated", isAuthenticated);
     
-    const abortController = new AbortController();
-    
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch("/api/auth/github/repositories", {
-        signal: abortController.signal,
-      });
+      const response = await fetch("/api/auth/github/repositories");
 
       if (!response.ok) {
         throw new Error("Failed to fetch repositories");
@@ -186,6 +188,10 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
       const data = await response.json();
       setRepositories(data.repositories || []);
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Ignore abort errors
+        return;
+      }
       setError(
         error instanceof Error ? error.message : "Failed to fetch repositories"
       );

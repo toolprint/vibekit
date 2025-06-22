@@ -88,13 +88,12 @@ export const CodeComponent: React.FC<CodeComponentProps> = ({
                 background: "none",
                 overflow: "visible",
               }}
-              wrapLongLines={true}
+              wrapLongLines={false}
               PreTag="div"
               codeTagProps={{
                 style: {
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-all",
-                  overflowWrap: "anywhere",
+                  whiteSpace: "pre",
+                  display: "block",
                 },
               }}
             >
@@ -110,7 +109,7 @@ export const CodeComponent: React.FC<CodeComponentProps> = ({
   return (
     <code
       className="relative rounded !bg-sidebar border border-muted-foreground/20 px-[0.3rem] py-[0.2rem] font-mono text-xs"
-      style={{ wordBreak: "break-all" }}
+      style={{ wordBreak: "break-word" }}
     >
       {children}
     </code>
@@ -158,10 +157,8 @@ const components: Partial<Components> = {
         <a
           className="text-blue-500 hover:underline"
           style={{
-            wordBreak: "break-all",
-            maxWidth: "100%",
-            display: "inline-block",
-            textOverflow: "ellipsis",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
           }}
           href={href}
           target="_blank"
@@ -178,10 +175,8 @@ const components: Partial<Components> = {
         passHref
         className="text-blue-500 hover:underline"
         style={{
-          wordBreak: "break-all",
-          maxWidth: "100%",
-          display: "inline-block",
-          textOverflow: "ellipsis",
+          wordBreak: "break-word",
+          overflowWrap: "break-word",
         }}
         href={href || "#"}
         target="_blank"

@@ -57,26 +57,33 @@ export default function MessageInput({ task }: { task: Task }) {
   }, [messageValue]);
 
   return (
-    <div className="p-4 absolute bottom-0 w-full">
-      <div className="p-0.5 rounded-xl bg-muted">
-        <div className="flex flex-col gap-y-2 border bg-background rounded-xl p-3">
-          <textarea
-            ref={textareaRef}
-            value={messageValue}
-            onChange={(e) => setMessageValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Type a message..."
-            className="w-full min-h-[60px] resize-none border-none p-0 focus:outline-none focus:border-transparent overflow-hidden"
-          />
-          <div className="flex items-center justify-end">
-            <Button
-              size="sm"
-              onClick={handleSendMessage}
-              disabled={!messageValue.trim()}
-            >
-              <Send className="size-4" />
-              Send
-            </Button>
+    <div className="p-6 border-t border-border bg-background">
+      <div className="relative">
+        <div className="bg-card border-2 border-border rounded-2xl shadow-lg transition-all duration-200 hover:shadow-xl focus-within:border-primary/50 focus-within:shadow-xl">
+          <div className="flex flex-col gap-y-3 p-4">
+            <textarea
+              ref={textareaRef}
+              value={messageValue}
+              onChange={(e) => setMessageValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message..."
+              className="w-full min-h-[60px] max-h-[200px] resize-none border-none p-0 focus:outline-none bg-transparent placeholder:text-muted-foreground/60 text-sm leading-relaxed"
+              style={{ scrollbarWidth: 'thin' }}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                Press Enter to send, Shift+Enter for new line
+              </span>
+              <Button
+                size="sm"
+                onClick={handleSendMessage}
+                disabled={!messageValue.trim()}
+                className="rounded-xl transition-all duration-200 hover:scale-105"
+              >
+                <Send className="size-4 mr-1" />
+                Send
+              </Button>
+            </div>
           </div>
         </div>
       </div>

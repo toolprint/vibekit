@@ -23,6 +23,14 @@ export const taskChannel = channel("tasks")
     }>()
   );
 
+// Helper function to simulate streaming by chunking text
+function* chunkText(text: string, chunkSize: number = 10): Generator<string, void, unknown> {
+  const words = text.split(' ');
+  for (let i = 0; i < words.length; i += chunkSize) {
+    yield words.slice(i, i + chunkSize).join(' ') + (i + chunkSize < words.length ? ' ' : '');
+  }
+}
+
 export const createTask = inngest.createFunction(
   { id: "create-task" },
   { event: "clonedex/create.task" },
@@ -58,12 +66,70 @@ export const createTask = inngest.createFunction(
         mode: task.mode,
         callbacks: {
           onUpdate(message) {
-            publish(
-              taskChannel().update({
-                taskId: task.id,
-                message: JSON.parse(message),
-              })
-            );
+            try {
+              const parsedMessage = JSON.parse(message);
+              
+              // For assistant messages, implement streaming
+              if (parsedMessage.type === "message" && parsedMessage.role === "assistant") {
+                const messageId = parsedMessage.data?.id || crypto.randomUUID();
+                const fullText = parsedMessage.data?.text || "";
+                
+                // Stream the message in chunks
+                let accumulatedText = "";
+                const chunks = Array.from(chunkText(fullText, 5)); // 5 words per chunk
+                
+                chunks.forEach((chunk, index) => {
+                  accumulatedText += chunk;
+                  
+                  setTimeout(() => {
+                    publish(
+                      taskChannel().update({
+                        taskId: task.id,
+                        message: {
+                          ...parsedMessage,
+                          data: {
+                            ...parsedMessage.data,
+                            id: messageId,
+                            text: accumulatedText,
+                            isStreaming: index < chunks.length - 1,
+                            streamId: messageId,
+                            chunkIndex: index,
+                            totalChunks: chunks.length,
+                          }
+                        },
+                      })
+                    );
+                  }, index * 50); // 50ms delay between chunks for smooth streaming
+                });
+              } else {
+                // Non-message updates (like git operations, etc.)
+                publish(
+                  taskChannel().update({
+                    taskId: task.id,
+                    message: parsedMessage,
+                  })
+                );
+              }
+            } catch {
+              // If it's not JSON, it might be raw streaming output
+              // Create a streaming message for it
+              const streamId = `stream-${Date.now()}`;
+              publish(
+                taskChannel().update({
+                  taskId: task.id,
+                  message: {
+                    type: "message",
+                    role: "assistant",
+                    data: {
+                      text: message,
+                      isStreaming: true,
+                      streamId: streamId,
+                      raw: true
+                    }
+                  },
+                })
+              );
+            }
           },
         },
       });

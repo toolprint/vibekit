@@ -59,9 +59,11 @@ export default function TaskNavbar({ id }: Props) {
           <h3 className=" font-medium">{task?.title}</h3>
           <div className="flex items-center gap-x-0">
             <p className="text-sm text-muted-foreground">
-              {formatDistanceToNow(new Date(task?.createdAt as string), {
-                addSuffix: true,
-              })}
+              {task?.createdAt
+                ? formatDistanceToNow(new Date(task.createdAt), {
+                    addSuffix: true,
+                  })
+                : "Loading..."}
             </p>
             <Dot className="size-4 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">{task?.repository}</p>
@@ -106,7 +108,7 @@ export default function TaskNavbar({ id }: Props) {
             ) : (
               <GitBranchPlus />
             )}
-            Make Pull Request
+            Create Pull Request
           </Button>
         )}
       </div>

@@ -579,7 +579,7 @@ describe("VibeKit", () => {
 
       mockCodexAgent.runTests.mockResolvedValue(mockTestResponse);
 
-      const result = await vibeKit.runTests();
+      const result = await vibeKit.runTests({});
 
       expect(MockedCodexAgent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -609,7 +609,7 @@ describe("VibeKit", () => {
 
       mockClaudeAgent.runTests.mockResolvedValue(mockTestResponse);
 
-      const result = await vibeKit.runTests();
+      const result = await vibeKit.runTests({});
 
       expect(MockedClaudeAgent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -643,11 +643,9 @@ describe("VibeKit", () => {
 
       mockCodexAgent.runTests.mockResolvedValue(mockTestResponse);
 
-      const result = await vibeKit.runTests(
-        undefined,
-        undefined,
-        mockCallbacks
-      );
+      const result = await vibeKit.runTests({
+        callbacks: mockCallbacks,
+      });
 
       expect(mockCodexAgent.runTests).toHaveBeenCalledWith(
         undefined,
@@ -668,7 +666,7 @@ describe("VibeKit", () => {
 
       mockCodexAgent.runTests.mockResolvedValue(mockTestResponse);
 
-      const result = await vibeKit.runTests("feature-branch");
+      const result = await vibeKit.runTests({ branch: "feature-branch" });
 
       expect(mockCodexAgent.runTests).toHaveBeenCalledWith(
         "feature-branch",
@@ -694,7 +692,10 @@ describe("VibeKit", () => {
 
       mockCodexAgent.runTests.mockResolvedValue(mockTestResponse);
 
-      const result = await vibeKit.runTests("main", mockHistory);
+      const result = await vibeKit.runTests({
+        branch: "main",
+        history: mockHistory,
+      });
 
       expect(mockCodexAgent.runTests).toHaveBeenCalledWith(
         "main",
@@ -715,7 +716,7 @@ describe("VibeKit", () => {
 
       mockCodexAgent.runTests.mockResolvedValue(mockTestResponse);
 
-      const result = await vibeKit.runTests();
+      const result = await vibeKit.runTests({});
 
       expect(result).toBe(mockTestResponse);
       // Type assertion since AgentResponse is a union type

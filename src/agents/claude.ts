@@ -122,7 +122,7 @@ export class ClaudeAgent extends BaseAgent {
       ...originalGetCommandConfig(p, m),
       command: `echo "${escapedPrompt}" | claude -p --append-system-prompt "${instruction}"${
         mode === "ask" ? ' --disallowedTools "Edit" "Replace" "Write"' : ""
-      } --output-format stream-json --verbose --allowedTools "Edit,Write,Read,Bash" --model ${
+      } --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model ${
         this.model || "claude-sonnet-4-20250514"
       }`,
     });

@@ -253,7 +253,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         3,
-        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,Read,Bash" --model claude-3-sonnet',
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-sonnet',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
@@ -265,7 +265,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         3,
-        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository." --disallowedTools "Edit" "Replace" "Write" --output-format stream-json --verbose --allowedTools "Edit,Write,Read,Bash" --model claude-3-sonnet',
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository." --disallowedTools "Edit" "Replace" "Write" --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-sonnet',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
@@ -281,7 +281,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         3,
-        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,Read,Bash" --model claude-sonnet-4-20250514',
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-sonnet-4-20250514',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
@@ -296,7 +296,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         3,
-        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,Read,Bash" --model claude-3-opus',
+        'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-opus',
         expect.objectContaining({
           timeoutMs: 3600000,
         })

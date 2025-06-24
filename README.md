@@ -29,6 +29,7 @@ One SDK. Any coding agent. Any sandbox.
 📡 Streamed output for real-time UIs  
 🔍 OpenTelemetry support for tracing and metrics  
 🧰 Compatible with any sandbox runtime
+⚡ Execute arbitrary commands in sandbox environments
 
 ## 📦 Supported Sandbox Runtimes
 

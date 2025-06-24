@@ -21,7 +21,30 @@ export class E2BSandboxInstance implements SandboxInstance {
   get commands(): SandboxCommands {
     return {
       run: async (command: string, options?: SandboxCommandOptions) => {
-        return await this.sandbox.commands.run(command, options);
+        // Extract our custom options and pass the rest to E2B
+        const { background, ...e2bOptions } = options || {};
+
+        // E2B has specific overloads for background vs non-background execution
+        if (background) {
+          // For background execution, E2B returns a CommandHandle, not a CommandResult
+          const handle = await this.sandbox.commands.run(command, {
+            ...e2bOptions,
+            background: true,
+            onStdout: (data) => console.log("stdout", data),
+            onStderr: (data) => console.log("stderr", data),
+          });
+          // Since we need to return SandboxExecutionResult consistently,
+          // return a placeholder result for background commands
+
+          return {
+            exitCode: 0,
+            stdout: "Background command started successfully",
+            stderr: "",
+          };
+        } else {
+          // For non-background execution, E2B returns a CommandResult
+          return await this.sandbox.commands.run(command, e2bOptions);
+        }
       },
     };
   }
@@ -66,6 +89,7 @@ export class E2BSandboxProvider implements SandboxProvider {
   ): Promise<SandboxInstance> {
     const sandbox = await E2BSandbox.resume(sandboxId, {
       timeoutMs: 3600000,
+      apiKey: config.apiKey,
     });
     return new E2BSandboxInstance(sandbox);
   }
@@ -83,6 +107,22 @@ class DaytonaSandboxInstance implements SandboxInstance {
   get commands(): SandboxCommands {
     return {
       run: async (command: string, options?: SandboxCommandOptions) => {
+        // Check if background execution is requested - not supported in Daytona
+        if (options?.background) {
+          const response = await this.workspace.process.executSessionCommand(
+            command,
+            undefined, // cwd - use default working directory
+            this.envs, // env - use instance environment variables
+            options?.timeoutMs || 3600000 // timeout in seconds, default 60 minutes
+          );
+
+          return {
+            exitCode: response.exitCode || 0,
+            stdout: response.result || "",
+            stderr: response.stderr || "",
+          };
+        }
+
         try {
           // Execute command using Daytona's process execution API
           // Format: executeCommand(command, cwd?, env?, timeout?)

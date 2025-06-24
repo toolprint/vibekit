@@ -44,5 +44,6 @@ test-envs.ts
 test-run-tests.ts
 test-togetherai.ts
 test-opencode.ts
+test-nextjs.ts
 .cluso/config.json
 .inngest/main.db

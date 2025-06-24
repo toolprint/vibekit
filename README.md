@@ -21,7 +21,7 @@ One SDK. Any coding agent. Any sandbox.
 
 ## ⚡️ Features
 
-🧠 Drop-in SDK for Codex and Claude Code  
+🧠 Drop-in SDK for Claude Code, OpenAI Codex, and SST Opencode  
 🔒 Secure sandboxing for safe code execution  
 🌐 Cloud-based execution (local support coming soon)  
 🔁 GitHub automation: branches, commits, PRs  

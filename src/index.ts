@@ -24,6 +24,7 @@ export type {
 // Agent function exports
 export { CodexAgent } from "./agents/codex";
 export { ClaudeAgent } from "./agents/claude";
+export { OpenCodeAgent } from "./agents/opencode";
 
 // Agent config type exports
 export type { CodexConfig, CodexResponse, CodexStreamCallbacks } from "./types";
@@ -31,6 +32,11 @@ export type {
   ClaudeConfig,
   ClaudeResponse,
   ClaudeStreamCallbacks,
+} from "./types";
+export type {
+  OpenCodeConfig,
+  OpenCodeResponse,
+  OpenCodeStreamCallbacks,
 } from "./types";
 
 // Telemetry exports

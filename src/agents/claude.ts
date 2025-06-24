@@ -1,4 +1,5 @@
 import { BaseAgent, BaseAgentConfig, AgentCommandConfig } from "./base";
+import { ModelConfig } from "./utils";
 import {
   ClaudeConfig,
   ClaudeResponse,
@@ -85,8 +86,16 @@ export class ClaudeAgent extends BaseAgent {
     return this.anthropicApiKey;
   }
 
-  protected getAgentType(): "codex" | "claude" {
+  protected getAgentType(): "codex" | "claude" | "opencode" {
     return "claude";
+  }
+
+  protected getModelConfig(): ModelConfig {
+    return {
+      provider: "anthropic",
+      apiKey: this.anthropicApiKey,
+      model: this.model,
+    };
   }
 
   // Override generateCode to support history in the instruction

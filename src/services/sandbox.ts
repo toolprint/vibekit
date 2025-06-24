@@ -39,12 +39,18 @@ export class E2BSandboxProvider implements SandboxProvider {
   async create(
     config: SandboxConfig,
     envs?: Record<string, string>,
-    agentType?: "codex" | "claude"
+    agentType?: "codex" | "claude" | "opencode"
   ): Promise<SandboxInstance> {
     // Determine default template based on agent type if not specified in config
     let templateId = config.templateId;
     if (!templateId) {
-      templateId = agentType === "claude" ? "vibekit-claude" : "vibekit-codex";
+      if (agentType === "claude") {
+        templateId = "vibekit-claude";
+      } else if (agentType === "opencode") {
+        templateId = "vibekit-opencode";
+      } else {
+        templateId = "vibekit-codex";
+      }
     }
 
     const sandbox = await E2BSandbox.create(templateId, {
@@ -135,7 +141,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
   async create(
     config: SandboxConfig,
     envs?: Record<string, string>,
-    agentType?: "codex" | "claude"
+    agentType?: "codex" | "claude" | "opencode"
   ): Promise<SandboxInstance> {
     try {
       // Dynamic import to avoid dependency issues if daytona-sdk is not installed
@@ -154,6 +160,8 @@ export class DaytonaSandboxProvider implements SandboxProvider {
           image = "superagentai/vibekit-codex:1.0";
         } else if (agentType === "claude") {
           image = "superagentai/vibekit-claude:1.0";
+        } else if (agentType === "opencode") {
+          image = "superagentai/vibekit-opencode:1.0";
         }
       }
 
@@ -229,7 +237,7 @@ export function createSandboxProvider(
 // Helper function to create SandboxConfig from VibeKitConfig environment
 export function createSandboxConfigFromEnvironment(
   environment: any,
-  agentType?: "codex" | "claude"
+  agentType?: "codex" | "claude" | "opencode"
 ): SandboxConfig {
   // Try Daytona first if configured
   if (environment.daytona) {
@@ -239,6 +247,8 @@ export function createSandboxConfigFromEnvironment(
       defaultImage = "superagentai/vibekit-codex:1.0";
     } else if (agentType === "claude") {
       defaultImage = "superagentai/vibekit-claude:1.0";
+    } else if (agentType === "opencode") {
+      defaultImage = "superagentai/vibekit-opencode:1.0";
     }
 
     return {
@@ -255,6 +265,8 @@ export function createSandboxConfigFromEnvironment(
     let defaultTemplate = "vibekit-codex"; // fallback
     if (agentType === "claude") {
       defaultTemplate = "vibekit-claude";
+    } else if (agentType === "opencode") {
+      defaultTemplate = "vibekit-opencode";
     }
 
     return {

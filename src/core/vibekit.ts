@@ -15,7 +15,11 @@ import {
 import { CodexAgent } from "../agents/codex";
 import { ClaudeAgent } from "../agents/claude";
 import { OpenCodeAgent } from "../agents/opencode";
-import { BaseAgent, AgentResponse as BaseAgentResponse } from "../agents/base";
+import {
+  BaseAgent,
+  AgentResponse as BaseAgentResponse,
+  StreamCallbacks,
+} from "../agents/base";
 import { TelemetryService } from "../services/telemetry";
 import { createSandboxConfigFromEnvironment } from "../services/sandbox";
 
@@ -349,5 +353,141 @@ export class VibeKit {
    */
   async setSession(sessionId: string): Promise<void> {
     return this.agent.setSession(sessionId);
+  }
+
+  async executeCommand(
+    command: string,
+    options: {
+      timeoutMs?: number;
+      useRepoContext?: boolean;
+      background?: boolean;
+      callbacks?: VibeKitStreamCallbacks;
+    } = {}
+  ): Promise<BaseAgentResponse> {
+    const { callbacks, ...agentOptions } = options;
+    const agentType = this.setup.agent.type;
+
+    // Track telemetry start
+    await this.telemetryService?.trackStart(agentType, "ask", command, {
+      repoUrl: this.setup.github?.repository,
+      model: this.setup.agent.model.name,
+      commandType: "execute",
+    });
+
+    if (callbacks) {
+      // Wrap callbacks with telemetry tracking
+      const wrappedCallbacks: StreamCallbacks = {
+        onUpdate: async (data: string) => {
+          callbacks.onUpdate?.(data);
+          await this.telemetryService?.trackStream(
+            agentType,
+            "ask",
+            command,
+            data,
+            undefined,
+            this.setup.github?.repository,
+            {
+              dataType: this.getDataType(data),
+              commandType: "execute",
+            }
+          );
+        },
+        onError: async (error: string) => {
+          callbacks.onError?.(error);
+          await this.telemetryService?.trackError(
+            agentType,
+            "ask",
+            command,
+            error,
+            {
+              source: `${agentType}_agent`,
+              commandType: "execute",
+            }
+          );
+        },
+      };
+
+      try {
+        const result = await this.agent.executeCommand(command, {
+          ...agentOptions,
+          callbacks: wrappedCallbacks,
+        });
+
+        await this.telemetryService?.trackEnd(
+          agentType,
+          "ask",
+          command,
+          result.sandboxId,
+          this.setup.github?.repository,
+          {
+            exitCode: result.exitCode,
+            stdoutLength: result.stdout?.length || 0,
+            stderrLength: result.stderr?.length || 0,
+            commandType: "execute",
+          }
+        );
+
+        return result;
+      } catch (error) {
+        const errorMessage = `Command execution failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`;
+
+        await this.telemetryService?.trackError(
+          agentType,
+          "ask",
+          command,
+          errorMessage,
+          {
+            errorType:
+              error instanceof Error ? error.constructor.name : "UnknownError",
+            source: "vibekit",
+            commandType: "execute",
+          }
+        );
+
+        throw error;
+      }
+    }
+
+    // Non-streaming path
+    try {
+      const result = await this.agent.executeCommand(command, agentOptions);
+
+      await this.telemetryService?.trackEnd(
+        agentType,
+        "ask",
+        command,
+        result.sandboxId,
+        this.setup.github?.repository,
+        {
+          exitCode: result.exitCode,
+          stdoutLength: result.stdout?.length || 0,
+          stderrLength: result.stderr?.length || 0,
+          commandType: "execute",
+        }
+      );
+
+      return result;
+    } catch (error) {
+      const errorMessage = `Command execution failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+
+      await this.telemetryService?.trackError(
+        agentType,
+        "ask",
+        command,
+        errorMessage,
+        {
+          errorType:
+            error instanceof Error ? error.constructor.name : "UnknownError",
+          source: "vibekit",
+          commandType: "execute",
+        }
+      );
+
+      throw error;
+    }
   }
 }

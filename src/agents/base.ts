@@ -124,6 +124,65 @@ export abstract class BaseAgent {
     return this.currentBranch;
   }
 
+  public async executeCommand(
+    command: string,
+    options: {
+      timeoutMs?: number;
+      useRepoContext?: boolean;
+      background?: boolean;
+      callbacks?: StreamCallbacks;
+    } = {}
+  ): Promise<AgentResponse> {
+    const {
+      timeoutMs = 3600000,
+      useRepoContext = false,
+      background = false,
+      callbacks,
+    } = options;
+
+    try {
+      const sbx = await this.getSandbox();
+
+      if (!this.config.sandboxId && sbx.sandboxId) {
+        callbacks?.onUpdate?.(
+          `{"type": "start", "sandbox_id": "${sbx.sandboxId}"}`
+        );
+      }
+
+      // Determine the command to execute based on repository context
+      const repoDir = this.config.repoUrl?.split("/")[1] || "";
+      const executeCommand =
+        useRepoContext && this.config.repoUrl
+          ? `cd ${repoDir} && ${command}`
+          : command;
+
+      const result = await sbx.commands.run(executeCommand, {
+        timeoutMs,
+        background,
+        onStdout: (data) => callbacks?.onUpdate?.(data),
+        onStderr: (data) => callbacks?.onUpdate?.(data),
+      });
+
+      callbacks?.onUpdate?.(
+        `{"type": "end", "sandbox_id": "${
+          sbx.sandboxId
+        }", "output": "${JSON.stringify(result)}"}`
+      );
+
+      return {
+        sandboxId: sbx.sandboxId,
+        ...result,
+      };
+    } catch (error) {
+      console.error("Error executing command:", error);
+      const errorMessage = `Failed to execute command: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      callbacks?.onError?.(errorMessage);
+      throw new Error(errorMessage);
+    }
+  }
+
   public async generateCode(
     prompt: string,
     mode?: "ask" | "code",

@@ -832,4 +832,47 @@ describe("VibeKit", () => {
       });
     });
   });
+
+  it("should handle executeCommand with custom options", async () => {
+    const vibekit = new VibeKit({
+      agent: {
+        type: "claude",
+        model: {
+          provider: "anthropic",
+          name: "claude-3-5-sonnet-20241022",
+          apiKey: "test-api-key",
+        },
+      },
+      environment: {
+        e2b: {
+          apiKey: "test-e2b-key",
+        },
+      },
+    });
+
+    const mockCallbacks = {
+      onUpdate: vi.fn(),
+      onError: vi.fn(),
+    };
+
+    // Mock the agent's executeCommand method
+    vi.spyOn(vibekit as any, "agent", "get").mockReturnValue({
+      executeCommand: vi.fn().mockResolvedValue({
+        sandboxId: "test-sandbox",
+        exitCode: 0,
+        stdout: "Hello World",
+        stderr: "",
+      }),
+    });
+
+    const result = await vibekit.executeCommand("echo 'Hello World'", {
+      timeoutMs: 30000,
+      useRepoContext: false,
+      callbacks: mockCallbacks,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe("Hello World");
+    expect(result.sandboxId).toBe("test-sandbox");
+  });
 });

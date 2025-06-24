@@ -25,6 +25,7 @@ export type {
 export { CodexAgent } from "./agents/codex";
 export { ClaudeAgent } from "./agents/claude";
 export { OpenCodeAgent } from "./agents/opencode";
+export { BaseAgent } from "./agents/base";
 
 // Agent config type exports
 export type { CodexConfig, CodexResponse, CodexStreamCallbacks } from "./types";
@@ -38,6 +39,11 @@ export type {
   OpenCodeResponse,
   OpenCodeStreamCallbacks,
 } from "./types";
+export type {
+  StreamCallbacks,
+  BaseAgentConfig,
+  PullRequestResult,
+} from "./agents/base";
 
 // Telemetry exports
 export { TelemetryService } from "./services/telemetry";

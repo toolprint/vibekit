@@ -191,6 +191,7 @@ export interface SandboxExecutionResult {
 
 export interface SandboxCommandOptions {
   timeoutMs?: number;
+  background?: boolean;
   onStdout?: (data: string) => void;
   onStderr?: (data: string) => void;
 }

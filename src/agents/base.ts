@@ -1,4 +1,8 @@
-import { generateCommitMessage, generatePRMetadata } from "./utils";
+import {
+  generateCommitMessage,
+  generatePRMetadata,
+  ModelConfig,
+} from "./utils";
 import { Conversation, SandboxInstance, SandboxConfig } from "../types";
 import { createSandboxProvider } from "../services/sandbox";
 
@@ -292,8 +296,7 @@ export abstract class BaseAgent {
     // Add all changes and commit
     const { commitMessage } = await generateCommitMessage(
       patchContent,
-      this.getAgentType(),
-      this.getApiKey(),
+      this.getModelConfig(),
       this.lastPrompt || ""
     );
 
@@ -319,6 +322,7 @@ export abstract class BaseAgent {
     const { githubToken, repoUrl } = this.config;
     const repoDir = repoUrl?.split("/")[1] || "";
     const commandConfig = this.getCommandConfig("", "code");
+    console.log("commandConfig", commandConfig);
     const sbx = await this.getSandbox();
 
     // Get the current branch (base branch) BEFORE creating a new branch
@@ -390,8 +394,7 @@ export abstract class BaseAgent {
 
     const { title, body, branchName, commitMessage } = await generatePRMetadata(
       patchContent,
-      this.getAgentType(),
-      this.getApiKey(),
+      this.getModelConfig(),
       this.lastPrompt || ""
     );
 
@@ -462,7 +465,8 @@ export abstract class BaseAgent {
   }
 
   protected abstract getApiKey(): string;
-  protected abstract getAgentType(): "codex" | "claude";
+  protected abstract getAgentType(): "codex" | "claude" | "opencode";
+  protected abstract getModelConfig(): ModelConfig;
 
   private async handlePRLabeling(
     owner: string,

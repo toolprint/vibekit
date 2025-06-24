@@ -6,16 +6,24 @@ import {
   ClaudeConfig,
   ClaudeResponse,
   ClaudeStreamCallbacks,
+  OpenCodeConfig,
+  OpenCodeResponse,
+  OpenCodeStreamCallbacks,
   Conversation,
   SandboxConfig,
 } from "../types";
 import { CodexAgent } from "../agents/codex";
 import { ClaudeAgent } from "../agents/claude";
+import { OpenCodeAgent } from "../agents/opencode";
 import { BaseAgent, AgentResponse as BaseAgentResponse } from "../agents/base";
 import { TelemetryService } from "../services/telemetry";
 import { createSandboxConfigFromEnvironment } from "../services/sandbox";
 
-export type AgentResponse = CodexResponse | ClaudeResponse | { code: string };
+export type AgentResponse =
+  | CodexResponse
+  | ClaudeResponse
+  | OpenCodeResponse
+  | { code: string };
 
 // Unified streaming callback interface
 export interface VibeKitStreamCallbacks {
@@ -94,6 +102,24 @@ export class VibeKit {
         secrets: setup.secrets,
       };
       return new ClaudeAgent(claudeConfig);
+    } else if (setup.agent.type === "opencode") {
+      const openCodeConfig: OpenCodeConfig = {
+        providerApiKey: setup.agent.model.apiKey,
+        provider: setup.agent.model.provider,
+        githubToken: setup.github?.token,
+        repoUrl: setup.github?.repository,
+        // Keep backward compatibility for E2B-specific configs
+        e2bApiKey: sandboxConfig.type === "e2b" ? sandboxConfig.apiKey : "",
+        e2bTemplateId: sandboxConfig.templateId,
+        model: setup.agent.model.name,
+        sandboxId: setup.sessionId,
+        telemetry: setup.telemetry,
+        // Add new sandbox config
+        sandboxConfig,
+        // Pass secrets to agent
+        secrets: setup.secrets,
+      };
+      return new OpenCodeAgent(openCodeConfig);
     } else {
       throw new Error(`Unsupported agent type: ${setup.agent.type}`);
     }

@@ -1,5 +1,5 @@
 // AGENTS
-export type AgentType = "codex" | "claude";
+export type AgentType = "codex" | "claude" | "opencode";
 
 export type AgentMode = "ask" | "code";
 
@@ -9,6 +9,7 @@ export type ModelProvider =
   | "openrouter"
   | "azure"
   | "gemini"
+  | "google"
   | "ollama"
   | "mistral"
   | "deepseek"
@@ -98,6 +99,11 @@ export interface ClaudeStreamCallbacks {
   onError?: (error: string) => void;
 }
 
+export interface OpenCodeStreamCallbacks {
+  onUpdate?: (message: string) => void;
+  onError?: (error: string) => void;
+}
+
 // CODEX CONFIG
 export interface CodexConfig {
   providerApiKey?: string;
@@ -150,6 +156,32 @@ export interface ClaudeResponse {
   commitSha?: string;
 }
 
+// OPENCODE CONFIG
+export interface OpenCodeConfig {
+  providerApiKey?: string;
+  provider?: ModelProvider;
+  githubToken?: string;
+  repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
+  e2bApiKey: string;
+  e2bTemplateId?: string;
+  sandboxConfig?: SandboxConfig; // New unified sandbox config
+  secrets?: SecretsConfig;
+  model?: string;
+  sandboxId?: string;
+  telemetry?: TelemetryConfig;
+}
+
+export interface OpenCodeResponse {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  sandboxId: string;
+  patch?: string;
+  patchApplyScript?: string;
+  branchName?: string;
+  commitSha?: string;
+}
+
 // SANDBOX ABSTRACTION
 export interface SandboxExecutionResult {
   exitCode: number;
@@ -189,7 +221,7 @@ export interface SandboxProvider {
   create(
     config: SandboxConfig,
     envs?: Record<string, string>,
-    agentType?: "codex" | "claude"
+    agentType?: "codex" | "claude" | "opencode"
   ): Promise<SandboxInstance>;
   resume(sandboxId: string, config: SandboxConfig): Promise<SandboxInstance>;
 }

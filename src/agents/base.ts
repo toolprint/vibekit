@@ -524,7 +524,7 @@ export abstract class BaseAgent {
   }
 
   protected abstract getApiKey(): string;
-  protected abstract getAgentType(): "codex" | "claude" | "opencode";
+  protected abstract getAgentType(): "codex" | "claude" | "opencode" | "gemini";
   protected abstract getModelConfig(): ModelConfig;
 
   private async handlePRLabeling(

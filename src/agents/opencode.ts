@@ -6,6 +6,7 @@ import {
   OpenCodeStreamCallbacks,
   Conversation,
   ModelProvider,
+  AgentType,
 } from "../types";
 
 export class OpenCodeAgent extends BaseAgent {
@@ -90,7 +91,7 @@ export class OpenCodeAgent extends BaseAgent {
     return this.providerApiKey;
   }
 
-  protected getAgentType(): "codex" | "claude" | "opencode" {
+  protected getAgentType(): AgentType {
     return "opencode";
   }
 

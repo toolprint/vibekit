@@ -8,6 +8,7 @@ import {
   SandboxCommands,
   SandboxCommandOptions,
   SandboxExecutionResult,
+  AgentType,
 } from "../types";
 
 // E2B implementation
@@ -62,7 +63,7 @@ export class E2BSandboxProvider implements SandboxProvider {
   async create(
     config: SandboxConfig,
     envs?: Record<string, string>,
-    agentType?: "codex" | "claude" | "opencode"
+    agentType?: AgentType
   ): Promise<SandboxInstance> {
     // Determine default template based on agent type if not specified in config
     let templateId = config.templateId;
@@ -71,6 +72,8 @@ export class E2BSandboxProvider implements SandboxProvider {
         templateId = "vibekit-claude";
       } else if (agentType === "opencode") {
         templateId = "vibekit-opencode";
+      } else if (agentType === "gemini") {
+        templateId = "vibekit-gemini";
       } else {
         templateId = "vibekit-codex";
       }
@@ -181,7 +184,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
   async create(
     config: SandboxConfig,
     envs?: Record<string, string>,
-    agentType?: "codex" | "claude" | "opencode"
+    agentType?: AgentType
   ): Promise<SandboxInstance> {
     try {
       // Dynamic import to avoid dependency issues if daytona-sdk is not installed
@@ -202,6 +205,8 @@ export class DaytonaSandboxProvider implements SandboxProvider {
           image = "superagentai/vibekit-claude:1.0";
         } else if (agentType === "opencode") {
           image = "superagentai/vibekit-opencode:1.0";
+        } else if (agentType === "gemini") {
+          image = "superagentai/vibekit-gemini:1.0";
         }
       }
 
@@ -277,7 +282,7 @@ export function createSandboxProvider(
 // Helper function to create SandboxConfig from VibeKitConfig environment
 export function createSandboxConfigFromEnvironment(
   environment: any,
-  agentType?: "codex" | "claude" | "opencode"
+  agentType?: AgentType
 ): SandboxConfig {
   // Try Daytona first if configured
   if (environment.daytona) {
@@ -289,6 +294,8 @@ export function createSandboxConfigFromEnvironment(
       defaultImage = "superagentai/vibekit-claude:1.0";
     } else if (agentType === "opencode") {
       defaultImage = "superagentai/vibekit-opencode:1.0";
+    } else if (agentType === "gemini") {
+      defaultImage = "superagentai/vibekit-gemini:1.0";
     }
 
     return {

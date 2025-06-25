@@ -25,6 +25,7 @@ export type {
 export { CodexAgent } from "./agents/codex";
 export { ClaudeAgent } from "./agents/claude";
 export { OpenCodeAgent } from "./agents/opencode";
+export { GeminiAgent } from "./agents/gemini";
 export { BaseAgent } from "./agents/base";
 
 // Agent config type exports
@@ -44,6 +45,11 @@ export type {
   BaseAgentConfig,
   PullRequestResult,
 } from "./agents/base";
+export type {
+  GeminiConfig,
+  GeminiResponse,
+  GeminiStreamCallbacks,
+} from "./types";
 
 // Telemetry exports
 export { TelemetryService } from "./services/telemetry";

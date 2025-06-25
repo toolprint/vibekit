@@ -1,5 +1,5 @@
 // AGENTS
-export type AgentType = "codex" | "claude" | "opencode";
+export type AgentType = "codex" | "claude" | "opencode" | "gemini";
 
 export type AgentMode = "ask" | "code";
 
@@ -104,6 +104,11 @@ export interface OpenCodeStreamCallbacks {
   onError?: (error: string) => void;
 }
 
+export interface GeminiStreamCallbacks {
+  onUpdate?: (message: string) => void;
+  onError?: (error: string) => void;
+}
+
 // CODEX CONFIG
 export interface CodexConfig {
   providerApiKey?: string;
@@ -182,6 +187,32 @@ export interface OpenCodeResponse {
   commitSha?: string;
 }
 
+// GEMINI CONFIG
+export interface GeminiConfig {
+  providerApiKey?: string;
+  provider?: ModelProvider;
+  githubToken?: string;
+  repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
+  e2bApiKey: string;
+  e2bTemplateId?: string;
+  sandboxConfig?: SandboxConfig; // New unified sandbox config
+  secrets?: SecretsConfig;
+  model?: string;
+  sandboxId?: string;
+  telemetry?: TelemetryConfig;
+}
+
+export interface GeminiResponse {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  sandboxId: string;
+  patch?: string;
+  patchApplyScript?: string;
+  branchName?: string;
+  commitSha?: string;
+}
+
 // SANDBOX ABSTRACTION
 export interface SandboxExecutionResult {
   exitCode: number;
@@ -222,7 +253,7 @@ export interface SandboxProvider {
   create(
     config: SandboxConfig,
     envs?: Record<string, string>,
-    agentType?: "codex" | "claude" | "opencode"
+    agentType?: "codex" | "claude" | "opencode" | "gemini"
   ): Promise<SandboxInstance>;
   resume(sandboxId: string, config: SandboxConfig): Promise<SandboxInstance>;
 }

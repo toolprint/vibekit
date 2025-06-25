@@ -1,6 +1,7 @@
 import { BaseAgent, BaseAgentConfig, AgentCommandConfig } from "./base";
 import { ModelConfig } from "./utils";
 import {
+  AgentType,
   CodexConfig,
   CodexResponse,
   CodexStreamCallbacks,
@@ -92,7 +93,7 @@ export class CodexAgent extends BaseAgent {
     return this.providerApiKey;
   }
 
-  protected getAgentType(): "codex" | "claude" | "opencode" {
+  protected getAgentType(): AgentType {
     return "codex";
   }
 

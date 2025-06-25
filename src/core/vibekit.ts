@@ -11,10 +11,12 @@ import {
   OpenCodeStreamCallbacks,
   Conversation,
   SandboxConfig,
+  GeminiConfig,
 } from "../types";
 import { CodexAgent } from "../agents/codex";
 import { ClaudeAgent } from "../agents/claude";
 import { OpenCodeAgent } from "../agents/opencode";
+import { GeminiAgent } from "../agents/gemini";
 import {
   BaseAgent,
   AgentResponse as BaseAgentResponse,
@@ -124,6 +126,23 @@ export class VibeKit {
         secrets: setup.secrets,
       };
       return new OpenCodeAgent(openCodeConfig);
+    } else if (setup.agent.type === "gemini") {
+      const geminiConfig: GeminiConfig = {
+        providerApiKey: setup.agent.model.apiKey,
+        provider: setup.agent.model.provider,
+        githubToken: setup.github?.token,
+        repoUrl: setup.github?.repository,
+        e2bApiKey: sandboxConfig.type === "e2b" ? sandboxConfig.apiKey : "",
+        e2bTemplateId: sandboxConfig.templateId,
+        model: setup.agent.model.name,
+        sandboxId: setup.sessionId,
+        telemetry: setup.telemetry,
+        // Add new sandbox config
+        sandboxConfig,
+        // Pass secrets to agent
+        secrets: setup.secrets,
+      };
+      return new GeminiAgent(geminiConfig);
     } else {
       throw new Error(`Unsupported agent type: ${setup.agent.type}`);
     }

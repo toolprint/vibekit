@@ -1,31 +1,53 @@
 "use client";
 
-import Toolbar from "./toolbar";
-import { useSessionStore } from "@/stores/sessions";
-import { useParams } from "next/navigation";
+import { ExternalLink, Maximize2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import TVStatic from "../tv-static";
+import { Doc } from "@/convex/_generated/dataModel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function Preview() {
-  const params = useParams();
-  const sessionId = params.id as string;
-  const { getSessionById } = useSessionStore();
-  const session = getSessionById(sessionId);
-
+export default function Preview({ session }: { session?: Doc<"sessions"> }) {
   return (
     <div className="col-span-3 bg-muted rounded-lg border overflow-hidden flex flex-col">
-      <Toolbar />
-      <div className="flex-1 overflow-hidden relative">
-        {session && session.tunnelUrl ? (
-          <iframe
-            src={session.tunnelUrl}
-            className="w-full h-full border-none"
-          />
-        ) : (
-          <div className="max-w-xs rounded-lg h-[200px] mt-[30%] mx-auto w-full flex items-center justify-center">
-            <TVStatic label="BOOTING MACHINE..." size="lg" />
+      <Tabs defaultValue="preview" className="h-full gap-0">
+        <div className="flex items-center p-2 border-b bg-background justify-between">
+          {/* Left side - Home and Refresh */}
+          <TabsList>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
+          </TabsList>
+
+          {/* Right side - New Window and Fullscreen */}
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Maximize2 className="h-4 w-4" />
+            </Button>
           </div>
-        )}
-      </div>
+        </div>
+        <TabsContent value="preview" className="flex-1 h-full">
+          <div className="flex-1 h-full overflow-hidden relative">
+            {session?.status === "RUNNING" ? (
+              <iframe
+                src={session.tunnelUrl}
+                className="w-full h-full border-none"
+              />
+            ) : (
+              <div className="max-w-xs rounded-lg h-[200px] mt-[30%] mx-auto w-full flex items-center justify-center">
+                <TVStatic
+                  label={
+                    session?.status?.replace(/_/g, " ") ?? "BOOTING MACHINE..."
+                  }
+                  size="lg"
+                />
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -120,6 +120,11 @@ export abstract class BaseAgent {
     this.config.sandboxId = sessionId;
   }
 
+  public async getHost(port: number): Promise<string> {
+    const sbx = await this.getSandbox();
+    return await sbx.getHost(port);
+  }
+
   public getCurrentBranch(): string | undefined {
     return this.currentBranch;
   }

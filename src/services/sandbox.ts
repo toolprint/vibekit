@@ -57,6 +57,10 @@ export class E2BSandboxInstance implements SandboxInstance {
   async pause(): Promise<void> {
     await this.sandbox.pause();
   }
+
+  async getHost(port: number): Promise<string> {
+    return await this.sandbox.getHost(port);
+  }
 }
 
 export class E2BSandboxProvider implements SandboxProvider {
@@ -177,6 +181,10 @@ class DaytonaSandboxInstance implements SandboxInstance {
     console.log(
       "Pause not directly supported for Daytona sandboxes - workspace remains active"
     );
+  }
+
+  async getHost(port: number): Promise<string> {
+    throw new Error("getHost is not implemented for Daytona sandboxes");
   }
 }
 

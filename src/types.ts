@@ -239,6 +239,7 @@ export interface SandboxInstance {
   commands: SandboxCommands;
   kill(): Promise<void>;
   pause(): Promise<void>;
+  getHost(port: number): Promise<string>;
 }
 
 export interface SandboxConfig {

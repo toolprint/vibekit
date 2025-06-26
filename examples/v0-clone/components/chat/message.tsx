@@ -3,15 +3,20 @@ import { useCopyToClipboard } from "usehooks-ts";
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { User, Copy, Trash2, Check } from "lucide-react";
+import { useQuery, useMutation } from "convex/react";
 
-import { Message as MessageType } from "@/stores/sessions";
-import { useSessionStore } from "@/stores/sessions";
+import { Message as MessageType } from "@/types/sessions";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 
 export default function Message({ message }: { message: MessageType }) {
-  const { getSessionById, deleteMessage } = useSessionStore();
   const params = useParams();
-  const session = getSessionById(params.id as string);
+  const sessionId = params.id as string;
+  const session = useQuery(api.sessions.getById, {
+    id: sessionId as Id<"sessions">,
+  });
+  const deleteMessage = useMutation(api.messages.remove);
   const [, copy] = useCopyToClipboard();
   const [isCopied, setIsCopied] = useState(false);
 
@@ -23,14 +28,14 @@ export default function Message({ message }: { message: MessageType }) {
     }
   };
 
-  const handleDelete = () => {
-    console.log(session);
+  const handleDelete = async () => {
     if (session) {
-      deleteMessage(session.id, message.id);
+      await deleteMessage({
+        id: message.id as Id<"messages">,
+        sessionId: session.id as Id<"sessions">,
+      });
     }
   };
-
-  console.log(session);
 
   if (message.role === "user") {
     return (
@@ -40,7 +45,7 @@ export default function Message({ message }: { message: MessageType }) {
             <User className="size-4" />
           </div>
           <div className="flex flex-col gap-y-1 flex-1">
-            <p className="text-sm mt-1.5">{message.content}</p>
+            <p className="text-sm">{message.content}</p>
           </div>
         </div>
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -2,17 +2,22 @@
 
 import { Plus, Edit2 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useQuery, useMutation } from "convex/react";
 
 import { Button } from "@/components/ui/button";
-import { useSessionStore } from "@/stores/sessions";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { createSessionAction } from "@/app/actions/vibekit";
 
 export default function Navbar() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isSession = pathname.includes("/session");
+  const router = useRouter();
+  const createSession = useMutation(api.sessions.create);
 
   // Prevent hydration mismatch
   const [mounted, setMounted] = useState(false);
@@ -20,9 +25,12 @@ export default function Navbar() {
   // Extract session ID from pathname
   const sessionId = isSession ? pathname.split("/session/")[1] : null;
 
-  // Session store
-  const { getSessionById, updateSession } = useSessionStore();
-  const session = sessionId ? getSessionById(sessionId) : null;
+  // Convex hooks
+  const session = useQuery(
+    api.sessions.getById,
+    sessionId ? { id: sessionId as Id<"sessions"> } : "skip"
+  );
+  const updateSession = useMutation(api.sessions.update);
 
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
@@ -54,11 +62,14 @@ export default function Navbar() {
     }
   };
 
-  const handleSave = () => {
-    if (sessionId && editRef.current) {
+  const handleSave = async () => {
+    if (sessionId && editRef.current && session) {
       const newValue = editRef.current.textContent?.trim() || "";
       if (newValue && newValue !== originalValue.current) {
-        updateSession(sessionId, { name: newValue });
+        await updateSession({
+          id: sessionId as Id<"sessions">,
+          name: newValue,
+        });
       } else if (!newValue) {
         // Restore original value if empty
         editRef.current.textContent = originalValue.current;
@@ -80,6 +91,17 @@ export default function Navbar() {
     }
   };
 
+  const handleNewSession = useCallback(async () => {
+    const sessionId = await createSession({
+      name: "Untitled session",
+      status: "IN_PROGRESS",
+    });
+
+    await createSessionAction(sessionId);
+
+    router.push(`/session/${sessionId}`);
+  }, []);
+
   return (
     <div className="flex justify-between items-center pt-2">
       <div className="flex items-center gap-x-2">
@@ -88,7 +110,7 @@ export default function Navbar() {
           href="/"
           className="hover:opacity-30 transition-all duration-300"
         >
-          <Image src="/logo.svg" alt="vibe0" width={70} height={70} />
+          <Image src="/logo.svg" alt="vibe0" width={60} height={60} />
         </Link>
         {mounted && isSession && session && (
           <span className="ml-1 text-muted-foreground/40">/</span>
@@ -120,7 +142,7 @@ export default function Navbar() {
       </div>
       <div className="flex items-center gap-x-2">
         {isHome && (
-          <Button className="h-8">
+          <Button className="h-8" onClick={handleNewSession}>
             <Plus /> New session
           </Button>
         )}

@@ -374,6 +374,18 @@ export class VibeKit {
     return this.agent.setSession(sessionId);
   }
 
+  /**
+   * Get the host URL for a specific port in the sandbox.
+   * Note: This method is only supported for E2B sandboxes.
+   *
+   * @param port - The port number to get the host for
+   * @returns Promise<string> - The host URL for the specified port
+   * @throws Error if using Daytona sandbox (not implemented)
+   */
+  async getHost(port: number): Promise<string> {
+    return this.agent.getHost(port);
+  }
+
   async executeCommand(
     command: string,
     options: {

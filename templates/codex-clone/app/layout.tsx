@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Codex UI | An open-source OpenAI Codex clone",
+  title: "VibeX | An open-source OpenAI Codex clone",
   description:
     "Codex UI is a modern, open-source, and fully customizable UI for OpenAI Codex.",
 };

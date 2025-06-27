@@ -16,10 +16,10 @@ export default defineSchema({
       v.literal("INSTALLING_DEPENDENCIES"),
       v.literal("STARTING_DEV_SERVER"),
       v.literal("CREATING_TUNNEL"),
+      v.literal("CUSTOM"),
       v.literal("RUNNING")
     ),
-    createdAt: v.number(),
-    updatedAt: v.number(),
+    statusMessage: v.optional(v.string()),
   }),
   messages: defineTable({
     sessionId: v.id("sessions"),
@@ -41,7 +41,11 @@ export default defineSchema({
         })
       )
     ),
+    read: v.optional(
+      v.object({
+        filePath: v.string(),
+      })
+    ),
     content: v.string(),
-    createdAt: v.number(),
   }).index("by_session", ["sessionId"]),
 });

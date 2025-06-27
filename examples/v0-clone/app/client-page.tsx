@@ -6,28 +6,27 @@ import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 
 import { Button } from "@/components/ui/button";
-import { Session } from "@/types/sessions";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { Id, Doc } from "@/convex/_generated/dataModel";
 import TVStatic from "@/components/tv-static";
 import ChatForm from "@/components/chat/chat-form";
 import { createSessionAction } from "./actions/vibekit";
 
-function SessionCard({ session }: { session: Session }) {
+function SessionCard({ session }: { session: Doc<"sessions"> }) {
   const router = useRouter();
   const deleteSession = useMutation(api.sessions.remove);
 
   const handleDeleteSession = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    await deleteSession({ id: session.id as Id<"sessions"> });
+    await deleteSession({ id: session._id as Id<"sessions"> });
     router.push("/");
   };
 
   return (
-    <Link passHref href={`/session/${session.id}`}>
+    <Link passHref href={`/session/${session._id}`}>
       <div className="h-52 bg-background rounded-lg flex flex-col hover:bg-muted/80 transition-colors overflow-hidden border p-1 cursor-pointer group">
-        {session.status === "RUNNING" ? (
+        {session.status === "RUNNING" || session.status === "CUSTOM" ? (
           <div className="bg-background overflow-hidden rounded-lg flex-1 border relative">
             <iframe
               src={session.tunnelUrl}

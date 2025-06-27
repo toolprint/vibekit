@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import TVStatic from "../tv-static";
 import { Doc } from "@/convex/_generated/dataModel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Files from "./code";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Preview({ session }: { session?: Doc<"sessions"> }) {
   return (
@@ -15,7 +17,7 @@ export default function Preview({ session }: { session?: Doc<"sessions"> }) {
           {/* Left side - Home and Refresh */}
           <TabsList>
             <TabsTrigger value="preview">Preview</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
+            <TabsTrigger value="code">Code</TabsTrigger>
           </TabsList>
 
           {/* Right side - New Window and Fullscreen */}
@@ -30,7 +32,7 @@ export default function Preview({ session }: { session?: Doc<"sessions"> }) {
         </div>
         <TabsContent value="preview" className="flex-1 h-full">
           <div className="flex-1 h-full overflow-hidden relative">
-            {session?.status === "RUNNING" ? (
+            {session?.status === "RUNNING" || session?.status === "CUSTOM" ? (
               <iframe
                 src={session.tunnelUrl}
                 className="w-full h-full border-none"
@@ -46,6 +48,11 @@ export default function Preview({ session }: { session?: Doc<"sessions"> }) {
               </div>
             )}
           </div>
+        </TabsContent>
+        <TabsContent value="code" className="flex-1 overflow-hidden">
+          <ScrollArea className="h-[calc(100%-0px)]">
+            <Files session={session!} />
+          </ScrollArea>
         </TabsContent>
       </Tabs>
     </div>

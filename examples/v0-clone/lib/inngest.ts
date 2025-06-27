@@ -45,7 +45,7 @@ export const runAgent = inngest.createFunction(
   { id: "run-agent" },
   { event: "vibe0/run.agent" },
   async ({ event, step }) => {
-    const { sessionId, message } = event.data;
+    const { sessionId, id, message } = event.data;
 
     const config: VibeKitConfig = {
       agent: {
@@ -68,10 +68,16 @@ export const runAgent = inngest.createFunction(
         await vibekit.setSession(sessionId);
       }
 
+      await fetchMutation(api.sessions.update, {
+        id,
+        status: "CUSTOM",
+        statusMessage: "Working on task...",
+      });
+
       const prompt =
         "# GOAL\nYou are an helpful assistant that is tasked with helping the user build a NextJS app.\n" +
         "The NextJS dev server is running on port 3000.\n" +
-        "An ngrok tunnel is exposing port 3000.\n" +
+        "ShadCN UI is installed, use npx shadcn@latest add <component> to add missing components.\n" +
         `Follow the users intructions:\n\n# INSTRUCTIONS\n${message}`;
 
       const response = await vibekit.generateCode({
@@ -79,33 +85,33 @@ export const runAgent = inngest.createFunction(
         mode: "code",
         callbacks: {
           async onUpdate(message) {
-            try {
-              console.log(message);
-              const data = JSON.parse(message);
-              console.log(data);
-              switch (data.type) {
-                case "assistant":
-                  if (data.message.content[0].type === "text") {
+            console.log(message);
+            const data = JSON.parse(message);
+
+            if (data.type !== "assistant") return;
+
+            switch (data.message.content[0].type) {
+              case "text":
+                await fetchMutation(api.messages.add, {
+                  sessionId: id,
+                  content: data.message.content[0].text,
+                  role: "assistant",
+                });
+                break;
+              case "tool_use":
+                const toolName = data.message.content[0].name;
+                switch (toolName) {
+                  case "TodoWrite":
                     await fetchMutation(api.messages.add, {
-                      sessionId,
-                      content: data.message.content[0].text,
-                      role: "assistant",
-                    });
-                  }
-                  break;
-                case "tool_use":
-                  if (data.message.content[0].name === "TodoWrite") {
-                    await fetchMutation(api.messages.add, {
-                      sessionId,
+                      sessionId: id,
                       role: "assistant",
                       content: "",
                       todos: data.message.content[0].input.todos,
                     });
-                  }
-
-                  if (data.message.content[0].name === "Edit") {
+                    break;
+                  case "Edit":
                     await fetchMutation(api.messages.add, {
-                      sessionId,
+                      sessionId: id,
                       role: "assistant",
                       content: "",
                       edits: {
@@ -114,17 +120,35 @@ export const runAgent = inngest.createFunction(
                         newString: data.message.content[0].input.new_string,
                       },
                     });
-                  }
-                  break;
-                default:
-                  break;
-              }
-            } catch {}
+                  case "Read":
+                    await fetchMutation(api.messages.add, {
+                      sessionId: id,
+                      role: "assistant",
+                      content: "",
+                      read: {
+                        filePath: data.message.content[0].input.file_path,
+                      },
+                    });
+                    break;
+                  default:
+                    break;
+                }
+                break;
+              default:
+                break;
+            }
           },
         },
       });
 
       return response;
+    });
+
+    await step.run("update session", async () => {
+      await fetchMutation(api.sessions.update, {
+        id,
+        status: "RUNNING",
+      });
     });
 
     return result;
@@ -190,11 +214,11 @@ export const createSession = inngest.createFunction(
       });
 
       // E2B sandboxes have built-in public URLs - no tunneling needed
-      const tunnelUrl = `https://${clone.sandboxId}-3000.preview.sandbox.com`;
+      const host = await vibekit.getHost(3000);
 
       return {
         sandboxId: clone.sandboxId,
-        tunnelUrl,
+        tunnelUrl: `https://${host}`,
       };
     });
 
@@ -208,7 +232,7 @@ export const createSession = inngest.createFunction(
 
     if (message) {
       await step.run("run agent", async () => {
-        await runAgentAction(data.sandboxId, message);
+        await runAgentAction(data.sandboxId, id, message);
       });
     }
 

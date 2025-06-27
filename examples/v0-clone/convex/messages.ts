@@ -13,7 +13,6 @@ export const getBySession = query({
     return messages.map((msg) => ({
       ...msg,
       id: msg._id,
-      createdAt: new Date(msg.createdAt).toISOString(),
     }));
   },
 });
@@ -30,6 +29,11 @@ export const add = mutation({
         newString: v.string(),
       })
     ),
+    read: v.optional(
+      v.object({
+        filePath: v.string(),
+      })
+    ),
     todos: v.optional(
       v.array(
         v.object({
@@ -42,16 +46,8 @@ export const add = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-
     const messageId = await ctx.db.insert("messages", {
       ...args,
-      createdAt: now,
-    });
-
-    // Update session's updatedAt timestamp
-    await ctx.db.patch(args.sessionId, {
-      updatedAt: now,
     });
 
     return messageId;
@@ -65,11 +61,6 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
-
-    // Update session's updatedAt timestamp
-    await ctx.db.patch(args.sessionId, {
-      updatedAt: Date.now(),
-    });
   },
 });
 
@@ -84,10 +75,5 @@ export const clearBySession = mutation({
     for (const message of messages) {
       await ctx.db.delete(message._id);
     }
-
-    // Update session's updatedAt timestamp
-    await ctx.db.patch(args.sessionId, {
-      updatedAt: Date.now(),
-    });
   },
 });

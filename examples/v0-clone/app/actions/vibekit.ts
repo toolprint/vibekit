@@ -1,11 +1,16 @@
 "use server";
 import { inngest } from "@/lib/inngest";
 
-export async function runAgentAction(sessionId: string, message: string) {
+export async function runAgentAction(
+  sessionId: string,
+  id: string,
+  message: string
+) {
   await inngest.send({
     name: "vibe0/run.agent",
     data: {
       sessionId,
+      id,
       message,
     },
   });

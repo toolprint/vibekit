@@ -21,7 +21,6 @@ export const list = query({
           messages: messages.map((msg) => ({
             ...msg,
             id: msg._id,
-            createdAt: new Date(msg.createdAt).toISOString(),
           })),
         };
       })
@@ -49,7 +48,6 @@ export const getById = query({
       messages: messages.map((msg) => ({
         ...msg,
         id: msg._id,
-        createdAt: new Date(msg.createdAt).toISOString(),
       })),
     };
   },
@@ -67,15 +65,14 @@ export const create = mutation({
       v.literal("INSTALLING_DEPENDENCIES"),
       v.literal("STARTING_DEV_SERVER"),
       v.literal("CREATING_TUNNEL"),
+      v.literal("CUSTOM"),
       v.literal("RUNNING")
     ),
+    statusMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
     const id = await ctx.db.insert("sessions", {
       ...args,
-      createdAt: now,
-      updatedAt: now,
     });
 
     return id;
@@ -95,16 +92,17 @@ export const update = mutation({
         v.literal("INSTALLING_DEPENDENCIES"),
         v.literal("STARTING_DEV_SERVER"),
         v.literal("CREATING_TUNNEL"),
+        v.literal("CUSTOM"),
         v.literal("RUNNING")
       )
     ),
+    statusMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
 
     await ctx.db.patch(id, {
       ...updates,
-      updatedAt: Date.now(),
     });
   },
 });

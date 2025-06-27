@@ -101,7 +101,7 @@ function RoundProgress({
 
 export default function Chat({ session }: { session: Doc<"sessions"> }) {
   const addMessage = useMutation(api.messages.add);
-  const messages = useQuery(api.messages.getBySession, {
+  const messages: Doc<"messages">[] = useQuery(api.messages.getBySession, {
     sessionId: session._id,
   });
   const [todosExpanded, setTodosExpanded] = useState(false);

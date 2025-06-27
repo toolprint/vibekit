@@ -98,8 +98,8 @@ export default function ClientPage() {
           <p className="font-medium">Sessions</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-            {sessions.map((session) => (
-              <SessionCard key={session.id} session={session} />
+            {sessions.map((session: Doc<"sessions">) => (
+              <SessionCard key={session._id} session={session} />
             ))}
           </div>
         </div>

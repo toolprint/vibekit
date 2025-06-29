@@ -14,7 +14,7 @@ export default function ClientPage({ id }: { id: string }) {
   });
 
   return (
-    <div className="grid grid-cols-4 flex-1 h-screen overflow-hidden gap-x-2 pb-2">
+    <div className="flex h-screen overflow-hidden gap-x-2 pb-2">
       {session && <Chat session={session} />}
       {session && <Preview session={session} />}
     </div>

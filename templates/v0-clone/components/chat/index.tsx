@@ -101,7 +101,7 @@ function RoundProgress({
 
 export default function Chat({ session }: { session: Doc<"sessions"> }) {
   const addMessage = useMutation(api.messages.add);
-  const messages: Doc<"messages">[] = useQuery(api.messages.getBySession, {
+  const messages = useQuery(api.messages.getBySession, {
     sessionId: session._id,
   });
   const [todosExpanded, setTodosExpanded] = useState(false);
@@ -130,7 +130,9 @@ export default function Chat({ session }: { session: Doc<"sessions"> }) {
   const completedTodos = getCompletedCount(latestTodos);
 
   return (
-    <div className="col-span-1 bg-background rounded-lg flex flex-col border relative">
+    <div className="w-[600px] bg-background rounded-lg flex flex-col border relative">
+      {/* Top fade */}
+      <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-background to-transparent z-10 rounded-t-lg pointer-events-none" />
       <ScrollArea className="h-[calc(100vh-100px)] px-2">
         <div className="flex flex-col gap-y-2 p-1 pb-[200px] pt-4">
           {messages

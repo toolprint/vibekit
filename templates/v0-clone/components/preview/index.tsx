@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Preview({ session }: { session?: Doc<"sessions"> }) {
   return (
-    <div className="col-span-3 bg-muted rounded-lg border overflow-hidden flex flex-col">
+    <div className="w-full bg-muted rounded-lg border overflow-hidden flex flex-col">
       <Tabs defaultValue="preview" className="h-full gap-0">
         <div className="flex items-center p-2 border-b bg-background justify-between">
           {/* Left side - Home and Refresh */}

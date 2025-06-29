@@ -42,7 +42,7 @@ export const getInngestApp = () => {
 };
 
 export const runAgent = inngest.createFunction(
-  { id: "run-agent" },
+  { id: "run-agent", retries: 0, concurrency: 100 },
   { event: "vibe0/run.agent" },
   async ({ event, step }) => {
     const { sessionId, id, message } = event.data;
@@ -77,7 +77,8 @@ export const runAgent = inngest.createFunction(
       const prompt =
         "# GOAL\nYou are an helpful assistant that is tasked with helping the user build a NextJS app.\n" +
         "The NextJS dev server is running on port 3000.\n" +
-        "ShadCN UI is installed, use npx shadcn@latest add <component> to add missing components.\n" +
+        "ShadCN UI is installed, togehter with all the ShadCN components.\n" +
+        "Do not run tests or restart the dev server.\n" +
         `Follow the users intructions:\n\n# INSTRUCTIONS\n${message}`;
 
       const response = await vibekit.generateCode({
@@ -100,6 +101,7 @@ export const runAgent = inngest.createFunction(
                 break;
               case "tool_use":
                 const toolName = data.message.content[0].name;
+
                 switch (toolName) {
                   case "TodoWrite":
                     await fetchMutation(api.messages.add, {
@@ -107,6 +109,18 @@ export const runAgent = inngest.createFunction(
                       role: "assistant",
                       content: "",
                       todos: data.message.content[0].input.todos,
+                    });
+                    break;
+                  case "Write":
+                    await fetchMutation(api.messages.add, {
+                      sessionId: id,
+                      role: "assistant",
+                      content: "",
+                      edits: {
+                        filePath: data.message.content[0].input.file_path,
+                        oldString: "",
+                        newString: data.message.content[0].input.content,
+                      },
                     });
                     break;
                   case "Edit":
@@ -120,6 +134,7 @@ export const runAgent = inngest.createFunction(
                         newString: data.message.content[0].input.new_string,
                       },
                     });
+                    break;
                   case "Read":
                     await fetchMutation(api.messages.add, {
                       sessionId: id,
@@ -130,6 +145,15 @@ export const runAgent = inngest.createFunction(
                       },
                     });
                     break;
+                  case "Write":
+                    await fetchMutation(api.messages.add, {
+                      sessionId: id,
+                      role: "assistant",
+                      content: "",
+                      read: {
+                        filePath: data.message.content[0].input.file_path,
+                      },
+                    });
                   default:
                     break;
                 }

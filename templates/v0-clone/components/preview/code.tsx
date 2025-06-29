@@ -79,7 +79,7 @@ function FileEditItem({ message }: FileEditItemProps) {
         )}
         <FileIcon className="w-4 h-4" />
         <p className="text-sm flex-1">{filePath}</p>
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-1 text-xs">
           <span className="text-green-600">+{diffStats.insertions}</span>
           <span className="text-red-600">-{diffStats.deletions}</span>
         </div>

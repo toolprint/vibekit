@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUp, Loader2 } from "lucide-react";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ type FormData = {
 };
 
 interface ChatFormProps {
-  onSubmit: (message: string) => void;
+  onSubmit: (message: string) => void | Promise<void>;
 }
 
 export default function ChatForm({ onSubmit }: ChatFormProps) {
@@ -23,10 +23,14 @@ export default function ChatForm({ onSubmit }: ChatFormProps) {
     }
   );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const messageValue = watch("message");
   const isMessageEmpty = !messageValue || messageValue.trim().length === 0;
   const { isSubmitting } = formState;
+
+  // Combine both loading states
+  const isFormSubmitting = isSubmitting || isLoading;
 
   const handleInput = () => {
     const textarea = textareaRef.current;
@@ -39,16 +43,22 @@ export default function ChatForm({ onSubmit }: ChatFormProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!isMessageEmpty && !isSubmitting) {
+      if (!isMessageEmpty && !isFormSubmitting) {
         handleSubmit(handleFormSubmit)();
       }
     }
   };
 
-  const handleFormSubmit = (data: FormData) => {
+  const handleFormSubmit = async (data: FormData) => {
     if (!data.message.trim()) return;
-    onSubmit(data.message.trim());
-    reset();
+
+    setIsLoading(true);
+    try {
+      await onSubmit(data.message.trim());
+      reset();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -75,15 +85,15 @@ export default function ChatForm({ onSubmit }: ChatFormProps) {
         placeholder="Ask vibe0 to build..."
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        disabled={isSubmitting}
+        disabled={isFormSubmitting}
       />
       <Button
         size="icon"
         className="ml-auto size-8"
         type="submit"
-        disabled={isMessageEmpty || isSubmitting}
+        disabled={isMessageEmpty || isFormSubmitting}
       >
-        {isSubmitting ? (
+        {isFormSubmitting ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <ArrowUp className="h-4 w-4" />

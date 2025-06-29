@@ -1,18 +1,36 @@
 "use client";
 
-import { Plus, Edit2 } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  ChevronDown,
+  Monitor,
+  Settings,
+  CreditCard,
+  LogOut,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { useSession, signOut } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { createSessionAction } from "@/app/actions/vibekit";
+import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 
 export default function Navbar() {
+  const { data: authSession } = useSession();
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isSession = pathname.includes("/session");
@@ -31,6 +49,8 @@ export default function Navbar() {
     sessionId ? { id: sessionId as Id<"sessions"> } : "skip"
   );
   const updateSession = useMutation(api.sessions.update);
+
+  console.log(authSession);
 
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
@@ -103,7 +123,10 @@ export default function Navbar() {
   }, []);
 
   return (
-    <div className="flex justify-between items-center pt-2">
+    <div
+      className="flex justify-between items-center pt-2"
+      style={{ width: "100%" }}
+    >
       <div className="flex items-center gap-x-2">
         <Link
           passHref
@@ -112,8 +135,51 @@ export default function Navbar() {
         >
           <Image src="/logo.svg" alt="vibe0" width={60} height={60} />
         </Link>
-        {mounted && isSession && session && (
-          <span className="ml-1 text-muted-foreground/40">/</span>
+        {mounted && <span className="ml-1 text-muted-foreground/40">/</span>}
+        {mounted && authSession && (
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-x-1 px-1 py-1 rounded-md hover:bg-muted transition-colors cursor-pointer group">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage
+                    className="rounded-full"
+                    src={authSession.user?.image || undefined}
+                    alt={authSession.user?.name || "User"}
+                  />
+                  <AvatarFallback className="text-xs">
+                    {authSession.user?.name?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium">
+                  {authSession.user?.name}
+                </span>
+                <ChevronDown className="size-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-48">
+                <DropdownMenuItem className="font-medium">
+                  <Monitor className="mr-2 h-4 w-4" />
+                  Sessions
+                </DropdownMenuItem>
+                <DropdownMenuItem className="font-medium">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem className="font-medium">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Billing
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="font-medium"
+                  onClick={() => signOut()}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {isSession && <span className="text-muted-foreground/40">/</span>}
+          </>
         )}
         {mounted && isSession && session && (
           <div className="flex items-center gap-x-2">

@@ -212,7 +212,7 @@ export default function Navbar() {
                 {session.name}
               </span>
             </button>
-            <div className="flex items-center gap-x-1 text-xs">
+            <div className="flex items-center gap-x-1 text-xs text-muted-foreground">
               <FolderGit2 className="size-4 text-muted-foreground" />
               {session.repository}
             </div>
@@ -220,11 +220,6 @@ export default function Navbar() {
         )}
       </div>
       <div className="flex items-center gap-x-2">
-        {isSession && (
-          <Button className="h-8 w-8" size="icon" variant="outline">
-            <Image src="/convex.webp" alt="Convex" width={20} height={20} />
-          </Button>
-        )}
         {isHome && authSession && (
           <Button className="h-8" onClick={handleNewSession}>
             <Plus /> New session

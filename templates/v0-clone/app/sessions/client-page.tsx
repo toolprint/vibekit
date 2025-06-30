@@ -23,7 +23,7 @@ import { useState, useMemo } from "react";
 import { Loader2, SearchIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 15;
 
 export default function SessionsClientPage() {
   const sessions = useQuery(api.sessions.list);
@@ -142,7 +142,7 @@ export default function SessionsClientPage() {
   const hasActiveFilters = searchTerm !== "" || statusFilter !== "";
 
   return (
-    <div className="flex flex-col h-screen bg-background border rounded-lg">
+    <div className="flex flex-col h-screen bg-background border rounded-lg mb-2">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -215,7 +215,7 @@ export default function SessionsClientPage() {
         </div>
 
         <div className="border rounded-lg">
-          <ScrollArea className="h-[calc(100vh-400px)]">
+          <ScrollArea className="h-[calc(100vh-300px)]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -289,7 +289,6 @@ export default function SessionsClientPage() {
             </Table>
           </ScrollArea>
         </div>
-
         {/* Pagination */}
         {filteredAndPaginatedData.totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">

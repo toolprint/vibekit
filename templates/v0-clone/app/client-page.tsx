@@ -57,7 +57,7 @@ export default function ClientPage() {
         open={isLoginDialogOpen}
         onOpenChange={setIsLoginDialogOpen}
       />
-      <div className="flex flex-col gap-y-[100px] h-screen bg-background border rounded-lg">
+      <div className="flex flex-col gap-y-[100px] h-screen bg-background border rounded-lg mb-2">
         <div className="w-full md:max-w-2xl mx-auto md:px-10 px-4 flex flex-col gap-y-10 justify-center mt-[90px]">
           <div className="flex items-center justify-center gap-2">
             <h1 className="text-3xl md:text-4xl font-bold text-center">

@@ -1,6 +1,7 @@
 import { useRef, useEffect } from "react";
+import { TextShimmer } from "./ui/text-shimmer";
 
-export default function TVStatic({
+export default function BootingMachine({
   label,
   size = "md",
 }: {
@@ -53,17 +54,12 @@ export default function TVStatic({
   }, [size]);
 
   return (
-    <div className="w-full h-full border rounded-lg bg-muted relative overflow-hidden flex items-center justify-center">
-      <canvas
-        ref={canvasRef}
-        width="400"
-        height="256"
-        className="absolute inset-0 w-full h-full object-cover opacity-30"
-      />
-      <div className="relative z-10 text-black/70 text-sm font-mono animate-pulse">
-        {label}
+    <div className="w-auto px-4 rounded-full h-12 border bg-background relative overflow-hidden flex items-center justify-center gap-x-2">
+      <div className="size-2.5 rounded-full animate-fast-pulse bg-orange-500" />
+      <div className="flex items-center gap-x-1">
+        <span className="text-xs font-mono">SANDBOX:</span>
+        <TextShimmer className=" text-xs font-mono">{label}</TextShimmer>
       </div>
-      <div className="absolute top-3 right-3 size-2.5 rounded-full animate-fast-pulse bg-orange-500" />
     </div>
   );
 }

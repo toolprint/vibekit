@@ -2,14 +2,12 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  users: defineTable({
-    userId: v.string(),
-  }),
   sessions: defineTable({
-    createdBy: v.optional(v.id("users")),
+    createdBy: v.optional(v.string()),
     sessionId: v.optional(v.string()),
     name: v.string(),
     tunnelUrl: v.optional(v.string()),
+    repository: v.optional(v.string()),
     status: v.union(
       v.literal("IN_PROGRESS"),
       v.literal("CLONING_REPO"),
@@ -20,7 +18,7 @@ export default defineSchema({
       v.literal("RUNNING")
     ),
     statusMessage: v.optional(v.string()),
-  }),
+  }).index("by_createdBy", ["createdBy"]),
   messages: defineTable({
     sessionId: v.id("sessions"),
     role: v.union(v.literal("user"), v.literal("assistant")),

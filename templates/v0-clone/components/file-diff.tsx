@@ -34,7 +34,7 @@ export default function DiffViewer({
   }, [oldContent, newContent]);
 
   return (
-    <div className={cn("overflow-hidden bg-white", className)}>
+    <div className={cn("overflow-hidden bg-background", className)}>
       {/* Diff Content */}
       <div className="font-mono text-xs">
         {diffLines.map((line, index) => (
@@ -42,18 +42,18 @@ export default function DiffViewer({
             key={index}
             className={cn(
               "flex",
-              line.type === "added" && "bg-green-50",
-              line.type === "removed" && "bg-red-50",
-              line.type === "modified" && "bg-yellow-50",
-              line.type === "unchanged" && "bg-white"
+              line.type === "added" && "bg-green-200",
+              line.type === "removed" && "bg-red-200",
+              line.type === "modified" && "bg-yellow-200",
+              line.type === "unchanged" && "bg-background"
             )}
           >
             {/* Line Numbers */}
             <div className="flex">
-              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-gray-50 select-none">
+              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-sidebar select-none">
                 {line.oldLineNumber || ""}
               </div>
-              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-gray-50 select-none">
+              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-sidebar select-none">
                 {line.newLineNumber || ""}
               </div>
             </div>
@@ -70,7 +70,7 @@ export default function DiffViewer({
                 <span className="text-yellow-600 font-bold">~</span>
               )}
               {line.type === "unchanged" && (
-                <span className="text-gray-400"> </span>
+                <span className="text-primary"> </span>
               )}
             </div>
 
@@ -96,7 +96,7 @@ export default function DiffViewer({
                   className={cn(
                     line.type === "added" && "text-green-800",
                     line.type === "removed" && "text-red-800",
-                    line.type === "unchanged" && "text-gray-900"
+                    line.type === "unchanged" && "text-primary"
                   )}
                 >
                   {line.content || " "}

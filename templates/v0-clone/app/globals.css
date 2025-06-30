@@ -176,3 +176,12 @@
 .animate-fast-pulse {
   animation: fastPulse 0.75s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

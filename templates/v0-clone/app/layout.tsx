@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/providers/auth-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
 
 import Navbar from "@/components/navbar";
 import { ConvexClientProvider } from "@/providers/convex-provider";
@@ -27,17 +28,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-muted/40 antialiased h-screen flex flex-col gap-y-2`}
         style={{ padding: "0 8px" }}
       >
-        <AuthProvider>
-          <ConvexClientProvider>
-            <Navbar />
-            {children}
-          </ConvexClientProvider>
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <ConvexClientProvider>
+              <Navbar />
+              {children}
+            </ConvexClientProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

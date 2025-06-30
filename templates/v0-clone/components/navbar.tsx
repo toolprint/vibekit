@@ -2,19 +2,20 @@
 
 import {
   Plus,
-  Edit2,
   ChevronDown,
   Monitor,
   Settings,
   CreditCard,
   LogOut,
+  Lock,
+  FolderGit2,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut, signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { createSessionAction } from "@/app/actions/vibekit";
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function Navbar() {
   const { data: authSession } = useSession();
@@ -36,33 +38,23 @@ export default function Navbar() {
   const isSession = pathname.includes("/session");
   const router = useRouter();
   const createSession = useMutation(api.sessions.create);
-
-  // Prevent hydration mismatch
   const [mounted, setMounted] = useState(false);
-
-  // Extract session ID from pathname
   const sessionId = isSession ? pathname.split("/session/")[1] : null;
-
-  // Convex hooks
-  const session = useQuery(
-    api.sessions.getById,
-    sessionId ? { id: sessionId as Id<"sessions"> } : "skip"
-  );
-  const updateSession = useMutation(api.sessions.update);
-
-  console.log(authSession);
-
-  // Edit state
   const [isEditing, setIsEditing] = useState(false);
   const editRef = useRef<HTMLSpanElement>(null);
   const originalValue = useRef<string>("");
 
-  // Set mounted after hydration
+  const session = useQuery(
+    api.sessions.getById,
+    sessionId ? { id: sessionId as Id<"sessions"> } : "skip"
+  );
+
+  const updateSession = useMutation(api.sessions.update);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Focus and select text when editing starts
   useEffect(() => {
     if (isEditing && editRef.current) {
       editRef.current.focus();
@@ -133,7 +125,20 @@ export default function Navbar() {
           href="/"
           className="hover:opacity-30 transition-all duration-300"
         >
-          <Image src="/logo.svg" alt="vibe0" width={60} height={60} />
+          <Image
+            src="/logo.svg"
+            alt="vibe0"
+            width={60}
+            height={60}
+            className="dark:hidden"
+          />
+          <Image
+            src="/logo-dark.svg"
+            alt="vibe0 dark mode"
+            width={60}
+            height={60}
+            className="hidden dark:block"
+          />
         </Link>
         {mounted && <span className="ml-1 text-muted-foreground/40">/</span>}
         {mounted && authSession && (
@@ -156,7 +161,10 @@ export default function Navbar() {
                 <ChevronDown className="size-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-48">
-                <DropdownMenuItem className="font-medium">
+                <DropdownMenuItem
+                  className="font-medium"
+                  onClick={() => router.push("/sessions")}
+                >
                   <Monitor className="mr-2 h-4 w-4" />
                   Sessions
                 </DropdownMenuItem>
@@ -168,6 +176,8 @@ export default function Navbar() {
                   <CreditCard className="mr-2 h-4 w-4" />
                   Billing
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <ThemeToggle />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="font-medium"
@@ -185,7 +195,7 @@ export default function Navbar() {
           <div className="flex items-center gap-x-2">
             <button
               onClick={handleStartEdit}
-              className="flex items-center gap-x-1 px-1 py-1 rounded-md hover:bg-muted transition-colors group cursor-pointer"
+              className="flex items-center gap-x-1 px-1 py-1.5 rounded-md hover:bg-muted transition-colors group cursor-pointer"
             >
               <span
                 ref={editRef}
@@ -199,10 +209,11 @@ export default function Navbar() {
               >
                 {session.name}
               </span>
-              {!isEditing && (
-                <Edit2 className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-50 transition-opacity" />
-              )}
             </button>
+            <div className="flex items-center gap-x-1 text-xs">
+              <FolderGit2 className="size-4 text-muted-foreground" />
+              {session.repository}
+            </div>
           </div>
         )}
       </div>
@@ -212,12 +223,18 @@ export default function Navbar() {
             <Image src="/convex.webp" alt="Convex" width={20} height={20} />
           </Button>
         )}
-        {isHome && (
+        {isHome && authSession && (
           <Button className="h-8" onClick={handleNewSession}>
             <Plus /> New session
           </Button>
         )}
-        {isSession && <Button className="h-8">Publish</Button>}
+        {mounted && !authSession && (
+          <Button className="h-8" onClick={() => signIn("github")}>
+            <Lock />
+            Sign in with Github
+          </Button>
+        )}
+        {authSession && isSession && <Button className="h-8">Publish</Button>}
       </div>
     </div>
   );

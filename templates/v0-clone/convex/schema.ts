@@ -10,6 +10,7 @@ export default defineSchema({
     sessionId: v.optional(v.string()),
     name: v.string(),
     tunnelUrl: v.optional(v.string()),
+    repository: v.optional(v.string()),
     status: v.union(
       v.literal("IN_PROGRESS"),
       v.literal("CLONING_REPO"),

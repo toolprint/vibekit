@@ -67,7 +67,7 @@ function FileEditItem({ message }: FileEditItemProps) {
     >
       <div
         className={cn(
-          "flex items-center gap-2 h-10 px-4 cursor-pointer hover:bg-gray-50 transition-colors",
+          "flex items-center gap-2 h-10 px-4 cursor-pointer hover:bg-sidebar transition-colors",
           isExpanded && " border-b"
         )}
         onClick={toggleExpanded}

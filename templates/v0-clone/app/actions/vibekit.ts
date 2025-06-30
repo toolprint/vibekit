@@ -1,5 +1,6 @@
 "use server";
 import { inngest } from "@/lib/inngest";
+import { auth } from "@/lib/auth";
 
 export async function runAgentAction(
   sessionId: string,
@@ -16,12 +17,20 @@ export async function runAgentAction(
   });
 }
 
-export async function createSessionAction(sessionId: string, message?: string) {
+export async function createSessionAction(
+  sessionId: string,
+  message?: string,
+  repository?: string
+) {
+  const session = await auth();
+
   await inngest.send({
     name: "vibe0/create.session",
     data: {
       sessionId,
       message,
+      repository,
+      token: session?.accessToken,
     },
   });
 }

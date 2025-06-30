@@ -86,7 +86,6 @@ export const runAgent = inngest.createFunction(
         mode: "code",
         callbacks: {
           async onUpdate(message) {
-            console.log(message);
             const data = JSON.parse(message);
 
             if (data.type !== "assistant") return;
@@ -184,7 +183,7 @@ export const createSession = inngest.createFunction(
   { event: "vibe0/create.session" },
 
   async ({ event, step }) => {
-    const { sessionId: id, message } = event.data;
+    const { sessionId: id, message, repository, token } = event.data;
 
     const config: VibeKitConfig = {
       agent: {
@@ -200,8 +199,8 @@ export const createSession = inngest.createFunction(
         },
       },
       github: {
-        token: process.env.GITHB_PERSONAL_TOKEN!,
-        repository: "superagent-ai/vibekit-nextjs",
+        token,
+        repository: repository ?? "superagent-ai/vibekit-nextjs",
       },
     };
 
@@ -213,9 +212,12 @@ export const createSession = inngest.createFunction(
         status: "CLONING_REPO",
       });
 
-      const clone = await vibekit.executeCommand(
-        "git clone https://github.com/superagent-ai/vibekit-nextjs.git"
-      );
+      const cloneUrl =
+        repository && token
+          ? `git clone https://${token}@github.com/${repository}.git`
+          : "git clone https://github.com/superagent-ai/vibekit-nextjs.git";
+
+      const clone = await vibekit.executeCommand(cloneUrl);
 
       await fetchMutation(api.sessions.update, {
         id,

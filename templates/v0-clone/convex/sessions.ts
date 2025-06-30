@@ -57,6 +57,7 @@ export const getById = query({
 export const create = mutation({
   args: {
     sessionId: v.optional(v.string()),
+    repository: v.optional(v.string()),
     name: v.string(),
     tunnelUrl: v.optional(v.string()),
     status: v.union(
@@ -85,6 +86,7 @@ export const update = mutation({
     sessionId: v.optional(v.string()),
     name: v.optional(v.string()),
     tunnelUrl: v.optional(v.string()),
+    repository: v.optional(v.string()),
     status: v.optional(
       v.union(
         v.literal("IN_PROGRESS"),

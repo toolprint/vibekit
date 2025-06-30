@@ -3,7 +3,7 @@
 import { ExternalLink, Maximize2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import TVStatic from "../tv-static";
+import BootingMachine from "../booting-machine";
 import { Doc } from "@/convex/_generated/dataModel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Files from "./code";
@@ -39,7 +39,7 @@ export default function Preview({ session }: { session?: Doc<"sessions"> }) {
               />
             ) : (
               <div className="max-w-xs rounded-lg h-[200px] mt-[30%] mx-auto w-full flex items-center justify-center">
-                <TVStatic
+                <BootingMachine
                   label={
                     session?.status?.replace(/_/g, " ") ?? "BOOTING MACHINE..."
                   }

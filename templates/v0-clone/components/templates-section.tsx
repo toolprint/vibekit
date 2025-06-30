@@ -19,7 +19,7 @@ function TemplateCard({ template }: { template: (typeof templates)[0] }) {
       <div className="flex items-start justify-between">
         <div className="*:data-[slot=avatar]:ring-background flex -space-x-2 *:data-[slot=avatar]:ring-2">
           {template.logos.map((logo) => (
-            <Avatar key={logo} className="w-6 h-6">
+            <Avatar key={logo} className="w-6 h-6 bg-background">
               <AvatarImage src={logo} alt={logo} />
             </Avatar>
           ))}
@@ -56,7 +56,7 @@ export default function TemplatesSection() {
   };
 
   return (
-    <div className="flex flex-col gap-y-4 max-w-6xl w-full mx-auto">
+    <div className="flex flex-col gap-y-4 max-w-6xl w-full mx-auto md:px-0 px-4">
       <div className="flex items-center justify-between">
         <p className="font-medium">Templates</p>
         <div className="flex gap-2">

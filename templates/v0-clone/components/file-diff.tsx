@@ -50,10 +50,10 @@ export default function DiffViewer({
           >
             {/* Line Numbers */}
             <div className="flex">
-              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-gray-50 select-none">
+              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-sidebar select-none">
                 {line.oldLineNumber || ""}
               </div>
-              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-gray-50 select-none">
+              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-sidebar select-none">
                 {line.newLineNumber || ""}
               </div>
             </div>

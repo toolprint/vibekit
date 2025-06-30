@@ -152,9 +152,8 @@ export default function SessionsClientPage() {
   if (!sessions) {
     return (
       <div className="flex flex-col h-screen bg-background border rounded-lg">
-        <div className="text-center p-6 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin mx-auto mb-2" />
-          <p>Loading your sessions...</p>
+        <div className="p-6 text-muted-foreground">
+          <Loader2 className="size-5 animate-spin mb-2" />
         </div>
       </div>
     );

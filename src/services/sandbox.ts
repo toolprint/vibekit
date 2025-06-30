@@ -506,7 +506,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
           },
           storage: {
             ephemeralStorage: {
-              storageSize: 10240,
+              storageSize: 2048,
             },
           },
         },

@@ -16,6 +16,7 @@ export type {
   ModelProvider,
   E2BConfig,
   DaytonaConfig,
+  NorthflankConfig,
   EnvironmentConfig,
   GithubConfig,
   TelemetryConfig,

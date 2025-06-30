@@ -3,7 +3,7 @@
     "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
-    "version": "0.0.28",
+    "version": "0.0.29",
     "exports": {
         ".": {
             "import": "./dist/index.js",
@@ -29,6 +29,7 @@
         "@ai-sdk/openai-compatible": "^0.2.14",
         "@daytonaio/sdk": "^0.20.2",
         "@e2b/code-interpreter": "1.2.0-beta.4",
+        "@northflank/js-client": "^0.8.2",
         "@opentelemetry/api": "^1.9.0",
         "@opentelemetry/auto-instrumentations-node": "^0.59.0",
         "@opentelemetry/exporter-metrics-otlp-http": "^0.201.1",

@@ -34,9 +34,19 @@ export type DaytonaConfig = {
   serverUrl?: string;
 };
 
+export type NorthflankConfig = {
+  apiKey: string;
+  image?: string;
+  projectId?: string;
+  billingPlan?: string
+  persistentVolume?: string
+  persistentVolumeStorage?: number
+}
+
 export type EnvironmentConfig = {
   e2b?: E2BConfig;
   daytona?: DaytonaConfig;
+  northflank?: NorthflankConfig;
 };
 
 export type GithubConfig = {
@@ -243,11 +253,15 @@ export interface SandboxInstance {
 }
 
 export interface SandboxConfig {
-  type: "e2b" | "daytona";
+  type: "e2b" | "daytona" | "northflank";
   apiKey: string;
   templateId?: string; // for E2B
   image?: string; // for Daytona
   serverUrl?: string; // for Daytona
+  projectId?: string // for Northflank
+  billingPlan?: string // for Northflank
+  persistentVolume?: string // for Northflank
+  persistentVolumeStorage?: number // for Northflank
 }
 
 export interface SandboxProvider {

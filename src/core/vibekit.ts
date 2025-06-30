@@ -376,7 +376,7 @@ export class VibeKit {
 
   /**
    * Get the host URL for a specific port in the sandbox.
-   * Note: This method is only supported for E2B sandboxes.
+   * Note: This method is only supported for Northflank & E2B sandboxes.
    *
    * @param port - The port number to get the host for
    * @returns Promise<string> - The host URL for the specified port

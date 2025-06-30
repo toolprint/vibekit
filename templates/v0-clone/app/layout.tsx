@@ -29,6 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <link rel="icon" href="/favicon.svg" />
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-muted/40 antialiased h-screen flex flex-col gap-y-2`}
         style={{ padding: "0 8px" }}

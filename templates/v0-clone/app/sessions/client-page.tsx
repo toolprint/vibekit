@@ -22,11 +22,20 @@ import {
 import { useState, useMemo } from "react";
 import { Loader2, SearchIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const ITEMS_PER_PAGE = 15;
 
 export default function SessionsClientPage() {
-  const sessions = useQuery(api.sessions.list);
+  const { data: session } = useSession();
+  const sessions = useQuery(
+    api.sessions.list,
+    session?.githubId
+      ? {
+          createdBy: session.githubId.toString(),
+        }
+      : "skip"
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -129,11 +138,23 @@ export default function SessionsClientPage() {
     }
   };
 
+  if (!session) {
+    return (
+      <div className="flex flex-col h-screen bg-background border rounded-lg">
+        <div className="text-center p-6 text-muted-foreground">
+          <Loader2 className="size-5 animate-spin mx-auto mb-2" />
+          <p>Loading user session...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!sessions) {
     return (
       <div className="flex flex-col h-screen bg-background border rounded-lg">
         <div className="text-center p-6 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin" />
+          <Loader2 className="size-5 animate-spin mx-auto mb-2" />
+          <p>Loading your sessions...</p>
         </div>
       </div>
     );

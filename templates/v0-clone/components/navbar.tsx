@@ -35,7 +35,7 @@ export default function Navbar() {
   const { data: authSession } = useSession();
   const pathname = usePathname();
   const isHome = pathname === "/";
-  const isSession = pathname.includes("/session");
+  const isSession = pathname.includes("/session") && pathname !== "/sessions";
   const router = useRouter();
   const createSession = useMutation(api.sessions.create);
   const [mounted, setMounted] = useState(false);
@@ -125,20 +125,10 @@ export default function Navbar() {
           href="/"
           className="hover:opacity-30 transition-all duration-300"
         >
-          <Image
-            src="/logo.svg"
-            alt="vibe0"
-            width={60}
-            height={60}
-            className="dark:hidden"
-          />
-          <Image
-            src="/logo-dark.svg"
-            alt="vibe0 dark mode"
-            width={60}
-            height={60}
-            className="hidden dark:block"
-          />
+          <div className="flex items-center gap-x-1 text-muted-foreground">
+            <Image src="/mark.png" alt="Superagent" width={20} height={20} />
+            <p className="font-semibold">vibe0</p>
+          </div>
         </Link>
         {mounted && authSession && (
           <span className="ml-1 text-muted-foreground/40">/</span>
@@ -212,10 +202,12 @@ export default function Navbar() {
                 {session.name}
               </span>
             </button>
-            <div className="flex items-center gap-x-1 text-xs text-muted-foreground">
-              <FolderGit2 className="size-4 text-muted-foreground" />
-              {session.repository}
-            </div>
+            {session.repository && (
+              <div className="flex items-center gap-x-1 text-xs text-muted-foreground">
+                <FolderGit2 className="size-4 text-muted-foreground" />
+                {session.repository}
+              </div>
+            )}
           </div>
         )}
       </div>

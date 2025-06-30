@@ -33,6 +33,7 @@ export default function ClientPage() {
       name: title,
       status: "IN_PROGRESS",
       repository: repository?.full_name,
+      createdBy: session?.githubId?.toString(),
     });
 
     await createSessionAction(sessionId, message, repository?.full_name);

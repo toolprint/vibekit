@@ -3,8 +3,21 @@ import { query, mutation } from "./_generated/server";
 
 // Queries
 export const list = query({
-  handler: async (ctx) => {
-    const sessions = await ctx.db.query("sessions").order("desc").collect();
+  args: {
+    createdBy: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let sessions;
+
+    if (args.createdBy) {
+      sessions = await ctx.db
+        .query("sessions")
+        .withIndex("by_createdBy", (q) => q.eq("createdBy", args.createdBy))
+        .order("desc")
+        .collect();
+    } else {
+      sessions = await ctx.db.query("sessions").order("desc").collect();
+    }
 
     // Get messages for each session
     const sessionsWithMessages = await Promise.all(
@@ -57,6 +70,7 @@ export const getById = query({
 export const create = mutation({
   args: {
     sessionId: v.optional(v.string()),
+    createdBy: v.optional(v.string()),
     repository: v.optional(v.string()),
     name: v.string(),
     tunnelUrl: v.optional(v.string()),

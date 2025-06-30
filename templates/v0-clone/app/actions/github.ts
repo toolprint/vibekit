@@ -31,20 +31,19 @@ export async function listRepos(): Promise<Repo[]> {
   });
 
   try {
-    // Get user's own repositories
-    const { data: userRepositories } =
-      await octokit.rest.repos.listForAuthenticatedUser({
-        sort: "updated",
-        per_page: 100,
-        visibility: "all",
-        affiliation: "owner,collaborator,organization_member",
-      });
-
-    // Get organizations the user is a member of
-    const { data: organizations } =
-      await octokit.rest.orgs.listForAuthenticatedUser({
-        per_page: 100,
-      });
+    // Get user's own repositories and organizations in parallel
+    const [{ data: userRepositories }, { data: organizations }] =
+      await Promise.all([
+        octokit.rest.repos.listForAuthenticatedUser({
+          sort: "updated",
+          per_page: 100,
+          visibility: "all",
+          affiliation: "owner,collaborator,organization_member",
+        }),
+        octokit.rest.orgs.listForAuthenticatedUser({
+          per_page: 100,
+        }),
+      ]);
 
     // Get repositories from each organization
     const orgRepositoriesPromises = organizations.map(async (org) => {

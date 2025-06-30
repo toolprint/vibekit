@@ -140,7 +140,9 @@ export default function Navbar() {
             className="hidden dark:block"
           />
         </Link>
-        {mounted && <span className="ml-1 text-muted-foreground/40">/</span>}
+        {mounted && authSession && (
+          <span className="ml-1 text-muted-foreground/40">/</span>
+        )}
         {mounted && authSession && (
           <>
             <DropdownMenu>

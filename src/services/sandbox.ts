@@ -69,9 +69,9 @@ export class E2BSandboxInstance implements SandboxInstance {
 
 export class E2BSandboxProvider implements SandboxProvider {
   async create(
-      config: SandboxConfig,
-      envs?: Record<string, string>,
-      agentType?: AgentType
+    config: SandboxConfig,
+    envs?: Record<string, string>,
+    agentType?: AgentType
   ): Promise<SandboxInstance> {
     // Determine default template based on agent type if not specified in config
     let templateId = config.templateId;
@@ -95,8 +95,8 @@ export class E2BSandboxProvider implements SandboxProvider {
   }
 
   async resume(
-      sandboxId: string,
-      config: SandboxConfig
+    sandboxId: string,
+    config: SandboxConfig
   ): Promise<SandboxInstance> {
     const sandbox = await E2BSandbox.resume(sandboxId, {
       timeoutMs: 3600000,
@@ -109,10 +109,10 @@ export class E2BSandboxProvider implements SandboxProvider {
 // Daytona implementation
 class DaytonaSandboxInstance implements SandboxInstance {
   constructor(
-      private workspace: any, // Daytona workspace object
-      private daytona: any, // Daytona client
-      public sandboxId: string,
-      private envs?: Record<string, string> // Store environment variables
+    private workspace: any, // Daytona workspace object
+    private daytona: any, // Daytona client
+    public sandboxId: string,
+    private envs?: Record<string, string> // Store environment variables
   ) {}
 
   get commands(): SandboxCommands {
@@ -121,10 +121,10 @@ class DaytonaSandboxInstance implements SandboxInstance {
         // Check if background execution is requested - not supported in Daytona
         if (options?.background) {
           const response = await this.workspace.process.executSessionCommand(
-              command,
-              undefined, // cwd - use default working directory
-              this.envs, // env - use instance environment variables
-              options?.timeoutMs || 3600000 // timeout in seconds, default 60 minutes
+            command,
+            undefined, // cwd - use default working directory
+            this.envs, // env - use instance environment variables
+            options?.timeoutMs || 3600000 // timeout in seconds, default 60 minutes
           );
 
           return {
@@ -138,10 +138,10 @@ class DaytonaSandboxInstance implements SandboxInstance {
           // Execute command using Daytona's process execution API
           // Format: executeCommand(command, cwd?, env?, timeout?)
           const response = await this.workspace.process.executeCommand(
-              command,
-              undefined, // cwd - use default working directory
-              this.envs, // env - use instance environment variables
-              options?.timeoutMs || 3600000 // timeout in seconds, default 60 minutes
+            command,
+            undefined, // cwd - use default working directory
+            this.envs, // env - use instance environment variables
+            options?.timeoutMs || 3600000 // timeout in seconds, default 60 minutes
           );
 
           // Handle streaming callbacks if provided
@@ -160,7 +160,7 @@ class DaytonaSandboxInstance implements SandboxInstance {
           };
         } catch (error) {
           const errorMessage =
-              error instanceof Error ? error.message : String(error);
+            error instanceof Error ? error.message : String(error);
           if (options?.onStderr) {
             options.onStderr(errorMessage);
           }
@@ -183,7 +183,7 @@ class DaytonaSandboxInstance implements SandboxInstance {
   async pause(): Promise<void> {
     // Daytona doesn't have a direct pause equivalent
     console.log(
-        "Pause not directly supported for Daytona sandboxes - workspace remains active"
+      "Pause not directly supported for Daytona sandboxes - workspace remains active"
     );
   }
 
@@ -194,9 +194,9 @@ class DaytonaSandboxInstance implements SandboxInstance {
 
 export class DaytonaSandboxProvider implements SandboxProvider {
   async create(
-      config: SandboxConfig,
-      envs?: Record<string, string>,
-      agentType?: AgentType
+    config: SandboxConfig,
+    envs?: Record<string, string>,
+    agentType?: AgentType
   ): Promise<SandboxInstance> {
     try {
       // Dynamic import to avoid dependency issues if daytona-sdk is not installed
@@ -219,24 +219,24 @@ export class DaytonaSandboxProvider implements SandboxProvider {
       return new DaytonaSandboxInstance(workspace, daytona, workspace.id, envs);
     } catch (error) {
       if (
-          error instanceof Error &&
-          error.message.includes("Cannot resolve module")
+        error instanceof Error &&
+        error.message.includes("Cannot resolve module")
       ) {
         throw new Error(
-            "Daytona SDK not found. Please install daytona-sdk: npm install daytona-sdk"
+          "Daytona SDK not found. Please install daytona-sdk: npm install daytona-sdk"
         );
       }
       throw new Error(
-          `Failed to create Daytona sandbox: ${
-              error instanceof Error ? error.message : String(error)
-          }`
+        `Failed to create Daytona sandbox: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       );
     }
   }
 
   async resume(
-      sandboxId: string,
-      config: SandboxConfig
+    sandboxId: string,
+    config: SandboxConfig
   ): Promise<SandboxInstance> {
     try {
       const daytonaConfig: DaytonaConfig = {
@@ -250,16 +250,16 @@ export class DaytonaSandboxProvider implements SandboxProvider {
       const workspace = await daytona.get(sandboxId);
 
       return new DaytonaSandboxInstance(
-          workspace,
-          daytona,
-          sandboxId,
-          undefined
+        workspace,
+        daytona,
+        sandboxId,
+        undefined
       );
     } catch (error) {
       throw new Error(
-          `Failed to resume Daytona sandbox: ${
-              error instanceof Error ? error.message : String(error)
-          }`
+        `Failed to resume Daytona sandbox: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       );
     }
   }
@@ -267,10 +267,10 @@ export class DaytonaSandboxProvider implements SandboxProvider {
 
 export class NorthflankSandboxInstance implements SandboxInstance {
   constructor(
-      private apiClient: ApiClient,
-      public sandboxId: string,
-      private projectId: string,
-      private workingDirectory: string
+    private apiClient: ApiClient,
+    public sandboxId: string,
+    private projectId: string,
+    private workingDirectory: string
   ) {}
 
   get commands(): SandboxCommands {
@@ -281,14 +281,14 @@ export class NorthflankSandboxInstance implements SandboxInstance {
         ];
         if (options?.background) {
           const handle = await this.apiClient.exec.execServiceSession(
-              {
-                projectId: this.projectId,
-                serviceId: this.sandboxId,
-              },
-              {
-                shell: `bash -c`,
-                command: cmd,
-              }
+            {
+              projectId: this.projectId,
+              serviceId: this.sandboxId,
+            },
+            {
+              shell: `bash -c`,
+              command: cmd,
+            }
           );
 
           handle.stdErr.on("data", (data) => options.onStderr?.(data));
@@ -302,14 +302,14 @@ export class NorthflankSandboxInstance implements SandboxInstance {
         }
 
         const handle = await this.apiClient.exec.execServiceCommand(
-            {
-              projectId: this.projectId,
-              serviceId: this.sandboxId,
-            },
-            {
-              shell: `bash -c`,
-              command: cmd,
-            }
+          {
+            projectId: this.projectId,
+            serviceId: this.sandboxId,
+          },
+          {
+            shell: `bash -c`,
+            command: cmd,
+          }
         );
 
         return {
@@ -353,7 +353,7 @@ export class NorthflankSandboxInstance implements SandboxInstance {
     });
 
     const existingPort = existingPorts.data.ports?.find(
-        (p) => p.internalPort === port
+      (p) => p.internalPort === port
     );
     if (existingPort) {
       const host = existingPort.dns;
@@ -364,15 +364,15 @@ export class NorthflankSandboxInstance implements SandboxInstance {
 
     const input = [
       ...existingPorts.data.ports
-          .filter((p) => p.internalPort === port)
-          .map((port) => ({
-            id: port.id,
-            name: port.name,
-            internalPort: port.internalPort,
-            public: port.public,
-            protocol: port.protocol,
-            domains: port.domains.map((domain) => domain.name),
-          })),
+        .filter((p) => p.internalPort === port)
+        .map((port) => ({
+          id: port.id,
+          name: port.name,
+          internalPort: port.internalPort,
+          public: port.public,
+          protocol: port.protocol,
+          domains: port.domains.map((domain) => domain.name),
+        })),
       {
         name: `p-${port}`,
         internalPort: port,
@@ -399,9 +399,9 @@ export class NorthflankSandboxInstance implements SandboxInstance {
     });
 
     return (
-        newPorts.data.ports?.find(
-            (p: GetServicePortsResult["ports"][number]) => p.internalPort === port
-        )?.dns || ""
+      newPorts.data.ports?.find(
+        (p: GetServicePortsResult["ports"][number]) => p.internalPort === port
+      )?.dns || ""
     );
   }
 }
@@ -424,9 +424,9 @@ export class NorthflankSandboxProvider implements SandboxProvider {
   }
 
   private async getServiceStatus(
-      apiClient: ApiClient,
-      sandboxId: string,
-      projectId: string
+    apiClient: ApiClient,
+    sandboxId: string,
+    projectId: string
   ) {
     const deployment = await apiClient.get.service({
       parameters: {
@@ -438,17 +438,17 @@ export class NorthflankSandboxProvider implements SandboxProvider {
   }
 
   private async waitForSandbox(
-      apiClient: ApiClient,
-      sandboxId: string,
-      projectId: string
+    apiClient: ApiClient,
+    sandboxId: string,
+    projectId: string
   ): Promise<void> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < NorthflankSandboxProvider.MaxPollTimeout) {
       const status = await this.getServiceStatus(
-          apiClient,
-          sandboxId,
-          projectId
+        apiClient,
+        sandboxId,
+        projectId
       );
 
       if (status === "COMPLETED") {
@@ -460,7 +460,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
       }
 
       await new Promise((resolve) =>
-          setTimeout(resolve, NorthflankSandboxProvider.StatusPollInterval)
+        setTimeout(resolve, NorthflankSandboxProvider.StatusPollInterval)
       );
     }
 
@@ -473,19 +473,19 @@ export class NorthflankSandboxProvider implements SandboxProvider {
   }
 
   async create(
-      config: SandboxConfig,
-      envs?: Record<string, string>,
-      agentType?: AgentType
+    config: SandboxConfig,
+    envs?: Record<string, string>,
+    agentType?: AgentType
   ): Promise<SandboxInstance> {
     if (!config.projectId || !config.apiKey) {
       throw new Error(
-          "Northflank sandbox configuration missing one of required parameters: projectId, apiKey"
+        "Northflank sandbox configuration missing one of required parameters: projectId, apiKey"
       );
     }
 
     const apiClient = await this.buildAPIClient(
-        config.projectId,
-        config.apiKey
+      config.projectId,
+      config.apiKey
     );
 
     const sandboxId = this.generateSandboxId();
@@ -497,7 +497,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
         name: sandboxId,
         billing: {
           deploymentPlan:
-              config.billingPlan || NorthflankSandboxProvider.DefaultBillingPlan,
+            config.billingPlan || NorthflankSandboxProvider.DefaultBillingPlan,
         },
         deployment: {
           instances: 0,
@@ -523,16 +523,16 @@ export class NorthflankSandboxProvider implements SandboxProvider {
         mounts: [
           {
             containerMountPath:
-                config.persistentVolume ||
-                NorthflankSandboxProvider.DefaultPersistentVolume,
+              config.persistentVolume ||
+              NorthflankSandboxProvider.DefaultPersistentVolume,
           },
         ],
         spec: {
           accessMode: "ReadWriteMany",
           storageClassName: "ssd",
           storageSize:
-              config.persistentVolumeStorage ??
-              NorthflankSandboxProvider.DefaultPersistentVolumeStorage,
+            config.persistentVolumeStorage ??
+            NorthflankSandboxProvider.DefaultPersistentVolumeStorage,
         },
         attachedObjects: [
           {
@@ -556,27 +556,27 @@ export class NorthflankSandboxProvider implements SandboxProvider {
     await this.waitForSandbox(apiClient, sandboxId, config.projectId);
 
     return new NorthflankSandboxInstance(
-        apiClient,
-        sandboxId,
-        config.projectId,
-        config.persistentVolume ||
+      apiClient,
+      sandboxId,
+      config.projectId,
+      config.persistentVolume ||
         NorthflankSandboxProvider.DefaultPersistentVolume
     );
   }
 
   async resume(
-      sandboxId: string,
-      config: SandboxConfig
+    sandboxId: string,
+    config: SandboxConfig
   ): Promise<SandboxInstance> {
     if (!config.projectId || !config.apiKey) {
       throw new Error(
-          "Northflank sandbox configuration missing one of required parameters: projectId, apiKey"
+        "Northflank sandbox configuration missing one of required parameters: projectId, apiKey"
       );
     }
 
     const apiClient = await this.buildAPIClient(
-        config.projectId,
-        config.apiKey
+      config.projectId,
+      config.apiKey
     );
     await apiClient.scale.service({
       parameters: {
@@ -592,10 +592,10 @@ export class NorthflankSandboxProvider implements SandboxProvider {
     await this.waitForSandbox(apiClient, sandboxId, config.projectId);
 
     return new NorthflankSandboxInstance(
-        apiClient,
-        sandboxId,
-        config.projectId,
-        config.persistentVolume ||
+      apiClient,
+      sandboxId,
+      config.projectId,
+      config.persistentVolume ||
         NorthflankSandboxProvider.DefaultPersistentVolume
     );
   }
@@ -603,7 +603,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
 
 // Factory function to create appropriate sandbox provider
 export function createSandboxProvider(
-    type: "e2b" | "daytona" | "northflank"
+  type: "e2b" | "daytona" | "northflank"
 ): SandboxProvider {
   switch (type) {
     case "e2b":
@@ -619,8 +619,8 @@ export function createSandboxProvider(
 
 // Helper function to create SandboxConfig from VibeKitConfig environment
 export function createSandboxConfigFromEnvironment(
-    environment: any,
-    agentType?: AgentType
+  environment: any,
+  agentType?: AgentType
 ): SandboxConfig {
   const defaultImage = getDockerImageFromAgentType(agentType);
   if (environment.northflank) {

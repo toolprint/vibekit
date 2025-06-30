@@ -90,6 +90,7 @@ export class E2BSandboxProvider implements SandboxProvider {
     const sandbox = await E2BSandbox.create(templateId, {
       envs,
       apiKey: config.apiKey,
+      timeoutMs: 2592000000, // 30 days in milliseconds
     });
     return new E2BSandboxInstance(sandbox);
   }
@@ -311,6 +312,8 @@ export class NorthflankSandboxInstance implements SandboxInstance {
             command: cmd,
           }
         );
+
+        //TODO: handle streaming callbacks if provided
 
         return {
           exitCode: handle.commandResult.exitCode,

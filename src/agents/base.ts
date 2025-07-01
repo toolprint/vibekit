@@ -6,6 +6,89 @@ import {
 import { Conversation, SandboxInstance, SandboxConfig } from "../types";
 import { createSandboxProvider } from "../services/sandbox";
 
+// StreamingBuffer class to handle chunked JSON data
+class StreamingBuffer {
+  private buffer = "";
+  private onComplete: (data: string) => void;
+
+  constructor(onComplete: (data: string) => void) {
+    this.onComplete = onComplete;
+  }
+
+  append(chunk: string): void {
+    this.buffer += chunk;
+    this.processBuffer();
+  }
+
+  private processBuffer(): void {
+    let bracketCount = 0;
+    let inString = false;
+    let escaped = false;
+    let start = 0;
+
+    for (let i = 0; i < this.buffer.length; i++) {
+      const char = this.buffer[i];
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (inString) {
+        continue;
+      }
+
+      if (char === "{") {
+        bracketCount++;
+      } else if (char === "}") {
+        bracketCount--;
+
+        if (bracketCount === 0) {
+          // Found complete JSON object
+          const jsonStr = this.buffer.slice(start, i + 1);
+          try {
+            // Validate JSON before calling callback
+            JSON.parse(jsonStr);
+            this.onComplete(jsonStr);
+          } catch (e) {
+            // Invalid JSON, continue buffering
+          }
+
+          // Move to next potential JSON object
+          start = i + 1;
+
+          // If there's a newline after this JSON, skip it
+          if (start < this.buffer.length && this.buffer[start] === "\n") {
+            start++;
+          }
+        }
+      }
+    }
+
+    // Keep only the remaining unparsed part
+    this.buffer = this.buffer.slice(start);
+  }
+
+  // Handle any remaining non-JSON output (like raw text)
+  flush(): void {
+    if (this.buffer.trim()) {
+      // If it's not JSON, pass it through as-is
+      this.onComplete(this.buffer);
+      this.buffer = "";
+    }
+  }
+}
+
 export interface BaseAgentConfig {
   githubToken?: string;
   repoUrl?: string;
@@ -161,12 +244,25 @@ export abstract class BaseAgent {
           ? `cd ${repoDir} && ${command}`
           : command;
 
+      // Set up streaming buffers for stdout and stderr if callbacks are provided
+      let stdoutBuffer: StreamingBuffer | undefined;
+      let stderrBuffer: StreamingBuffer | undefined;
+
+      if (callbacks?.onUpdate) {
+        stdoutBuffer = new StreamingBuffer(callbacks.onUpdate);
+        stderrBuffer = new StreamingBuffer(callbacks.onUpdate);
+      }
+
       const result = await sbx.commands.run(executeCommand, {
         timeoutMs,
         background,
-        onStdout: (data) => callbacks?.onUpdate?.(data),
-        onStderr: (data) => callbacks?.onUpdate?.(data),
+        onStdout: (data) => stdoutBuffer?.append(data),
+        onStderr: (data) => stderrBuffer?.append(data),
       });
+
+      // Flush any remaining buffered content
+      stdoutBuffer?.flush();
+      stderrBuffer?.flush();
 
       callbacks?.onUpdate?.(
         `{"type": "end", "sandbox_id": "${
@@ -270,12 +366,25 @@ export abstract class BaseAgent {
         ? `cd ${repoDir} && ${commandConfig.command}`
         : commandConfig.command;
 
+      // Set up streaming buffers for stdout and stderr if callbacks are provided
+      let stdoutBuffer: StreamingBuffer | undefined;
+      let stderrBuffer: StreamingBuffer | undefined;
+
+      if (callbacks?.onUpdate) {
+        stdoutBuffer = new StreamingBuffer(callbacks.onUpdate);
+        stderrBuffer = new StreamingBuffer(callbacks.onUpdate);
+      }
+
       const result = await sbx.commands.run(executeCommand, {
         timeoutMs: 3600000,
         background: background || false,
-        onStdout: (data) => callbacks?.onUpdate?.(data),
-        onStderr: (data) => callbacks?.onUpdate?.(data),
+        onStdout: (data) => stdoutBuffer?.append(data),
+        onStderr: (data) => stderrBuffer?.append(data),
       });
+
+      // Flush any remaining buffered content
+      stdoutBuffer?.flush();
+      stderrBuffer?.flush();
 
       callbacks?.onUpdate?.(
         `{"type": "end", "sandbox_id": "${

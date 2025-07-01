@@ -38,7 +38,7 @@ export default function Preview({ session }: { session?: Doc<"sessions"> }) {
                 className="w-full h-full border-none"
               />
             ) : (
-              <div className="max-w-xs rounded-lg h-[200px] mt-[30%] mx-auto w-full flex items-center justify-center">
+              <div className="max-w-xs rounded-lg h-[200px] mt-[25%] mx-auto w-full flex items-center justify-center">
                 <BootingMachine
                   label={
                     session?.status?.replace(/_/g, " ") ?? "BOOTING MACHINE..."

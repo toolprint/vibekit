@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, FolderGit2, Loader2 } from "lucide-react";
+import { ArrowUp, FolderGit2, Loader } from "lucide-react";
 import { Repo } from "@/app/actions/github";
 import { useRef, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -189,7 +189,7 @@ export default function ChatForm({
           disabled={isMessageEmpty || isFormSubmitting}
         >
           {isFormSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader className="h-4 w-4 animate-spin" />
           ) : (
             <ArrowUp className="h-4 w-4" />
           )}

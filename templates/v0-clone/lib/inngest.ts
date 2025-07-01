@@ -55,10 +55,12 @@ export const runAgent = inngest.createFunction(
         },
       },
       environment: {
-        e2b: {
-          apiKey: process.env.E2B_API_KEY!,
+        northflank: {
+          apiKey: process.env.NORTHFLANK_API_KEY!,
+          projectId: process.env.NORTHFLANK_PROJECT_ID!,
         },
       },
+      sessionId,
     };
 
     const result = await step.run("generate code", async () => {
@@ -86,6 +88,7 @@ export const runAgent = inngest.createFunction(
         mode: "code",
         callbacks: {
           async onUpdate(message) {
+            console.log("onUpdate", message);
             const data = JSON.parse(message);
 
             if (data.type !== "assistant") return;
@@ -193,9 +196,9 @@ export const createSession = inngest.createFunction(
         },
       },
       environment: {
-        e2b: {
-          apiKey: process.env.E2B_API_KEY!,
-          templateId: process.env.E2B_TEMPLATE_ID!,
+        northflank: {
+          apiKey: process.env.NORTHFLANK_API_KEY!,
+          projectId: process.env.NORTHFLANK_PROJECT_ID!,
         },
       },
       github: {

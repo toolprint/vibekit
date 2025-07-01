@@ -321,7 +321,7 @@ export class NorthflankSandboxInstance implements SandboxInstance {
           };
         }
 
-        const handle = await this.apiClient.exec.execServiceCommand(
+        const handle = await this.apiClient.exec.execServiceSession(
           {
             projectId: this.projectId,
             serviceId: this.sandboxId,
@@ -332,12 +332,21 @@ export class NorthflankSandboxInstance implements SandboxInstance {
           }
         );
 
+        handle.stdErr.on("data", (data) =>
+          options?.onStderr?.(data.toString())
+        );
+        handle.stdOut.on("data", (data) =>
+          options?.onStdout?.(data.toString())
+        );
+
+        const result = await handle.waitForCommandResult();
+
         //TODO: handle streaming callbacks if provided
 
         return {
-          exitCode: handle.commandResult.exitCode,
-          stdout: handle.stdOut,
-          stderr: handle.stdErr,
+          exitCode: result.exitCode,
+          stdout: result.message || "",
+          stderr: "",
         };
       },
     };

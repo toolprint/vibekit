@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useMemo } from "react";
-import { Loader2, SearchIcon, XIcon } from "lucide-react";
+import { Loader, SearchIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -142,7 +142,7 @@ export default function SessionsClientPage() {
     return (
       <div className="flex flex-col h-screen bg-background border rounded-lg">
         <div className="text-center p-6 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin mx-auto mb-2" />
+          <Loader className="size-5 animate-spin mx-auto mb-2" />
           <p>Loading user session...</p>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function SessionsClientPage() {
     return (
       <div className="flex flex-col h-screen bg-background border rounded-lg">
         <div className="p-6 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin mb-2" />
+          <Loader className="size-5 animate-spin mb-2" />
         </div>
       </div>
     );

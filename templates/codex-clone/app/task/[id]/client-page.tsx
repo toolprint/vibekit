@@ -7,7 +7,7 @@ import MessageInput from "./_components/message-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { fetchRealtimeSubscriptionToken } from "@/app/actions/inngest";
 import { useTaskStore } from "@/stores/tasks";
-import { Terminal, Bot, User, Loader2 } from "lucide-react";
+import { Terminal, Bot, User, Loader } from "lucide-react";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import { Markdown } from "@/components/markdown";
 import { StreamingIndicator } from "@/components/streaming-indicator";
@@ -412,7 +412,7 @@ export default function TaskClientPage({ id }: Props) {
                       </div>
                       <div className="bg-card border border-border rounded-2xl px-5 py-3 shadow-sm">
                         <div className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                          <Loader className="w-4 h-4 text-muted-foreground animate-spin" />
                           <TextShimmer className="text-sm">
                             {task?.statusMessage
                               ? `${task.statusMessage}`

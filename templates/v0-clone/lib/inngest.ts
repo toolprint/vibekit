@@ -55,10 +55,12 @@ export const runAgent = inngest.createFunction(
         },
       },
       environment: {
-        e2b: {
-          apiKey: process.env.E2B_API_KEY!,
+        northflank: {
+          apiKey: process.env.NORTHFLANK_API_KEY!,
+          projectId: process.env.NORTHFLANK_PROJECT_ID!,
         },
       },
+      sessionId,
     };
 
     const result = await step.run("generate code", async () => {
@@ -86,79 +88,88 @@ export const runAgent = inngest.createFunction(
         mode: "code",
         callbacks: {
           async onUpdate(message) {
+            console.log("onUpdate", message);
             const data = JSON.parse(message);
 
-            if (data.type !== "assistant") return;
+            if (data.type === "user") {
+              await fetchMutation(api.sessions.update, {
+                id,
+                status: "CUSTOM",
+                statusMessage: data.message.content[0].text,
+              });
+            }
 
-            switch (data.message.content[0].type) {
-              case "text":
-                await fetchMutation(api.messages.add, {
-                  sessionId: id,
-                  content: data.message.content[0].text,
-                  role: "assistant",
-                });
-                break;
-              case "tool_use":
-                const toolName = data.message.content[0].name;
+            if (data.type === "assistant") {
+              switch (data.message.content[0].type) {
+                case "text":
+                  await fetchMutation(api.messages.add, {
+                    sessionId: id,
+                    content: data.message.content[0].text,
+                    role: "assistant",
+                  });
+                  break;
+                case "tool_use":
+                  const toolName = data.message.content[0].name;
 
-                switch (toolName) {
-                  case "TodoWrite":
-                    await fetchMutation(api.messages.add, {
-                      sessionId: id,
-                      role: "assistant",
-                      content: "",
-                      todos: data.message.content[0].input.todos,
-                    });
-                    break;
-                  case "Write":
-                    await fetchMutation(api.messages.add, {
-                      sessionId: id,
-                      role: "assistant",
-                      content: "",
-                      edits: {
-                        filePath: data.message.content[0].input.file_path,
-                        oldString: "",
-                        newString: data.message.content[0].input.content,
-                      },
-                    });
-                    break;
-                  case "Edit":
-                    await fetchMutation(api.messages.add, {
-                      sessionId: id,
-                      role: "assistant",
-                      content: "",
-                      edits: {
-                        filePath: data.message.content[0].input.file_path,
-                        oldString: data.message.content[0].input.old_string,
-                        newString: data.message.content[0].input.new_string,
-                      },
-                    });
-                    break;
-                  case "Read":
-                    await fetchMutation(api.messages.add, {
-                      sessionId: id,
-                      role: "assistant",
-                      content: "",
-                      read: {
-                        filePath: data.message.content[0].input.file_path,
-                      },
-                    });
-                    break;
-                  case "Write":
-                    await fetchMutation(api.messages.add, {
-                      sessionId: id,
-                      role: "assistant",
-                      content: "",
-                      read: {
-                        filePath: data.message.content[0].input.file_path,
-                      },
-                    });
-                  default:
-                    break;
-                }
-                break;
-              default:
-                break;
+                  switch (toolName) {
+                    case "TodoWrite":
+                      await fetchMutation(api.messages.add, {
+                        sessionId: id,
+                        role: "assistant",
+                        content: "",
+                        todos: data.message.content[0].input.todos,
+                      });
+                      break;
+                    case "Write":
+                      await fetchMutation(api.messages.add, {
+                        sessionId: id,
+                        role: "assistant",
+                        content: "",
+                        edits: {
+                          filePath: data.message.content[0].input.file_path,
+                          oldString: "",
+                          newString: data.message.content[0].input.content,
+                        },
+                      });
+                      break;
+                    case "Edit":
+                      await fetchMutation(api.messages.add, {
+                        sessionId: id,
+                        role: "assistant",
+                        content: "",
+                        edits: {
+                          filePath: data.message.content[0].input.file_path,
+                          oldString: data.message.content[0].input.old_string,
+                          newString: data.message.content[0].input.new_string,
+                        },
+                      });
+                      break;
+                    case "Read":
+                      await fetchMutation(api.messages.add, {
+                        sessionId: id,
+                        role: "assistant",
+                        content: "",
+                        read: {
+                          filePath: data.message.content[0].input.file_path,
+                        },
+                      });
+                      break;
+                    case "Write":
+                      await fetchMutation(api.messages.add, {
+                        sessionId: id,
+                        role: "assistant",
+                        content: "",
+                        read: {
+                          filePath: data.message.content[0].input.file_path,
+                        },
+                      });
+                    default:
+                      break;
+                  }
+                  break;
+                default:
+                  break;
+              }
             }
           },
         },
@@ -193,9 +204,9 @@ export const createSession = inngest.createFunction(
         },
       },
       environment: {
-        e2b: {
-          apiKey: process.env.E2B_API_KEY!,
-          templateId: process.env.E2B_TEMPLATE_ID!,
+        northflank: {
+          apiKey: process.env.NORTHFLANK_API_KEY!,
+          projectId: process.env.NORTHFLANK_PROJECT_ID!,
         },
       },
       github: {

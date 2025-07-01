@@ -203,7 +203,7 @@ export default function Navbar() {
               </span>
             </button>
             {session.repository && (
-              <div className="flex items-center gap-x-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-x-1 text-sm text-muted-foreground">
                 <FolderGit2 className="size-4 text-muted-foreground" />
                 {session.repository}
               </div>

@@ -6,7 +6,7 @@ import {
   Dot,
   GitBranchPlus,
   GithubIcon,
-  Loader2,
+  Loader,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useCallback, useState } from "react";
@@ -104,7 +104,7 @@ export default function TaskNavbar({ id }: Props) {
             disabled={isCreatingPullRequest}
           >
             {isCreatingPullRequest ? (
-              <Loader2 className="animate-spin size-4" />
+              <Loader className="animate-spin size-4" />
             ) : (
               <GitBranchPlus />
             )}

@@ -1,5 +1,5 @@
 import { Sandbox as E2BSandbox } from "@e2b/code-interpreter";
-import { Daytona, DaytonaConfig } from "@daytonaio/sdk";
+import { Daytona, DaytonaConfig, Sandbox, Workspace } from "@daytonaio/sdk";
 
 import {
   AgentType,
@@ -90,7 +90,7 @@ export class E2BSandboxProvider implements SandboxProvider {
     const sandbox = await E2BSandbox.create(templateId, {
       envs,
       apiKey: config.apiKey,
-      timeoutMs: 2592000000, // 30 days in milliseconds
+      timeoutMs: 86400000, // 24 hours in milliseconds
     });
     return new E2BSandboxInstance(sandbox);
   }
@@ -110,8 +110,8 @@ export class E2BSandboxProvider implements SandboxProvider {
 // Daytona implementation
 class DaytonaSandboxInstance implements SandboxInstance {
   constructor(
-    private workspace: any, // Daytona workspace object
-    private daytona: any, // Daytona client
+    private workspace: Sandbox, // Daytona workspace object
+    private daytona: Daytona, // Daytona client
     public sandboxId: string,
     private envs?: Record<string, string> // Store environment variables
   ) {}
@@ -119,45 +119,57 @@ class DaytonaSandboxInstance implements SandboxInstance {
   get commands(): SandboxCommands {
     return {
       run: async (command: string, options?: SandboxCommandOptions) => {
+        const session = await this.workspace.process.getSession(this.sandboxId);
         // Check if background execution is requested - not supported in Daytona
         if (options?.background) {
-          const response = await this.workspace.process.executSessionCommand(
-            command,
-            undefined, // cwd - use default working directory
-            this.envs, // env - use instance environment variables
-            options?.timeoutMs || 3600000 // timeout in seconds, default 60 minutes
+          const response = await this.workspace.process.executeSessionCommand(
+            session.sessionId, // sessionId - using a default session name
+            {
+              command: command,
+              runAsync: true, // run asynchronously for background execution
+            },
+            undefined // timeout - use default working directory
+          );
+
+          this.workspace.process.getSessionCommandLogs(
+            session.sessionId,
+            response.cmdId!,
+            (chunk) => {
+              options?.onStdout?.(chunk);
+            }
           );
 
           return {
             exitCode: response.exitCode || 0,
-            stdout: response.result || "",
-            stderr: response.stderr || "",
+            stdout: response.output || "",
+            stderr: "", // SessionExecuteResponse doesn't have stderr
           };
         }
 
         try {
           // Execute command using Daytona's process execution API
           // Format: executeCommand(command, cwd?, env?, timeout?)
-          const response = await this.workspace.process.executeCommand(
-            command,
-            undefined, // cwd - use default working directory
-            this.envs, // env - use instance environment variables
-            options?.timeoutMs || 3600000 // timeout in seconds, default 60 minutes
+          const response = await this.workspace.process.executeSessionCommand(
+            session.sessionId, // sessionId - using a default session name
+            {
+              command: command,
+              runAsync: false,
+            },
+            undefined // timeout - use default working directory
           );
 
-          // Handle streaming callbacks if provided
-          if (options?.onStdout && response.result) {
-            options.onStdout(response.result);
-          }
-          if (options?.onStderr && response.stderr) {
-            options.onStderr(response.stderr);
-          }
+          this.workspace.process.getSessionCommandLogs(
+            session.sessionId,
+            response.cmdId!,
+            (chunk) => {
+              options?.onStdout?.(chunk);
+            }
+          );
 
-          // Daytona returns: { exitCode, result, stderr, artifacts }
           return {
             exitCode: response.exitCode || 0,
-            stdout: response.result || "",
-            stderr: response.stderr || "",
+            stdout: response.output || "",
+            stderr: "", // ExecuteResponse doesn't have stderr
           };
         } catch (error) {
           const errorMessage =
@@ -189,7 +201,8 @@ class DaytonaSandboxInstance implements SandboxInstance {
   }
 
   async getHost(port: number): Promise<string> {
-    throw new Error("getHost is not implemented for Daytona sandboxes");
+    const previewLink = await this.workspace.getPreviewLink(port);
+    return previewLink.url;
   }
 }
 
@@ -216,6 +229,8 @@ export class DaytonaSandboxProvider implements SandboxProvider {
         image,
         envVars: envs || {},
       });
+
+      await workspace.process.createSession(workspace.id);
 
       return new DaytonaSandboxInstance(workspace, daytona, workspace.id, envs);
     } catch (error) {

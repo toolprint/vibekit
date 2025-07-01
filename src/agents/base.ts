@@ -215,6 +215,7 @@ export abstract class BaseAgent {
             `git clone https://x-access-token:${this.config.githubToken}@github.com/${this.config.repoUrl}.git`,
             { timeoutMs: 3600000 }
           );
+
           await sbx.commands.run(
             `cd ${repoDir} && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"`,
             { timeoutMs: 60000 }
@@ -261,7 +262,6 @@ export abstract class BaseAgent {
         }
       }
 
-      // Adjust command execution based on whether we have a repository
       const executeCommand = this.config.repoUrl
         ? `cd ${repoDir} && ${commandConfig.command}`
         : commandConfig.command;

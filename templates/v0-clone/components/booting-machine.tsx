@@ -1,5 +1,6 @@
 import { useRef, useEffect } from "react";
 import { TextShimmer } from "./ui/text-shimmer";
+import { Loader } from "lucide-react";
 
 export default function BootingMachine({
   label,
@@ -55,7 +56,7 @@ export default function BootingMachine({
 
   return (
     <div className="w-auto px-4 rounded-full h-12 border bg-background relative overflow-hidden flex items-center justify-center gap-x-2">
-      <div className="size-2.5 rounded-full animate-fast-pulse bg-orange-500" />
+      <Loader className="size-4 animate-spin text-muted-foreground" />
       <div className="flex items-center gap-x-1">
         <span className="text-xs font-mono">SANDBOX:</span>
         <TextShimmer className=" text-xs font-mono">{label}</TextShimmer>

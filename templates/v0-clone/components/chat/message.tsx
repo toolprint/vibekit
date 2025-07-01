@@ -9,6 +9,7 @@ import { api } from "@/convex/_generated/api";
 import { Id, Doc } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "../markdown";
+import { cn } from "@/lib/utils";
 
 export default function Message({
   message,
@@ -92,7 +93,7 @@ export default function Message({
   if (message.edits) {
     return (
       <div className="pl-10">
-        <p className="text-xs p-1.5 rounded-lg border flex hover:bg-muted cursor-pointer items-center gap-x-2">
+        <p className="text-xs flex items-center gap-x-2">
           <span className="font-medium text-muted-foreground flex items-center gap-x-1">
             <Pen className="size-3" />
             Updated:
@@ -108,7 +109,7 @@ export default function Message({
   if (message.read) {
     return (
       <div className="pl-10">
-        <p className="text-xs p-1.5 rounded-lg border flex hover:bg-muted cursor-pointer items-center gap-x-2">
+        <p className="text-xs flex items-center gap-x-2">
           <span className="font-medium text-muted-foreground flex items-center gap-x-1">
             <Eye className="size-3" />
             Read:
@@ -133,7 +134,7 @@ export default function Message({
         ) : (
           <div className="size-8" />
         )}
-        <div className="flex flex-col gap-y-1 flex-1 mt-1.5">
+        <div className={cn("flex flex-col gap-y-1 flex-1 mt-1.5")}>
           <Markdown>{message.content}</Markdown>
         </div>
       </div>

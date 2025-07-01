@@ -105,7 +105,8 @@ export class ClaudeAgent extends BaseAgent {
     mode?: "ask" | "code",
     branch?: string,
     history?: Conversation[],
-    callbacks?: ClaudeStreamCallbacks
+    callbacks?: ClaudeStreamCallbacks,
+    background?: boolean
   ): Promise<ClaudeResponse> {
     let instruction: string;
     if (mode === "ask") {
@@ -142,7 +143,8 @@ export class ClaudeAgent extends BaseAgent {
       mode,
       branch,
       history,
-      callbacks
+      callbacks,
+      background
     );
 
     // Restore original method

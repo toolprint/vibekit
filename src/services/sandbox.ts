@@ -307,8 +307,12 @@ export class NorthflankSandboxInstance implements SandboxInstance {
             }
           );
 
-          handle.stdErr.on("data", (data) => options.onStderr?.(data));
-          handle.stdOut.on("data", (data) => options.onStdout?.(data));
+          handle.stdErr.on("data", (data) =>
+            options.onStderr?.(data.toString())
+          );
+          handle.stdOut.on("data", (data) =>
+            options.onStdout?.(data.toString())
+          );
 
           return {
             exitCode: 0,

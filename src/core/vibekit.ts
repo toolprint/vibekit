@@ -163,11 +163,13 @@ export class VibeKit {
     branch,
     history,
     callbacks,
+    background,
   }: {
     prompt: string;
     mode: "ask" | "code";
     branch?: string;
     history?: Conversation[];
+    background?: boolean;
     callbacks?: VibeKitStreamCallbacks;
   }): Promise<AgentResponse> {
     const agentType = this.setup.agent.type;
@@ -216,7 +218,8 @@ export class VibeKit {
           mode,
           branch,
           history,
-          wrappedCallbacks
+          wrappedCallbacks,
+          background
         );
 
         await this.telemetryService?.trackEnd(
@@ -260,7 +263,9 @@ export class VibeKit {
         prompt,
         mode,
         branch,
-        history
+        history,
+        undefined,
+        background
       );
 
       await this.telemetryService?.trackEnd(

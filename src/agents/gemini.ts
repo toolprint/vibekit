@@ -107,7 +107,8 @@ export class GeminiAgent extends BaseAgent {
     mode?: "ask" | "code",
     branch?: string,
     history?: Conversation[],
-    callbacks?: GeminiStreamCallbacks
+    callbacks?: GeminiStreamCallbacks,
+    background?: boolean
   ): Promise<GeminiResponse> {
     let instruction: string;
     if (mode === "ask") {
@@ -143,7 +144,8 @@ export class GeminiAgent extends BaseAgent {
       mode,
       branch,
       history,
-      callbacks
+      callbacks,
+      background
     );
 
     // Restore original method

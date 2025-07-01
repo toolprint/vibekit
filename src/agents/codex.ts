@@ -111,7 +111,8 @@ export class CodexAgent extends BaseAgent {
     mode?: "ask" | "code",
     branch?: string,
     history?: Conversation[],
-    callbacks?: CodexStreamCallbacks
+    callbacks?: CodexStreamCallbacks,
+    background?: boolean
   ): Promise<CodexResponse> {
     let instruction: string;
 
@@ -149,7 +150,8 @@ export class CodexAgent extends BaseAgent {
       mode,
       branch,
       history,
-      callbacks
+      callbacks,
+      background
     );
 
     // Restore original method

@@ -306,7 +306,7 @@ describe("OpenCodeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
         "git clone https://x-access-token:test-github-token@github.com/octocat/hello-world.git",
-        { timeoutMs: 3600000 }
+        { timeoutMs: 3600000, background: false }
       );
     });
 
@@ -315,7 +315,7 @@ describe("OpenCodeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
         'cd hello-world && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"',
-        { timeoutMs: 60000 }
+        { timeoutMs: 60000, background: false }
       );
     });
 
@@ -327,6 +327,7 @@ describe("OpenCodeAgent", () => {
         'cd hello-world && opencode run --model openai/gpt-4 --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -355,6 +356,7 @@ describe("OpenCodeAgent", () => {
         'cd hello-world && opencode run "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -370,6 +372,7 @@ describe("OpenCodeAgent", () => {
         'cd hello-world && opencode run --model openai/gpt-3.5-turbo --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -390,6 +393,7 @@ describe("OpenCodeAgent", () => {
         'cd hello-world && opencode run --model anthropic/claude-3-sonnet --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -405,6 +409,7 @@ describe("OpenCodeAgent", () => {
         'cd hello-world && opencode run --model openai/gpt-4 --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: Create a function that prints \\"Hello \\`World\\` \\$USER\\""',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -457,6 +462,7 @@ describe("OpenCodeAgent", () => {
         ),
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });

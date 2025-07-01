@@ -193,7 +193,8 @@ export abstract class BaseAgent {
     mode?: "ask" | "code",
     branch?: string,
     _history?: Conversation[],
-    callbacks?: StreamCallbacks
+    callbacks?: StreamCallbacks,
+    background?: boolean
   ): Promise<AgentResponse> {
     const commandConfig = this.getCommandConfig(prompt, mode);
 
@@ -213,11 +214,12 @@ export abstract class BaseAgent {
           );
           await sbx.commands.run(
             `git clone https://x-access-token:${this.config.githubToken}@github.com/${this.config.repoUrl}.git`,
-            { timeoutMs: 3600000 }
+            { timeoutMs: 3600000, background: background || false }
           );
+
           await sbx.commands.run(
             `cd ${repoDir} && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"`,
-            { timeoutMs: 60000 }
+            { timeoutMs: 60000, background: background || false }
           );
         } else {
           callbacks?.onUpdate?.(
@@ -242,6 +244,7 @@ export abstract class BaseAgent {
           // Try to checkout existing branch first
           await sbx.commands.run(`cd ${repoDir} && git checkout ${branch}`, {
             timeoutMs: 60000,
+            background: background || false,
           });
           // Pull latest changes from the remote branch
           callbacks?.onUpdate?.(
@@ -249,6 +252,7 @@ export abstract class BaseAgent {
           );
           await sbx.commands.run(`cd ${repoDir} && git pull origin ${branch}`, {
             timeoutMs: 60000,
+            background: background || false,
           });
         } catch (error) {
           // If branch doesn't exist, create it
@@ -257,17 +261,18 @@ export abstract class BaseAgent {
           );
           await sbx.commands.run(`cd ${repoDir} && git checkout -b ${branch}`, {
             timeoutMs: 60000,
+            background: background || false,
           });
         }
       }
 
-      // Adjust command execution based on whether we have a repository
       const executeCommand = this.config.repoUrl
         ? `cd ${repoDir} && ${commandConfig.command}`
         : commandConfig.command;
 
       const result = await sbx.commands.run(executeCommand, {
         timeoutMs: 3600000,
+        background: background || false,
         onStdout: (data) => callbacks?.onUpdate?.(data),
         onStderr: (data) => callbacks?.onUpdate?.(data),
       });
@@ -346,12 +351,15 @@ export abstract class BaseAgent {
       );
     }
 
-    const diffHead = await sbx.commands.run(`cd ${repoDir} && git diff HEAD`, {
-      timeoutMs: 3600000,
-    });
+    const diffHead = await sbx.commands.run(
+      `cd ${repoDir} && git --no-pager diff --no-color HEAD`,
+      {
+        timeoutMs: 3600000,
+      }
+    );
 
     const patch = await sbx.commands.run(
-      `cd ${repoDir} && git diff --diff-filter=ACMR`,
+      `cd ${repoDir} && git --no-pager diff --no-color --diff-filter=ACMR`,
       { timeoutMs: 3600000 }
     );
 
@@ -386,7 +394,6 @@ export abstract class BaseAgent {
     const { githubToken, repoUrl } = this.config;
     const repoDir = repoUrl?.split("/")[1] || "";
     const commandConfig = this.getCommandConfig("", "code");
-    console.log("commandConfig", commandConfig);
     const sbx = await this.getSandbox();
 
     // Get the current branch (base branch) BEFORE creating a new branch
@@ -409,19 +416,16 @@ export abstract class BaseAgent {
     );
     console.log("Untracked files:", untrackedFiles);
 
-    // Debug: Try different diff commands
-    const diffWorking = await sbx.commands.run(`cd ${repoDir} && git diff`, {
-      timeoutMs: 3600000,
-    });
-    console.log("Git diff (working vs index):", diffWorking);
-
-    const diffHead = await sbx.commands.run(`cd ${repoDir} && git diff HEAD`, {
-      timeoutMs: 3600000,
-    });
+    const diffHead = await sbx.commands.run(
+      `cd ${repoDir} && git --no-pager diff --no-color HEAD`,
+      {
+        timeoutMs: 3600000,
+      }
+    );
     console.log("Git diff HEAD (working vs last commit):", diffHead);
 
     const patch = await sbx.commands.run(
-      `cd ${repoDir} && git diff --diff-filter=ACMR`,
+      `cd ${repoDir} && git --no-pager diff --no-color --diff-filter=ACMR`,
       { timeoutMs: 3600000 }
     );
 
@@ -446,7 +450,7 @@ export abstract class BaseAgent {
       });
 
       const patchAfterAdd = await sbx.commands.run(
-        `cd ${repoDir} && git diff --cached`,
+        `cd ${repoDir} && git --no-pager diff --no-color --cached`,
         { timeoutMs: 3600000 }
       );
       patchContent = patchAfterAdd?.stdout || "";
@@ -517,14 +521,16 @@ export abstract class BaseAgent {
   public async runTests(
     branch?: string,
     history?: Conversation[],
-    callbacks?: StreamCallbacks
+    callbacks?: StreamCallbacks,
+    background?: boolean
   ): Promise<AgentResponse> {
     return await this.generateCode(
       "Install dependencies and run tests",
       "code",
       branch,
       history,
-      callbacks
+      callbacks,
+      background
     );
   }
 

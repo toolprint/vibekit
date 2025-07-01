@@ -109,7 +109,8 @@ export class OpenCodeAgent extends BaseAgent {
     mode?: "ask" | "code",
     branch?: string,
     history?: Conversation[],
-    callbacks?: OpenCodeStreamCallbacks
+    callbacks?: OpenCodeStreamCallbacks,
+    background?: boolean
   ): Promise<OpenCodeResponse> {
     let instruction: string;
 
@@ -146,7 +147,8 @@ export class OpenCodeAgent extends BaseAgent {
       mode,
       branch,
       history,
-      callbacks
+      callbacks,
+      background
     );
 
     // Restore original method

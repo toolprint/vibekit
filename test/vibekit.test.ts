@@ -125,6 +125,7 @@ describe("VibeKit", () => {
         prompt: "test prompt",
         mode: "code",
         history: [],
+        background: false,
       });
 
       expect(MockedCodexAgent).toHaveBeenCalledWith(
@@ -140,7 +141,9 @@ describe("VibeKit", () => {
         "test prompt",
         "code",
         undefined,
-        []
+        [],
+        undefined,
+        false
       );
       expect(result).toBe(mockResponse);
     });
@@ -175,6 +178,7 @@ describe("VibeKit", () => {
         prompt: "test prompt",
         mode: "code",
         history: [],
+        background: false,
       });
 
       expect(MockedCodexAgent).toHaveBeenCalledWith(
@@ -190,7 +194,9 @@ describe("VibeKit", () => {
         "test prompt",
         "code",
         undefined,
-        []
+        [],
+        undefined,
+        false
       );
       expect(result).toBe(mockResponse);
     });
@@ -210,6 +216,7 @@ describe("VibeKit", () => {
         prompt: "test prompt",
         mode: "code",
         history: [],
+        background: false,
       });
 
       expect(MockedClaudeAgent).toHaveBeenCalledWith(
@@ -224,7 +231,9 @@ describe("VibeKit", () => {
         "test prompt",
         "code",
         undefined,
-        []
+        [],
+        undefined,
+        false
       );
       expect(result).toBe(mockResponse);
     });
@@ -260,6 +269,7 @@ describe("VibeKit", () => {
         prompt: "test prompt",
         mode: "code",
         history: [],
+        background: false,
       });
 
       expect(MockedClaudeAgent).toHaveBeenCalledWith(
@@ -274,7 +284,9 @@ describe("VibeKit", () => {
         "test prompt",
         "code",
         undefined,
-        []
+        [],
+        undefined,
+        false
       );
       expect(result).toBe(mockResponse);
     });
@@ -291,6 +303,7 @@ describe("VibeKit", () => {
         mode: "code",
         history: [],
         callbacks,
+        background: false,
       });
 
       // Verify that generateCode was called with the correct parameters
@@ -303,7 +316,8 @@ describe("VibeKit", () => {
         expect.objectContaining({
           onUpdate: expect.any(Function),
           onError: expect.any(Function),
-        })
+        }),
+        false
       );
     });
 
@@ -327,6 +341,7 @@ describe("VibeKit", () => {
         mode: "code",
         history: [],
         callbacks,
+        background: false,
       });
 
       expect(mockClaudeAgent.generateCode).toHaveBeenCalledWith(
@@ -337,7 +352,8 @@ describe("VibeKit", () => {
         expect.objectContaining({
           onUpdate: expect.any(Function),
           onError: expect.any(Function),
-        })
+        }),
+        false
       );
     });
 
@@ -381,13 +397,16 @@ describe("VibeKit", () => {
         mode: "code",
         branch: "feature-branch",
         history: [],
+        background: false,
       });
 
       expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
         "feature-branch",
-        []
+        [],
+        undefined,
+        false
       );
     });
 
@@ -407,13 +426,16 @@ describe("VibeKit", () => {
         mode: "code",
         branch: "feature-branch",
         history: [],
+        background: false,
       });
 
       expect(mockClaudeAgent.generateCode).toHaveBeenCalledWith(
         "test prompt",
         "code",
         "feature-branch",
-        []
+        [],
+        undefined,
+        false
       );
     });
 
@@ -438,6 +460,7 @@ describe("VibeKit", () => {
         branch: "feature-branch",
         history: [],
         callbacks,
+        background: false,
       });
 
       expect(mockCodexAgent.generateCode).toHaveBeenCalledWith(
@@ -448,7 +471,8 @@ describe("VibeKit", () => {
         expect.objectContaining({
           onUpdate: expect.any(Function),
           onError: expect.any(Function),
-        })
+        }),
+        false
       );
     });
   });

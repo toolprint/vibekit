@@ -38,10 +38,10 @@ export type NorthflankConfig = {
   apiKey: string;
   image?: string;
   projectId?: string;
-  billingPlan?: string
-  persistentVolume?: string
-  persistentVolumeStorage?: number
-}
+  billingPlan?: string;
+  persistentVolume?: string;
+  persistentVolumeStorage?: number;
+};
 
 export type EnvironmentConfig = {
   e2b?: E2BConfig;
@@ -258,10 +258,10 @@ export interface SandboxConfig {
   templateId?: string; // for E2B
   image?: string; // for Daytona
   serverUrl?: string; // for Daytona
-  projectId?: string // for Northflank
-  billingPlan?: string // for Northflank
-  persistentVolume?: string // for Northflank
-  persistentVolumeStorage?: number // for Northflank
+  projectId?: string; // for Northflank
+  billingPlan?: string; // for Northflank
+  persistentVolume?: string; // for Northflank
+  persistentVolumeStorage?: number; // for Northflank
 }
 
 export interface SandboxProvider {

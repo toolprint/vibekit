@@ -237,7 +237,7 @@ describe("CodexAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
         "git clone https://x-access-token:test-github-token@github.com/octocat/hello-world.git",
-        { timeoutMs: 3600000 }
+        { timeoutMs: 3600000, background: false }
       );
     });
 
@@ -246,7 +246,7 @@ describe("CodexAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
         'cd hello-world && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"',
-        { timeoutMs: 60000 }
+        { timeoutMs: 60000, background: false }
       );
     });
 
@@ -257,6 +257,7 @@ describe("CodexAgent", () => {
         'cd hello-world && codex --approval-mode auto-edit --model gpt-4 --provider openai --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -272,6 +273,7 @@ describe("CodexAgent", () => {
         'cd hello-world && codex --approval-mode auto-edit --provider openai --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -300,6 +302,7 @@ describe("CodexAgent", () => {
         'cd hello-world && codex --approval-mode auto-edit --model gpt-4 --provider anthropic --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });

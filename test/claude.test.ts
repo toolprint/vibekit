@@ -235,7 +235,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
         "git clone https://x-access-token:test-github-token@github.com/octocat/hello-world.git",
-        { timeoutMs: 3600000 }
+        { timeoutMs: 3600000, background: false }
       );
     });
 
@@ -244,7 +244,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
         'cd hello-world && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"',
-        { timeoutMs: 60000 }
+        { timeoutMs: 60000, background: false }
       );
     });
 
@@ -256,6 +256,7 @@ describe("ClaudeAgent", () => {
         'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-sonnet',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -268,6 +269,7 @@ describe("ClaudeAgent", () => {
         'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository." --disallowedTools "Edit" "Replace" "Write" --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-sonnet',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -299,6 +301,7 @@ describe("ClaudeAgent", () => {
         'cd hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-opus',
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });
@@ -346,6 +349,7 @@ describe("ClaudeAgent", () => {
         ),
         expect.objectContaining({
           timeoutMs: 3600000,
+          background: false,
         })
       );
     });

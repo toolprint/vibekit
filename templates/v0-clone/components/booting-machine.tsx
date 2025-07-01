@@ -58,7 +58,7 @@ export default function BootingMachine({
     <div className="w-auto px-4 rounded-full h-12 border bg-background relative overflow-hidden flex items-center justify-center gap-x-2">
       <Loader className="size-4 animate-spin text-muted-foreground" />
       <div className="flex items-center gap-x-1">
-        <span className="text-xs font-mono">SANDBOX:</span>
+        <span className="text-xs font-mono text-orange-500">SANDBOX:</span>
         <TextShimmer className=" text-xs font-mono">{label}</TextShimmer>
       </div>
     </div>

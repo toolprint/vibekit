@@ -42,18 +42,18 @@ export default function DiffViewer({
             key={index}
             className={cn(
               "flex",
-              line.type === "added" && "bg-green-200",
-              line.type === "removed" && "bg-red-200",
-              line.type === "modified" && "bg-yellow-200",
+              line.type === "added" && "bg-green-50 dark:bg-green-700/20",
+              line.type === "removed" && "bg-red-50 dark:bg-red-700/20",
+              line.type === "modified" && "bg-yellow-50 dark:bg-yellow-700/20",
               line.type === "unchanged" && "bg-background"
             )}
           >
             {/* Line Numbers */}
             <div className="flex">
-              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-sidebar select-none">
+              <div className="w-10 px-2 py-1 text-right text-gray-400 dark:text-gray-500 border-r bg-sidebar select-none">
                 {line.oldLineNumber || ""}
               </div>
-              <div className="w-10 px-2 py-1 text-right text-gray-400 border-r bg-sidebar select-none">
+              <div className="w-10 px-2 py-1 text-right text-gray-400 dark:text-gray-500 border-r bg-sidebar select-none">
                 {line.newLineNumber || ""}
               </div>
             </div>
@@ -61,13 +61,19 @@ export default function DiffViewer({
             {/* Diff Indicator */}
             <div className="w-8 px-2 py-1 text-center select-none">
               {line.type === "added" && (
-                <span className="text-green-600 font-bold">+</span>
+                <span className="text-green-600 dark:text-green-400 font-bold">
+                  +
+                </span>
               )}
               {line.type === "removed" && (
-                <span className="text-red-600 font-bold">-</span>
+                <span className="text-red-600 dark:text-red-400 font-bold">
+                  -
+                </span>
               )}
               {line.type === "modified" && (
-                <span className="text-yellow-600 font-bold">~</span>
+                <span className="text-yellow-600 dark:text-yellow-400 font-bold">
+                  ~
+                </span>
               )}
               {line.type === "unchanged" && (
                 <span className="text-primary"> </span>
@@ -82,9 +88,13 @@ export default function DiffViewer({
                     <span
                       key={partIndex}
                       className={cn(
-                        part.added && "bg-green-200 text-green-800",
-                        part.removed && "bg-red-200 text-red-800 line-through",
-                        !part.added && !part.removed && "text-gray-900"
+                        part.added &&
+                          "bg-green-200 dark:bg-green-900/30 text-green-800 dark:text-green-200",
+                        part.removed &&
+                          "bg-red-200 dark:bg-red-900/30 text-red-800 dark:text-red-200 line-through",
+                        !part.added &&
+                          !part.removed &&
+                          "text-gray-900 dark:text-gray-100"
                       )}
                     >
                       {part.value}
@@ -94,8 +104,9 @@ export default function DiffViewer({
               ) : (
                 <span
                   className={cn(
-                    line.type === "added" && "text-green-800",
-                    line.type === "removed" && "text-red-800",
+                    line.type === "added" &&
+                      "text-green-800 dark:text-green-200",
+                    line.type === "removed" && "text-red-800 dark:text-red-200",
                     line.type === "unchanged" && "text-primary"
                   )}
                 >

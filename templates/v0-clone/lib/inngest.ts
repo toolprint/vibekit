@@ -5,6 +5,8 @@ import { fetchMutation } from "convex/nextjs";
 
 import { api } from "@/convex/_generated/api";
 import { runAgentAction } from "@/app/actions/vibekit";
+import { generateSessionTitle } from "@/app/actions/session";
+import { createRepo } from "@/app/actions/github";
 
 let app: Inngest | undefined;
 // Create a client to send and receive events
@@ -95,7 +97,7 @@ export const runAgent = inngest.createFunction(
               await fetchMutation(api.sessions.update, {
                 id,
                 status: "CUSTOM",
-                statusMessage: data.message.content[0].text,
+                statusMessage: data.message.content[0].content,
               });
             }
 
@@ -194,7 +196,9 @@ export const createSession = inngest.createFunction(
   { event: "vibe0/create.session" },
 
   async ({ event, step }) => {
-    const { sessionId: id, message, repository, token } = event.data;
+    const { sessionId: id, message, repository, token, template } = event.data;
+
+    let sandboxId: string;
 
     const config: VibeKitConfig = {
       agent: {
@@ -209,35 +213,85 @@ export const createSession = inngest.createFunction(
           projectId: process.env.NORTHFLANK_PROJECT_ID!,
         },
       },
-      github: {
-        token,
-        repository: repository ?? "superagent-ai/vibekit-nextjs",
-      },
     };
 
     const vibekit = new VibeKit(config);
 
     const data = await step.run("get tunnel url", async () => {
+      const title = await generateSessionTitle(message);
+
       await fetchMutation(api.sessions.update, {
         id,
         status: "CLONING_REPO",
+        name: title,
       });
 
-      const cloneUrl =
-        repository && token
-          ? `git clone https://${token}@github.com/${repository}.git`
-          : "git clone https://github.com/superagent-ai/vibekit-nextjs.git";
+      if (!repository && template) {
+        const repository = await createRepo({
+          repoName: `vibe0-${template.replace("https://github.com/", "").replace("/", "-")}-${Date.now().toString().slice(-6)}`,
+          isPrivate: false,
+          token,
+        });
 
-      const clone = await vibekit.executeCommand(cloneUrl);
+        // Handle both full GitHub URLs and repo paths
+        const templateCloneUrl = template.startsWith("https://github.com/")
+          ? `${template}.git`
+          : `https://github.com/${template}.git`;
+
+        const commands = [
+          // Clone the template repo directly to root
+          `git clone ${templateCloneUrl} .`,
+          // Configure git user for commits
+          `git config --global user.email "vibe0@vibekit.sh"`,
+          `git config --global user.name "Vibe0 Bot"`,
+          // Remove the template's git history and set up new repo
+          `rm -rf .git`,
+          `git init`,
+          `git checkout -b main`,
+          `git remote add origin https://${token}@github.com/${repository.full_name}.git`,
+          // Add, commit and push all files
+          `git add . && git commit -m "Initial commit from template ${template}" && git push -u origin main`,
+        ];
+
+        for (const command of commands) {
+          const { sandboxId: _sandboxId } = await vibekit.executeCommand(
+            command,
+            {
+              callbacks: {
+                onUpdate(message) {
+                  console.log(message);
+                },
+              },
+            }
+          );
+
+          sandboxId = _sandboxId;
+        }
+
+        await fetchMutation(api.sessions.update, {
+          id,
+          repository: repository.full_name,
+        });
+      } else {
+        const { sandboxId: _sandboxId } = await vibekit.executeCommand(
+          `git clone https://github.com/${repository}.git`
+        );
+
+        sandboxId = _sandboxId;
+      }
 
       await fetchMutation(api.sessions.update, {
         id,
         status: "INSTALLING_DEPENDENCIES",
-        sessionId: clone.sandboxId,
+        sessionId: sandboxId,
       });
 
       await vibekit.executeCommand("npm i", {
-        useRepoContext: true,
+        callbacks: {
+          onUpdate(message) {
+            console.log(message);
+          },
+        },
       });
 
       await fetchMutation(api.sessions.update, {
@@ -248,13 +302,18 @@ export const createSession = inngest.createFunction(
       await vibekit.executeCommand("npm run dev", {
         useRepoContext: true,
         background: true,
+        callbacks: {
+          onUpdate(message) {
+            console.log(message);
+          },
+        },
       });
 
       // E2B sandboxes have built-in public URLs - no tunneling needed
       const host = await vibekit.getHost(3000);
 
       return {
-        sandboxId: clone.sandboxId,
+        sandboxId: sandboxId,
         tunnelUrl: `https://${host}`,
       };
     });

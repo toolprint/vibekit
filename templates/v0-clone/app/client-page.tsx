@@ -13,7 +13,7 @@ import TemplatesSection from "@/components/templates-section";
 import LoginDialog from "@/components/login-dialog";
 import { createSessionAction } from "./actions/vibekit";
 import { Repo } from "./actions/github";
-import { generateSessionTitle } from "./actions/session";
+import { templates } from "@/config";
 
 export default function ClientPage() {
   const { data: session } = useSession();
@@ -21,27 +21,31 @@ export default function ClientPage() {
   const router = useRouter();
   const createSession = useMutation(api.sessions.create);
   const addMessage = useMutation(api.messages.add);
-  const updateSession = useMutation(api.sessions.update);
 
   const handleChatSubmit = async (message: string, repository?: Repo) => {
     if (!session) {
       setIsLoginDialogOpen(true);
       return;
     }
-    const title = await generateSessionTitle(message);
-    const sessionId = await createSession({
-      name: title,
-      status: "IN_PROGRESS",
-      repository: repository?.full_name,
+
+    const sessionParams = {
+      name: "Untitled",
+      status: "IN_PROGRESS" as const,
       createdBy: session?.githubId?.toString(),
-    });
+      ...(repository && { repository: repository.full_name }),
+    };
 
-    await createSessionAction(sessionId, message, repository?.full_name);
+    const sessionId = await createSession(sessionParams);
 
-    await updateSession({
-      id: sessionId,
-      name: title,
-    });
+    const actionParams = {
+      sessionId,
+      message,
+      ...(repository
+        ? { repository: repository.full_name }
+        : { template: "https://github.com/superagent-ai/vibekit-nextjs" }),
+    };
+
+    await createSessionAction(actionParams);
 
     await addMessage({
       sessionId,
@@ -49,7 +53,29 @@ export default function ClientPage() {
       content: message,
     });
 
-    router.push(`/session/${sessionId}`);
+    if (repository) {
+      router.push(`/session/${sessionId}`);
+    }
+  };
+
+  const handleTemplateSelect = async (id: string) => {
+    const template = templates.find((t) => t.id === id);
+
+    if (template) {
+      const sessionId = await createSession({
+        name: "Untitled",
+        status: "IN_PROGRESS",
+        repository: template.repository,
+        createdBy: session?.githubId?.toString(),
+      });
+
+      await createSessionAction({
+        sessionId,
+        template: template.repository,
+      });
+
+      router.push(`/session/${sessionId}`);
+    }
   };
 
   return (
@@ -71,7 +97,7 @@ export default function ClientPage() {
           />
         </div>
         <div className="flex flex-col gap-y-8">
-          <TemplatesSection />
+          <TemplatesSection onSelect={handleTemplateSelect} />
         </div>
         <footer className="mt-auto py-8 text-center justify-end">
           <p className="text-xs text-gray-500 dark:text-gray-400">

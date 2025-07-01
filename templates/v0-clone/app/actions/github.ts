@@ -123,3 +123,47 @@ export async function getBranches(owner: string, repo: string) {
     );
   }
 }
+
+export async function createRepo({
+  repoName,
+  token,
+  isPrivate = false,
+}: {
+  repoName: string;
+  token: string;
+  isPrivate: boolean;
+}) {
+  if (!token) {
+    throw new Error(
+      "No GitHub access token provided. Please authenticate first."
+    );
+  }
+
+  const octokit = new Octokit({
+    auth: token,
+  });
+
+  try {
+    const { data } = await octokit.rest.repos.createForAuthenticatedUser({
+      name: repoName,
+      private: isPrivate,
+    });
+
+    return {
+      full_name: data.full_name,
+      private: data.private,
+      description: data.description,
+      html_url: data.html_url,
+      default_branch: data.default_branch || "main",
+      created_at: data.created_at || null,
+      language: data.language || null,
+      stargazers_count: data.stargazers_count || 0,
+      forks_count: data.forks_count || 0,
+    };
+  } catch (error) {
+    console.error("GitHub API Error:", error);
+    throw new Error(
+      `Failed to create repository: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
+}

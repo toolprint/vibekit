@@ -8,7 +8,6 @@ import {
   CreditCard,
   LogOut,
   Lock,
-  FolderGit2,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -109,7 +108,10 @@ export default function Navbar() {
       status: "IN_PROGRESS",
     });
 
-    await createSessionAction(sessionId);
+    await createSessionAction({
+      sessionId,
+      template: "https://github.com/superagent-ai/vibekit-nextjs",
+    });
 
     router.push(`/session/${sessionId}`);
   }, []);
@@ -139,7 +141,7 @@ export default function Navbar() {
               <DropdownMenuTrigger className="flex items-center gap-x-1 px-1 py-1 rounded-md hover:bg-muted transition-colors cursor-pointer group">
                 <Avatar className="h-6 w-6">
                   <AvatarImage
-                    className="rounded-full"
+                    className="rounded-md"
                     src={authSession.user?.image || undefined}
                     alt={authSession.user?.name || "User"}
                   />
@@ -153,6 +155,14 @@ export default function Navbar() {
                 <ChevronDown className="size-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-48">
+                <DropdownMenuItem
+                  className="font-medium"
+                  onClick={handleNewSession}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  New session
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="font-medium"
                   onClick={() => router.push("/sessions")}
@@ -202,12 +212,6 @@ export default function Navbar() {
                 {session.name}
               </span>
             </button>
-            {session.repository && (
-              <div className="flex items-center gap-x-1 text-sm text-muted-foreground">
-                <FolderGit2 className="size-4 text-muted-foreground" />
-                {session.repository}
-              </div>
-            )}
           </div>
         )}
       </div>

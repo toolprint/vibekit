@@ -156,7 +156,7 @@ export default function Chat({ session }: { session: Doc<"sessions"> }) {
               <div className="size-3 bg-primary rounded-full animate-fast-pulse" />
               <TextShimmer className="text-sm">
                 {session.status === "CUSTOM"
-                  ? session.statusMessage || "Working on task..."
+                  ? `${session.statusMessage?.slice(0, 45)}...` || "Working..."
                   : session.status
                       .toLowerCase()
                       .replace(/_/g, " ")

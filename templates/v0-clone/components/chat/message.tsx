@@ -2,14 +2,16 @@
 import { useCopyToClipboard } from "usehooks-ts";
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { User, Copy, Trash2, Check, Pen, Eye } from "lucide-react";
+import { Copy, Trash2, Check, Pen, Eye } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
+import { useSession } from "next-auth/react";
 
 import { api } from "@/convex/_generated/api";
 import { Id, Doc } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "../markdown";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 
 export default function Message({
   message,
@@ -18,6 +20,7 @@ export default function Message({
   message: Doc<"messages">;
   showAvatar?: boolean;
 }) {
+  const { data: authSession } = useSession();
   const params = useParams();
   const sessionId = params.id as string;
   const session = useQuery(api.sessions.getById, {
@@ -50,7 +53,15 @@ export default function Message({
         <div className="flex items-start gap-x-2">
           {showAvatar ? (
             <div className="size-8 rounded-lg border bg-muted flex items-center justify-center">
-              <User className="size-4" />
+              <Avatar>
+                <AvatarImage
+                  src={authSession?.user?.image || ""}
+                  className="rounded-md"
+                />
+                <AvatarFallback>
+                  {authSession?.user?.name?.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
             </div>
           ) : (
             <div className="size-8" />

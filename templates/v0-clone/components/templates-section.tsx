@@ -6,9 +6,15 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { templates } from "@/config";
 
-function TemplateCard({ template }: { template: (typeof templates)[0] }) {
+function TemplateCard({
+  template,
+  onSelect,
+}: {
+  template: (typeof templates)[0];
+  onSelect: (id: string) => void;
+}) {
   const handleTemplateSelect = async () => {
-    window.open(template.repoUrl, "_blank");
+    onSelect(template.id);
   };
 
   return (
@@ -36,7 +42,11 @@ function TemplateCard({ template }: { template: (typeof templates)[0] }) {
   );
 }
 
-export default function TemplatesSection() {
+export default function TemplatesSection({
+  onSelect,
+}: {
+  onSelect: (id: string) => void;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scrollLeft = () => {
@@ -84,7 +94,11 @@ export default function TemplatesSection() {
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {templates.map((template) => (
-          <TemplateCard key={template.id} template={template} />
+          <TemplateCard
+            key={template.id}
+            template={template}
+            onSelect={onSelect}
+          />
         ))}
       </div>
     </div>

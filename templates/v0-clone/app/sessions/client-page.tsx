@@ -1,5 +1,5 @@
 "use client";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -19,10 +19,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useState, useMemo } from "react";
-import { Loader, SearchIcon, XIcon } from "lucide-react";
+import { Loader, SearchIcon, XIcon, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { Id } from "@/convex/_generated/dataModel";
+import { deleteSessionAction } from "../actions/vibekit";
 
 const ITEMS_PER_PAGE = 15;
 
@@ -36,9 +46,19 @@ export default function SessionsClientPage() {
         }
       : "skip"
   );
+  const deleteSession = useMutation(api.sessions.remove);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(
+    null
+  );
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<{
+    id: string;
+    sessionId?: string;
+    name: string;
+  } | null>(null);
   const router = useRouter();
 
   // Get unique statuses for filter dropdown
@@ -138,16 +158,42 @@ export default function SessionsClientPage() {
     }
   };
 
-  if (!session) {
-    return (
-      <div className="flex flex-col h-screen bg-background border rounded-lg">
-        <div className="text-center p-6 text-muted-foreground">
-          <Loader className="size-5 animate-spin mx-auto mb-2" />
-          <p>Loading user session...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleDeleteSession = (
+    id: string,
+    sessionName: string,
+    sessionId?: string
+  ) => {
+    setSessionToDelete({ id, sessionId, name: sessionName });
+
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+
+    try {
+      setDeletingSessionId(sessionToDelete.id);
+
+      await deleteSession({ id: sessionToDelete.id as Id<"sessions"> });
+
+      if (sessionToDelete.sessionId) {
+        await deleteSessionAction(sessionToDelete.sessionId);
+      }
+
+      setDeleteDialogOpen(false);
+      setSessionToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete session:", error);
+      alert("Failed to delete session. Please try again.");
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
+  const cancelDeleteSession = () => {
+    setDeleteDialogOpen(false);
+    setSessionToDelete(null);
+  };
 
   if (!sessions) {
     return (
@@ -239,16 +285,17 @@ export default function SessionsClientPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[200px]">Name</TableHead>
+                  <TableHead className="w-[200px] px-4">Name</TableHead>
                   <TableHead>Session ID</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Preview url</TableHead>
+                  <TableHead className="w-[40px]">&nbsp;</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredAndPaginatedData.data.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
+                    <TableCell colSpan={5} className="text-center py-8">
                       <div className="text-muted-foreground">
                         {hasActiveFilters ? (
                           <div>
@@ -274,7 +321,7 @@ export default function SessionsClientPage() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => handleSessionClick(session.id)}
                     >
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium px-4">
                         {session.name}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
@@ -301,6 +348,27 @@ export default function SessionsClientPage() {
                         ) : (
                           "N/A"
                         )}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() =>
+                            handleDeleteSession(
+                              session.id,
+                              session.name,
+                              session.sessionId
+                            )
+                          }
+                          disabled={deletingSessionId === session.id}
+                          className="size-7"
+                        >
+                          {deletingSessionId === session.id ? (
+                            <Loader className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -360,6 +428,37 @@ export default function SessionsClientPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Session</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the session &quot;
+              {sessionToDelete?.name}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={cancelDeleteSession}
+              disabled={deletingSessionId !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDeleteSession}
+              disabled={deletingSessionId !== null}
+            >
+              {deletingSessionId === sessionToDelete?.id && (
+                <Loader className="w-4 h-4 animate-spin" />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

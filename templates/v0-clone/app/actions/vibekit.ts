@@ -65,3 +65,47 @@ export async function deleteSessionAction(sessionId: string) {
 
   await vibekit.kill();
 }
+
+export const createPullRequestAction = async ({
+  sessionId,
+  repository,
+}: {
+  sessionId: string;
+  repository: string;
+}) => {
+  const session = await auth();
+
+  console.log(session, sessionId, repository);
+
+  if (!session?.accessToken) {
+    throw new Error("No GitHub token found. Please authenticate first.");
+  }
+
+  const config: VibeKitConfig = {
+    agent: {
+      type: "claude",
+      model: {
+        apiKey: process.env.ANTHROPIC_API_KEY!,
+      },
+    },
+    environment: {
+      northflank: {
+        apiKey: process.env.NORTHFLANK_API_KEY!,
+        projectId: process.env.NORTHFLANK_PROJECT_ID!,
+      },
+    },
+    github: {
+      token: session?.accessToken,
+      repository: "",
+    },
+    sessionId,
+  };
+
+  const vibekit = new VibeKit(config);
+
+  const status = await vibekit.createPullRequest();
+
+  console.log(status);
+
+  //const pr = await vibekit.createPullRequest();
+};

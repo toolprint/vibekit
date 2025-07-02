@@ -8,6 +8,7 @@ export default defineSchema({
     name: v.string(),
     tunnelUrl: v.optional(v.string()),
     repository: v.optional(v.string()),
+    branch: v.optional(v.string()),
     status: v.union(
       v.literal("IN_PROGRESS"),
       v.literal("CLONING_REPO"),
@@ -19,6 +20,7 @@ export default defineSchema({
     ),
     statusMessage: v.optional(v.string()),
   }).index("by_createdBy", ["createdBy"]),
+
   messages: defineTable({
     sessionId: v.id("sessions"),
     role: v.union(v.literal("user"), v.literal("assistant")),
@@ -42,6 +44,12 @@ export default defineSchema({
     read: v.optional(
       v.object({
         filePath: v.string(),
+      })
+    ),
+    checkpoint: v.optional(
+      v.object({
+        branch: v.string(),
+        patch: v.optional(v.string()),
       })
     ),
     content: v.string(),

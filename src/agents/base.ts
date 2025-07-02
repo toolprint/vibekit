@@ -431,7 +431,12 @@ export abstract class BaseAgent {
     // Check git status for changes
     const gitStatus = await sbx.commands.run(
       `cd ${repoDir} && git status --porcelain`,
-      { timeoutMs: 3600000 }
+      {
+        timeoutMs: 3600000,
+        onStdout: (data) => {
+          console.log("Git status:", data);
+        },
+      }
     );
 
     // Check for untracked files
@@ -504,7 +509,6 @@ export abstract class BaseAgent {
     const repoDir = repoUrl?.split("/")[1] || "";
     const commandConfig = this.getCommandConfig("", "code");
     const sbx = await this.getSandbox();
-
     // Get the current branch (base branch) BEFORE creating a new branch
     const baseBranch = await sbx.commands.run(
       `cd ${repoDir} && git rev-parse --abbrev-ref HEAD`,

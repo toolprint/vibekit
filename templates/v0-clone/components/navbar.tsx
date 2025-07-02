@@ -8,6 +8,8 @@ import {
   CreditCard,
   LogOut,
   Lock,
+  GitPullRequest,
+  Loader,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,13 +31,17 @@ import { Id } from "@/convex/_generated/dataModel";
 import { createSessionAction } from "@/app/actions/vibekit";
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { createPullRequestAction } from "@/app/actions/vibekit";
 
 export default function Navbar() {
   const { data: authSession } = useSession();
+  const [isCreatingPullRequest, setIsCreatingPullRequest] =
+    useState<boolean>(false);
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isSession = pathname.includes("/session") && pathname !== "/sessions";
   const router = useRouter();
+
   const createSession = useMutation(api.sessions.create);
   const [mounted, setMounted] = useState(false);
   const sessionId = isSession ? pathname.split("/session/")[1] : null;
@@ -114,7 +120,18 @@ export default function Navbar() {
     });
 
     router.push(`/session/${sessionId}`);
-  }, []);
+  }, [createSession, router]);
+
+  const handleCreatePullRequest = useCallback(async () => {
+    setIsCreatingPullRequest(true);
+    const pr = await createPullRequestAction({
+      sessionId: session?.sessionId as string,
+      repository: session?.repository as string,
+    });
+
+    console.log(pr);
+    setIsCreatingPullRequest(false);
+  }, [session]);
 
   return (
     <div
@@ -183,7 +200,9 @@ export default function Navbar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="font-medium"
-                  onClick={() => signOut()}
+                  onClick={() => {
+                    signOut();
+                  }}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
@@ -216,6 +235,20 @@ export default function Navbar() {
         )}
       </div>
       <div className="flex items-center gap-x-2">
+        {session && (
+          <Button
+            variant="outline"
+            className="h-8"
+            onClick={handleCreatePullRequest}
+          >
+            {isCreatingPullRequest ? (
+              <Loader className="animate-spin" />
+            ) : (
+              <GitPullRequest />
+            )}
+            Create Pull Request
+          </Button>
+        )}
         {isHome && authSession && (
           <Button className="h-8" onClick={handleNewSession}>
             <Plus /> New session

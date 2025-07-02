@@ -70,6 +70,7 @@ export const getById = query({
 export const create = mutation({
   args: {
     sessionId: v.optional(v.string()),
+    branch: v.optional(v.string()),
     createdBy: v.optional(v.string()),
     repository: v.optional(v.string()),
     name: v.string(),
@@ -101,6 +102,7 @@ export const update = mutation({
     name: v.optional(v.string()),
     tunnelUrl: v.optional(v.string()),
     repository: v.optional(v.string()),
+    branch: v.optional(v.string()),
     status: v.optional(
       v.union(
         v.literal("IN_PROGRESS"),
@@ -136,7 +138,6 @@ export const remove = mutation({
       await ctx.db.delete(message._id);
     }
 
-    // Delete the session
     await ctx.db.delete(args.id);
   },
 });

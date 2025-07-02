@@ -102,6 +102,12 @@ export const runAgent = inngest.createFunction(
             }
 
             if (data.type === "assistant") {
+              await fetchMutation(api.sessions.update, {
+                id,
+                status: "CUSTOM",
+                statusMessage: "Working on task...",
+              });
+
               switch (data.message.content[0].type) {
                 case "text":
                   await fetchMutation(api.messages.add, {
@@ -176,6 +182,35 @@ export const runAgent = inngest.createFunction(
           },
         },
       });
+
+      // Generate the branch name in JavaScript to avoid shell variable issues
+      const diff = await vibekit.executeCommand(
+        "git --no-pager diff --no-color HEAD",
+        {
+          callbacks: {
+            onUpdate(message) {
+              console.log(message);
+            },
+          },
+        }
+      );
+
+      console.log(diff);
+
+      // // Save checkpoint to database
+      // if (checkpointBranch) {
+      //   await fetchMutation(api.messages.add, {
+      //     sessionId: id,
+      //     role: "assistant",
+      //     content: "",
+      //     checkpoint: {
+      //       branch: checkpointBranch,
+      //       patch: patchContent.length > 0 ? patchContent : undefined,
+      //     },
+      //   });
+
+      //   console.log("Checkpoint saved:", checkpointBranch);
+      // }
 
       return response;
     });
@@ -309,7 +344,6 @@ export const createSession = inngest.createFunction(
         },
       });
 
-      // E2B sandboxes have built-in public URLs - no tunneling needed
       const host = await vibekit.getHost(3000);
 
       return {
@@ -317,6 +351,8 @@ export const createSession = inngest.createFunction(
         tunnelUrl: `https://${host}`,
       };
     });
+
+    await step.sleep("wait-with-ms", 2 * 1000);
 
     await step.run("update session", async () => {
       await fetchMutation(api.sessions.update, {

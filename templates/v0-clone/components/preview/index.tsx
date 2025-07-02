@@ -94,7 +94,7 @@ export default function Preview({ session }: { session?: Doc<"sessions"> }) {
             ) : shouldShowLoading ? (
               <div className="max-w-xs rounded-lg h-[200px] mt-[25%] mx-auto w-full flex gap-0 items-center justify-center">
                 <BootingMachine
-                  label={isChecking ? "GENERATING PREIVEW" : "WAITING FOR URL"}
+                  label={isChecking ? "GENERATING PREVIEW" : "WAITING FOR URL"}
                   size="lg"
                 />
               </div>

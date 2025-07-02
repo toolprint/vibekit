@@ -98,6 +98,13 @@ export type Conversation = {
   content: string;
 };
 
+// PULL REQUEST LABELS
+export interface LabelOptions {
+  name: string;
+  color: string;
+  description: string;
+}
+
 // STREAMING CALLBACKS
 export interface CodexStreamCallbacks {
   onUpdate?: (message: string) => void;

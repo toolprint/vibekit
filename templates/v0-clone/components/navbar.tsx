@@ -125,13 +125,14 @@ export default function Navbar() {
   const handleCreatePullRequest = useCallback(async () => {
     setIsCreatingPullRequest(true);
     const pr = await createPullRequestAction({
+      id: sessionId as Id<"sessions">,
       sessionId: session?.sessionId as string,
       repository: session?.repository as string,
     });
 
     console.log(pr);
     setIsCreatingPullRequest(false);
-  }, [session]);
+  }, [session, sessionId]);
 
   return (
     <div
@@ -235,11 +236,19 @@ export default function Navbar() {
         )}
       </div>
       <div className="flex items-center gap-x-2">
-        {session && (
+        {session && session.pullRequest ? (
+          <Link href={session.pullRequest.html_url} target="_blank">
+            <Button variant="outline" className="h-8">
+              <GitPullRequest />
+              View Pull Request
+            </Button>
+          </Link>
+        ) : (
           <Button
             variant="outline"
             className="h-8"
             onClick={handleCreatePullRequest}
+            disabled={isCreatingPullRequest || session?.status !== "RUNNING"}
           >
             {isCreatingPullRequest ? (
               <Loader className="animate-spin" />
@@ -260,7 +269,14 @@ export default function Navbar() {
             Sign in with Github
           </Button>
         )}
-        {authSession && isSession && <Button className="h-8">Publish</Button>}
+        {authSession && isSession && (
+          <Button
+            className="h-8"
+            disabled={isCreatingPullRequest || session?.status !== "RUNNING"}
+          >
+            Publish
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -134,7 +134,7 @@ export default function Chat({ session }: { session: Doc<"sessions"> }) {
   return (
     <div className="w-[600px] bg-background rounded-lg flex flex-col border relative">
       {/* Top fade */}
-      <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-background to-transparent z-10 rounded-t-lg pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent z-10 rounded-t-lg pointer-events-none" />
       <ScrollArea className="h-[calc(100vh-100px)] px-2">
         <div className="flex flex-col gap-y-2 p-1 pb-[200px] pt-4">
           {messages

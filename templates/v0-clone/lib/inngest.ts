@@ -75,7 +75,7 @@ export const runAgent = inngest.createFunction(
       await fetchMutation(api.sessions.update, {
         id,
         status: "CUSTOM",
-        statusMessage: "Working on task...",
+        statusMessage: "Working on task",
       });
 
       const prompt =
@@ -105,7 +105,7 @@ export const runAgent = inngest.createFunction(
               await fetchMutation(api.sessions.update, {
                 id,
                 status: "CUSTOM",
-                statusMessage: "Working on task...",
+                statusMessage: "Working on task",
               });
 
               switch (data.message.content[0].type) {
@@ -264,7 +264,6 @@ export const createSession = inngest.createFunction(
       if (!repository && template) {
         const repository = await createRepo({
           repoName: `vibe0-${template.replace("https://github.com/", "").replace("/", "-")}-${Date.now().toString().slice(-6)}`,
-          isPrivate: false,
           token,
         });
 

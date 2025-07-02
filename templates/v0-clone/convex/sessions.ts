@@ -73,6 +73,7 @@ export const create = mutation({
     branch: v.optional(v.string()),
     createdBy: v.optional(v.string()),
     repository: v.optional(v.string()),
+    pullRequest: v.optional(v.any()),
     name: v.string(),
     tunnelUrl: v.optional(v.string()),
     status: v.union(
@@ -102,6 +103,7 @@ export const update = mutation({
     name: v.optional(v.string()),
     tunnelUrl: v.optional(v.string()),
     repository: v.optional(v.string()),
+    pullRequest: v.optional(v.any()),
     branch: v.optional(v.string()),
     status: v.optional(
       v.union(

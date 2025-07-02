@@ -1,7 +1,11 @@
 "use server";
 import { VibeKit, VibeKitConfig } from "@vibe-kit/sdk";
+import { fetchMutation } from "convex/nextjs";
+
+import { api } from "@/convex/_generated/api";
 import { inngest } from "@/lib/inngest";
 import { auth } from "@/lib/auth";
+import { Id } from "@/convex/_generated/dataModel";
 
 export async function runAgentAction(
   sessionId: string,
@@ -67,9 +71,11 @@ export async function deleteSessionAction(sessionId: string) {
 }
 
 export const createPullRequestAction = async ({
+  id,
   sessionId,
   repository,
 }: {
+  id: Id<"sessions">;
   sessionId: string;
   repository: string;
 }) => {
@@ -96,16 +102,25 @@ export const createPullRequestAction = async ({
     },
     github: {
       token: session?.accessToken,
-      repository: "",
+      repository,
     },
     sessionId,
   };
 
   const vibekit = new VibeKit(config);
 
-  const status = await vibekit.createPullRequest();
+  const pr = await vibekit.createPullRequest(
+    "/var/app",
+    {
+      name: "🖖 vibe0",
+      color: "42460b",
+      description: "Pull request created by vibe0",
+    },
+    "vibe0"
+  );
 
-  console.log(status);
-
-  //const pr = await vibekit.createPullRequest();
+  await fetchMutation(api.sessions.update, {
+    id,
+    pullRequest: pr,
+  });
 };

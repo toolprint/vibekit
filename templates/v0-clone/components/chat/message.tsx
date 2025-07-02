@@ -66,7 +66,7 @@ export default function Message({
           ) : (
             <div className="size-8" />
           )}
-          <div className="flex flex-col gap-y-1 flex-1 mt-1.5">
+          <div className="flex flex-col gap-y-1 flex-1">
             <p className="text-sm">
               {message.content.length > 250
                 ? message.content.slice(0, 250) + "..."
@@ -145,7 +145,7 @@ export default function Message({
         ) : (
           <div className="size-8" />
         )}
-        <div className={cn("flex flex-col gap-y-1 flex-1 mt-1.5")}>
+        <div className={cn("flex flex-col gap-y-1 flex-1")}>
           <Markdown>{message.content}</Markdown>
         </div>
       </div>

@@ -30,7 +30,7 @@ export default function MessageInput({ task }: { task: Task }) {
       updateTask(task.id, {
         ...task,
         status: "IN_PROGRESS",
-        statusMessage: "Working on task...",
+        statusMessage: "Working on task",
         messages: [
           ...task.messages,
           {
@@ -68,7 +68,7 @@ export default function MessageInput({ task }: { task: Task }) {
               onKeyPress={handleKeyPress}
               placeholder="Type your message..."
               className="w-full min-h-[60px] max-h-[200px] resize-none border-none p-0 focus:outline-none bg-transparent placeholder:text-muted-foreground/60 text-sm leading-relaxed"
-              style={{ scrollbarWidth: 'thin' }}
+              style={{ scrollbarWidth: "thin" }}
             />
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">

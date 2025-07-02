@@ -20,6 +20,7 @@ export type {
   EnvironmentConfig,
   GithubConfig,
   TelemetryConfig,
+  LabelOptions,
 } from "./types";
 
 // Agent function exports

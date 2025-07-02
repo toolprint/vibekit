@@ -1,7 +1,11 @@
 "use server";
 import { VibeKit, VibeKitConfig } from "@vibe-kit/sdk";
+import { fetchMutation } from "convex/nextjs";
+
+import { api } from "@/convex/_generated/api";
 import { inngest } from "@/lib/inngest";
 import { auth } from "@/lib/auth";
+import { Id } from "@/convex/_generated/dataModel";
 
 export async function runAgentAction(
   sessionId: string,
@@ -65,3 +69,58 @@ export async function deleteSessionAction(sessionId: string) {
 
   await vibekit.kill();
 }
+
+export const createPullRequestAction = async ({
+  id,
+  sessionId,
+  repository,
+}: {
+  id: Id<"sessions">;
+  sessionId: string;
+  repository: string;
+}) => {
+  const session = await auth();
+
+  console.log(session, sessionId, repository);
+
+  if (!session?.accessToken) {
+    throw new Error("No GitHub token found. Please authenticate first.");
+  }
+
+  const config: VibeKitConfig = {
+    agent: {
+      type: "claude",
+      model: {
+        apiKey: process.env.ANTHROPIC_API_KEY!,
+      },
+    },
+    environment: {
+      northflank: {
+        apiKey: process.env.NORTHFLANK_API_KEY!,
+        projectId: process.env.NORTHFLANK_PROJECT_ID!,
+      },
+    },
+    github: {
+      token: session?.accessToken,
+      repository,
+    },
+    sessionId,
+  };
+
+  const vibekit = new VibeKit(config);
+
+  const pr = await vibekit.createPullRequest(
+    "/var/app",
+    {
+      name: "🖖 vibe0",
+      color: "42460b",
+      description: "Pull request created by vibe0",
+    },
+    "vibe0"
+  );
+
+  await fetchMutation(api.sessions.update, {
+    id,
+    pullRequest: pr,
+  });
+};

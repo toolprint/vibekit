@@ -127,11 +127,11 @@ export async function getBranches(owner: string, repo: string) {
 export async function createRepo({
   repoName,
   token,
-  isPrivate = false,
+  isPrivate = true,
 }: {
   repoName: string;
   token: string;
-  isPrivate: boolean;
+  isPrivate?: boolean;
 }) {
   if (!token) {
     throw new Error(

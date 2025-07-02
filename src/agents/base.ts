@@ -3,7 +3,12 @@ import {
   generatePRMetadata,
   ModelConfig,
 } from "./utils";
-import { Conversation, SandboxInstance, SandboxConfig } from "../types";
+import {
+  Conversation,
+  SandboxInstance,
+  SandboxConfig,
+  LabelOptions,
+} from "../types";
 import { createSandboxProvider } from "../services/sandbox";
 
 // StreamingBuffer class to handle chunked JSON data
@@ -111,8 +116,33 @@ export interface AgentResponse {
 }
 
 export interface PullRequestResult {
-  html_url: string;
+  id: number;
   number: number;
+  state: string;
+  title: string;
+  body: string | null;
+  html_url: string;
+  head: {
+    ref: string;
+    sha: string;
+    repo: any;
+  };
+  base: {
+    ref: string;
+    sha: string;
+    repo: any;
+  };
+  user: {
+    login: string;
+    id: number;
+    avatar_url: string;
+    html_url: string;
+  };
+  created_at: string;
+  updated_at: string;
+  merged: boolean;
+  mergeable: boolean | null;
+  merge_commit_sha: string | null;
   branchName: string;
   commitSha?: string;
 }
@@ -492,7 +522,11 @@ export abstract class BaseAgent {
     });
   }
 
-  public async createPullRequest(): Promise<PullRequestResult> {
+  public async createPullRequest(
+    projectPath?: string,
+    labelOptions?: LabelOptions,
+    branchPrefix?: string
+  ): Promise<PullRequestResult> {
     // Validate GitHub configuration is provided
     if (!this.config.githubToken || !this.config.repoUrl) {
       throw new Error(
@@ -501,10 +535,9 @@ export abstract class BaseAgent {
     }
 
     const { githubToken, repoUrl } = this.config;
-    const repoDir = repoUrl?.split("/")[1] || "";
+    const repoDir = projectPath || repoUrl?.split("/")[1] || "";
     const commandConfig = this.getCommandConfig("", "code");
     const sbx = await this.getSandbox();
-
     // Get the current branch (base branch) BEFORE creating a new branch
     const baseBranch = await sbx.commands.run(
       `cd ${repoDir} && git rev-parse --abbrev-ref HEAD`,
@@ -512,18 +545,15 @@ export abstract class BaseAgent {
     );
 
     // Debug: Check git status first
-    const gitStatus = await sbx.commands.run(
-      `cd ${repoDir} && git status --porcelain`,
-      { timeoutMs: 3600000 }
-    );
-    console.log("Git status:", gitStatus);
+    await sbx.commands.run(`cd ${repoDir} && git status --porcelain`, {
+      timeoutMs: 3600000,
+    });
 
     // Debug: Check for untracked files
     const untrackedFiles = await sbx.commands.run(
       `cd ${repoDir} && git ls-files --others --exclude-standard`,
       { timeoutMs: 3600000 }
     );
-    console.log("Untracked files:", untrackedFiles);
 
     const diffHead = await sbx.commands.run(
       `cd ${repoDir} && git --no-pager diff --no-color HEAD`,
@@ -531,21 +561,18 @@ export abstract class BaseAgent {
         timeoutMs: 3600000,
       }
     );
-    console.log("Git diff HEAD (working vs last commit):", diffHead);
 
     const patch = await sbx.commands.run(
       `cd ${repoDir} && git --no-pager diff --no-color --diff-filter=ACMR`,
       { timeoutMs: 3600000 }
     );
 
-    console.log("patch", patch);
-
     if (
       !patch ||
       (!patch.stdout && !diffHead?.stdout && !untrackedFiles?.stdout)
     ) {
       throw new Error(
-        `No changes found - check if ${commandConfig.labelName} actually modified any files`
+        `No changes found - check if the agent actually modified any files`
       );
     }
 
@@ -575,13 +602,22 @@ export abstract class BaseAgent {
       this.lastPrompt || ""
     );
 
+    const _branchName = branchPrefix
+      ? `${branchPrefix}/${branchName}`
+      : branchName;
+
+    // Escape any quotes in the commit message to prevent shell parsing issues
+    const escapedCommitMessage = commitMessage.replace(/"/g, '\\"');
+
     const checkout = await sbx.commands.run(
-      `cd ${repoDir} && git checkout -b ${branchName} && git add -A && git commit -m "${commitMessage}"`,
-      { timeoutMs: 3600000 }
+      `cd ${repoDir} && git checkout -b ${_branchName} && git add -A && git commit -m "${escapedCommitMessage}"`,
+      {
+        timeoutMs: 3600000,
+      }
     );
 
     // Push the branch to GitHub
-    await sbx.commands.run(`cd ${repoDir} && git push origin ${branchName}`, {
+    await sbx.commands.run(`cd ${repoDir} && git push origin ${_branchName}`, {
       timeoutMs: 3600000,
     });
 
@@ -603,7 +639,7 @@ export abstract class BaseAgent {
         body: JSON.stringify({
           title,
           body,
-          head: branchName,
+          head: _branchName,
           base: baseBranch?.stdout.trim() || "main",
         }),
       }
@@ -617,12 +653,29 @@ export abstract class BaseAgent {
     const prData = await prResponse.json();
 
     // Handle label creation and assignment
-    await this.handlePRLabeling(owner, repo, prData.number, commandConfig);
+    const labelConfig = labelOptions || {
+      name: commandConfig.labelName,
+      color: commandConfig.labelColor,
+      description: commandConfig.labelDescription,
+    };
+    await this.handlePRLabeling(owner, repo, prData.number, labelConfig);
 
     return {
-      html_url: prData.html_url,
+      id: prData.id,
       number: prData.number,
-      branchName,
+      state: prData.state,
+      title: prData.title,
+      body: prData.body,
+      html_url: prData.html_url,
+      head: prData.head,
+      base: prData.base,
+      user: prData.user,
+      created_at: prData.created_at,
+      updated_at: prData.updated_at,
+      merged: prData.merged,
+      mergeable: prData.mergeable,
+      merge_commit_sha: prData.merge_commit_sha,
+      branchName: _branchName,
       commitSha,
     };
   }
@@ -651,10 +704,14 @@ export abstract class BaseAgent {
     owner: string,
     repo: string,
     prNumber: number,
-    commandConfig: AgentCommandConfig
+    labelConfig: LabelOptions
   ) {
     const { githubToken } = this.config;
-    const { labelName, labelColor, labelDescription } = commandConfig;
+    const {
+      name: labelName,
+      color: labelColor,
+      description: labelDescription,
+    } = labelConfig;
 
     // Check if label exists first
     const labelCheckResponse = await fetch(

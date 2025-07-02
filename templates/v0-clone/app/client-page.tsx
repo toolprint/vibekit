@@ -53,9 +53,7 @@ export default function ClientPage() {
       content: message,
     });
 
-    if (repository) {
-      router.push(`/session/${sessionId}`);
-    }
+    router.push(`/session/${sessionId}`);
   };
 
   const handleTemplateSelect = async (id: string) => {

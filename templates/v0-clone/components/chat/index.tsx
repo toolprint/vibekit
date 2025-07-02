@@ -122,7 +122,9 @@ export default function Chat({ session }: { session: Doc<"sessions"> }) {
 
   // Early return if messages are not loaded yet
   if (!messages) {
-    return <div>Loading...</div>;
+    return (
+      <div className="w-[600px] bg-background rounded-lg flex flex-col border relative" />
+    );
   }
 
   const latestTodos = extractLatestTodos(messages);
@@ -132,7 +134,7 @@ export default function Chat({ session }: { session: Doc<"sessions"> }) {
   return (
     <div className="w-[600px] bg-background rounded-lg flex flex-col border relative">
       {/* Top fade */}
-      <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-background to-transparent z-10 rounded-t-lg pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent z-10 rounded-t-lg pointer-events-none" />
       <ScrollArea className="h-[calc(100vh-100px)] px-2">
         <div className="flex flex-col gap-y-2 p-1 pb-[200px] pt-4">
           {messages
@@ -151,16 +153,11 @@ export default function Chat({ session }: { session: Doc<"sessions"> }) {
                 />
               );
             })}
-          {session.status !== "RUNNING" && (
+          {session.status === "CUSTOM" && (
             <div className="flex items-center gap-x-2 mt-2 pl-10">
               <div className="size-3 bg-primary rounded-full animate-fast-pulse" />
               <TextShimmer className="text-sm">
-                {session.status === "CUSTOM"
-                  ? `${session.statusMessage?.slice(0, 45)}...` || "Working..."
-                  : session.status
-                      .toLowerCase()
-                      .replace(/_/g, " ")
-                      .replace(/^./, (str) => str.toUpperCase())}
+                {`${session.statusMessage?.slice(0, 45)}...` || "Working"}
               </TextShimmer>
             </div>
           )}

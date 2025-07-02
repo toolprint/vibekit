@@ -332,21 +332,32 @@ export class NorthflankSandboxInstance implements SandboxInstance {
           }
         );
 
-        handle.stdErr.on("data", (data) =>
-          options?.onStderr?.(data.toString())
-        );
-        handle.stdOut.on("data", (data) =>
-          options?.onStdout?.(data.toString())
-        );
+        const stdoutChunks: string[] = [];
+        const stderrChunks: string[] = [];
+
+        handle.stdOut.on("data", (data) => {
+          const chunk = data.toString();
+          stdoutChunks.push(chunk);
+          options?.onStdout?.(chunk);
+        });
+
+        handle.stdErr.on("data", (data) => {
+          const chunk = data.toString();
+          stderrChunks.push(chunk);
+          options?.onStderr?.(chunk);
+        });
 
         const result = await handle.waitForCommandResult();
+
+        const fullStdout = stdoutChunks.join('');
+        const fullStderr = stderrChunks.join('');
 
         //TODO: handle streaming callbacks if provided
 
         return {
           exitCode: result.exitCode,
-          stdout: result.message || "",
-          stderr: "",
+          stdout: fullStdout,
+          stderr: fullStderr,
         };
       },
     };
@@ -451,7 +462,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
       project: projectId,
       token: apiKey,
     });
-    return new ApiClient(contextProvider);
+    return new ApiClient(contextProvider, { throwErrorOnHttpErrorCode: true });
   }
 
   private async getServiceStatus(

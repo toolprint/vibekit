@@ -53,5 +53,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
-  debug: true, // Enable debug mode to see more logs
+  debug: process.env.NODE_ENV === "development", // Enable debug mode to see more logs
 });

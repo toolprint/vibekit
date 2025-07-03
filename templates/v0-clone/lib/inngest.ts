@@ -7,6 +7,8 @@ import { api } from "@/convex/_generated/api";
 import { runAgentAction } from "@/app/actions/vibekit";
 import { generateSessionTitle } from "@/app/actions/session";
 import { createRepo } from "@/app/actions/github";
+import { Template } from "@/config";
+import { Id } from "@/convex/_generated/dataModel";
 
 let app: Inngest | undefined;
 // Create a client to send and receive events
@@ -231,7 +233,19 @@ export const createSession = inngest.createFunction(
   { event: "vibe0/create.session" },
 
   async ({ event, step }) => {
-    const { sessionId: id, message, repository, token, template } = event.data;
+    const {
+      sessionId: id,
+      message,
+      repository,
+      token,
+      template,
+    }: {
+      sessionId: Id<"sessions">;
+      message: string;
+      repository: string;
+      token: string;
+      template: Template;
+    } = event.data;
 
     let sandboxId: string;
 
@@ -246,8 +260,10 @@ export const createSession = inngest.createFunction(
         northflank: {
           apiKey: process.env.NORTHFLANK_API_KEY!,
           projectId: process.env.NORTHFLANK_PROJECT_ID!,
+          image: template.image ? template.image : undefined,
         },
       },
+      secrets: template.secrets,
     };
 
     const vibekit = new VibeKit(config);
@@ -263,14 +279,16 @@ export const createSession = inngest.createFunction(
 
       if (!repository && template) {
         const repository = await createRepo({
-          repoName: `vibe0-${template.replace("https://github.com/", "").replace("/", "-")}-${Date.now().toString().slice(-6)}`,
+          repoName: `vibe0-${template.repository.replace("https://github.com/", "").replace("/", "-")}-${Date.now().toString().slice(-6)}`,
           token,
         });
 
         // Handle both full GitHub URLs and repo paths
-        const templateCloneUrl = template.startsWith("https://github.com/")
-          ? `${template}.git`
-          : `https://github.com/${template}.git`;
+        const templateCloneUrl = template.repository.startsWith(
+          "https://github.com/"
+        )
+          ? `${template.repository}.git`
+          : `https://github.com/${template.repository}.git`;
 
         const commands = [
           // Clone the template repo directly to root
@@ -314,34 +332,24 @@ export const createSession = inngest.createFunction(
         sandboxId = _sandboxId;
       }
 
-      await fetchMutation(api.sessions.update, {
-        id,
-        status: "INSTALLING_DEPENDENCIES",
-        sessionId: sandboxId,
-      });
+      for await (const command of template.startCommands) {
+        console.log("COMMAND", command);
+        await fetchMutation(api.sessions.update, {
+          id,
+          status: command.status,
+          sessionId: sandboxId,
+        });
 
-      await vibekit.executeCommand("npm i", {
-        callbacks: {
-          onUpdate(message) {
-            console.log(message);
+        await vibekit.executeCommand(command.command, {
+          background: command.background,
+          useRepoContext: command.useRepoContext,
+          callbacks: {
+            onUpdate(message) {
+              console.log(message);
+            },
           },
-        },
-      });
-
-      await fetchMutation(api.sessions.update, {
-        id,
-        status: "STARTING_DEV_SERVER",
-      });
-
-      await vibekit.executeCommand("npm run dev", {
-        useRepoContext: true,
-        background: true,
-        callbacks: {
-          onUpdate(message) {
-            console.log(message);
-          },
-        },
-      });
+        });
+      }
 
       const host = await vibekit.getHost(3000);
 

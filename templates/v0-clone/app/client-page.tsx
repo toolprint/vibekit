@@ -42,7 +42,7 @@ export default function ClientPage() {
       message,
       ...(repository
         ? { repository: repository.full_name }
-        : { template: "https://github.com/superagent-ai/vibekit-nextjs" }),
+        : { template: templates.find((t) => t.id === "nextjs") }),
     };
 
     await createSessionAction(actionParams);
@@ -69,7 +69,7 @@ export default function ClientPage() {
 
       await createSessionAction({
         sessionId,
-        template: template.repository,
+        template: template,
       });
 
       router.push(`/session/${sessionId}`);

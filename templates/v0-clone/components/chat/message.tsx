@@ -137,7 +137,7 @@ export default function Message({
     <div className="group relative rounded-lg cursor-pointer hover:bg-muted">
       <div className="flex items-start gap-x-2">
         {showAvatar ? (
-          <div className="size-8 rounded-lg bg-background border flex items-center justify-center">
+          <div className="size-8 rounded-lg bg-background border flex items-center justify-center -mt-1.5">
             <span role="img" aria-label="spock emoji">
               🖖
             </span>

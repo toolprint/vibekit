@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { inngest } from "@/lib/inngest";
 import { auth } from "@/lib/auth";
 import { Id } from "@/convex/_generated/dataModel";
+import { Template } from "@/config";
 
 export async function runAgentAction(
   sessionId: string,
@@ -31,7 +32,7 @@ export async function createSessionAction({
   sessionId: string;
   message?: string;
   repository?: string;
-  template?: string;
+  template?: Template;
 }) {
   const session = await auth();
   await inngest.send({

@@ -32,6 +32,7 @@ import { createSessionAction } from "@/app/actions/vibekit";
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { createPullRequestAction } from "@/app/actions/vibekit";
+import { templates } from "@/config";
 
 export default function Navbar() {
   const { data: authSession } = useSession();
@@ -116,7 +117,7 @@ export default function Navbar() {
 
     await createSessionAction({
       sessionId,
-      template: "https://github.com/superagent-ai/vibekit-nextjs",
+      template: templates.find((t) => t.id === "nextjs"),
     });
 
     router.push(`/session/${sessionId}`);
@@ -157,7 +158,7 @@ export default function Navbar() {
           <>
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-x-1 px-1 py-1 rounded-md hover:bg-muted transition-colors cursor-pointer group">
-                <Avatar className="h-6 w-6">
+                <Avatar className="h-6 w-6 mr-1">
                   <AvatarImage
                     className="rounded-md"
                     src={authSession.user?.image || undefined}
@@ -236,14 +237,15 @@ export default function Navbar() {
         )}
       </div>
       <div className="flex items-center gap-x-2">
-        {session && session.pullRequest ? (
+        {session && session.pullRequest && !isHome && (
           <Link href={session.pullRequest.html_url} target="_blank">
             <Button variant="outline" className="h-8">
               <GitPullRequest />
               View Pull Request
             </Button>
           </Link>
-        ) : (
+        )}{" "}
+        {session && !session.pullRequest && !isHome && (
           <Button
             variant="outline"
             className="h-8"

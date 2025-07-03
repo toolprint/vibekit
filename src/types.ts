@@ -90,6 +90,8 @@ export type VibeKitConfig = {
   github?: GithubConfig;
   telemetry?: TelemetryConfig;
   sessionId?: string;
+  /** Working directory inside the sandbox (defaults to "/var/vibe0") */
+  workingDirectory?: string;
 };
 
 // CONVERSATION HISTORY
@@ -139,6 +141,7 @@ export interface CodexConfig {
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
+  workingDirectory?: string;
 }
 
 export interface CodexResponse {
@@ -165,6 +168,7 @@ export interface ClaudeConfig {
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
+  workingDirectory?: string;
 }
 
 export interface ClaudeResponse {
@@ -191,6 +195,7 @@ export interface OpenCodeConfig {
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
+  workingDirectory?: string;
 }
 
 export interface OpenCodeResponse {
@@ -217,6 +222,7 @@ export interface GeminiConfig {
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
+  workingDirectory?: string;
 }
 
 export interface GeminiResponse {

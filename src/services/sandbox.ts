@@ -292,9 +292,6 @@ export class NorthflankSandboxInstance implements SandboxInstance {
   get commands(): SandboxCommands {
     return {
       run: async (command: string, options?: SandboxCommandOptions) => {
-        const cmd = [
-          `mkdir -p ${this.workingDirectory}; cd ${this.workingDirectory}; ${command}`,
-        ];
         if (options?.background) {
           const handle = await this.apiClient.exec.execServiceSession(
             {
@@ -303,7 +300,7 @@ export class NorthflankSandboxInstance implements SandboxInstance {
             },
             {
               shell: `bash -c`,
-              command: cmd,
+              command,
             }
           );
 
@@ -328,7 +325,7 @@ export class NorthflankSandboxInstance implements SandboxInstance {
           },
           {
             shell: `bash -c`,
-            command: cmd,
+            command,
           }
         );
 
@@ -349,8 +346,8 @@ export class NorthflankSandboxInstance implements SandboxInstance {
 
         const result = await handle.waitForCommandResult();
 
-        const fullStdout = stdoutChunks.join('');
-        const fullStderr = stderrChunks.join('');
+        const fullStdout = stdoutChunks.join("");
+        const fullStderr = stderrChunks.join("");
 
         //TODO: handle streaming callbacks if provided
 
@@ -450,7 +447,7 @@ export class NorthflankSandboxInstance implements SandboxInstance {
 
 export class NorthflankSandboxProvider implements SandboxProvider {
   private static readonly DefaultBillingPlan = "nf-compute-200";
-  private static readonly DefaultPersistentVolume = "/var/app";
+  private static readonly DefaultPersistentVolume = "/var/vibe0";
   private static readonly DefaultPersistentVolumeStorage = 10240; // 10GiB
   private static readonly StatusPollInterval = 1_000; // 1 second
   private static readonly MaxPollTimeout = 300000; // 5 minutes

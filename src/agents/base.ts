@@ -101,6 +101,7 @@ export interface BaseAgentConfig {
   secrets?: Record<string, string>;
   sandboxId?: string;
   telemetry?: any;
+  workingDirectory?: string;
 }
 
 export interface StreamCallbacks {
@@ -160,9 +161,11 @@ export abstract class BaseAgent {
   protected sandboxInstance?: SandboxInstance;
   protected lastPrompt?: string;
   protected currentBranch?: string;
+  protected readonly WORKING_DIR: string;
 
   constructor(config: BaseAgentConfig) {
     this.config = config;
+    this.WORKING_DIR = config.workingDirectory || "/var/vibe0";
   }
 
   protected abstract getCommandConfig(
@@ -271,7 +274,7 @@ export abstract class BaseAgent {
       const repoDir = this.config.repoUrl?.split("/")[1] || "";
       const executeCommand =
         useRepoContext && this.config.repoUrl
-          ? `cd ${repoDir} && ${command}`
+          ? `cd ${this.WORKING_DIR}/${repoDir} && ${command}`
           : command;
 
       // Set up streaming buffers for stdout and stderr if callbacks are provided
@@ -333,18 +336,24 @@ export abstract class BaseAgent {
           `{"type": "start", "sandbox_id": "${sbx.sandboxId}"}`
         );
 
+        // Create working directory
+        await sbx.commands.run(`mkdir -p ${this.WORKING_DIR}`, {
+          timeoutMs: 30000,
+          background: background || false,
+        });
+
         // Only clone repository if GitHub config is provided
         if (this.config.githubToken && this.config.repoUrl) {
           callbacks?.onUpdate?.(
             `{"type": "git", "output": "Cloning repository: ${this.config.repoUrl}"}`
           );
           await sbx.commands.run(
-            `git clone https://x-access-token:${this.config.githubToken}@github.com/${this.config.repoUrl}.git`,
+            `cd ${this.WORKING_DIR} && git clone https://x-access-token:${this.config.githubToken}@github.com/${this.config.repoUrl}.git`,
             { timeoutMs: 3600000, background: background || false }
           );
 
           await sbx.commands.run(
-            `cd ${repoDir} && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"`,
+            `cd ${this.WORKING_DIR}/${repoDir} && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"`,
             { timeoutMs: 60000, background: background || false }
           );
         } else {
@@ -368,32 +377,41 @@ export abstract class BaseAgent {
         );
         try {
           // Try to checkout existing branch first
-          await sbx.commands.run(`cd ${repoDir} && git checkout ${branch}`, {
-            timeoutMs: 60000,
-            background: background || false,
-          });
+          await sbx.commands.run(
+            `cd ${this.WORKING_DIR}/${repoDir} && git checkout ${branch}`,
+            {
+              timeoutMs: 60000,
+              background: background || false,
+            }
+          );
           // Pull latest changes from the remote branch
           callbacks?.onUpdate?.(
             `{"type": "git", "output": "Pulling latest changes from ${branch}"}`
           );
-          await sbx.commands.run(`cd ${repoDir} && git pull origin ${branch}`, {
-            timeoutMs: 60000,
-            background: background || false,
-          });
+          await sbx.commands.run(
+            `cd ${this.WORKING_DIR}/${repoDir} && git pull origin ${branch}`,
+            {
+              timeoutMs: 60000,
+              background: background || false,
+            }
+          );
         } catch (error) {
           // If branch doesn't exist, create it
           callbacks?.onUpdate?.(
             `{"type": "git", "output": "Branch ${branch} not found, creating new branch"}`
           );
-          await sbx.commands.run(`cd ${repoDir} && git checkout -b ${branch}`, {
-            timeoutMs: 60000,
-            background: background || false,
-          });
+          await sbx.commands.run(
+            `cd ${this.WORKING_DIR}/${repoDir} && git checkout -b ${branch}`,
+            {
+              timeoutMs: 60000,
+              background: background || false,
+            }
+          );
         }
       }
 
       const executeCommand = this.config.repoUrl
-        ? `cd ${repoDir} && ${commandConfig.command}`
+        ? `cd ${this.WORKING_DIR}/${repoDir} && ${commandConfig.command}`
         : commandConfig.command;
 
       // Set up streaming buffers for stdout and stderr if callbacks are provided
@@ -460,13 +478,13 @@ export abstract class BaseAgent {
 
     // Check git status for changes
     const gitStatus = await sbx.commands.run(
-      `cd ${repoDir} && git status --porcelain`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git status --porcelain`,
       { timeoutMs: 3600000 }
     );
 
     // Check for untracked files
     const untrackedFiles = await sbx.commands.run(
-      `cd ${repoDir} && git ls-files --others --exclude-standard`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git ls-files --others --exclude-standard`,
       { timeoutMs: 3600000 }
     );
 
@@ -477,13 +495,16 @@ export abstract class BaseAgent {
 
     // Switch to the specified branch (create if it doesn't exist)
     try {
-      await sbx.commands.run(`cd ${repoDir} && git checkout ${targetBranch}`, {
-        timeoutMs: 60000,
-      });
+      await sbx.commands.run(
+        `cd ${this.WORKING_DIR}/${repoDir} && git checkout ${targetBranch}`,
+        {
+          timeoutMs: 60000,
+        }
+      );
     } catch (error) {
       // If branch doesn't exist, create it
       await sbx.commands.run(
-        `cd ${repoDir} && git checkout -b ${targetBranch}`,
+        `cd ${this.WORKING_DIR}/${repoDir} && git checkout -b ${targetBranch}`,
         {
           timeoutMs: 60000,
         }
@@ -491,14 +512,14 @@ export abstract class BaseAgent {
     }
 
     const diffHead = await sbx.commands.run(
-      `cd ${repoDir} && git --no-pager diff --no-color HEAD`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git --no-pager diff --no-color HEAD`,
       {
         timeoutMs: 3600000,
       }
     );
 
     const patch = await sbx.commands.run(
-      `cd ${repoDir} && git --no-pager diff --no-color --diff-filter=ACMR`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git --no-pager diff --no-color --diff-filter=ACMR`,
       { timeoutMs: 3600000 }
     );
 
@@ -512,14 +533,17 @@ export abstract class BaseAgent {
     );
 
     await sbx.commands.run(
-      `cd ${repoDir} && git add -A && git commit -m "${commitMessage}"`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git add -A && git commit -m "${commitMessage}"`,
       { timeoutMs: 3600000 }
     );
 
     // Push the branch to GitHub
-    await sbx.commands.run(`cd ${repoDir} && git push origin ${targetBranch}`, {
-      timeoutMs: 3600000,
-    });
+    await sbx.commands.run(
+      `cd ${this.WORKING_DIR}/${repoDir} && git push origin ${targetBranch}`,
+      {
+        timeoutMs: 3600000,
+      }
+    );
   }
 
   public async createPullRequest(
@@ -540,30 +564,33 @@ export abstract class BaseAgent {
     const sbx = await this.getSandbox();
     // Get the current branch (base branch) BEFORE creating a new branch
     const baseBranch = await sbx.commands.run(
-      `cd ${repoDir} && git rev-parse --abbrev-ref HEAD`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git rev-parse --abbrev-ref HEAD`,
       { timeoutMs: 3600000 }
     );
 
     // Debug: Check git status first
-    await sbx.commands.run(`cd ${repoDir} && git status --porcelain`, {
-      timeoutMs: 3600000,
-    });
+    await sbx.commands.run(
+      `cd ${this.WORKING_DIR}/${repoDir} && git status --porcelain`,
+      {
+        timeoutMs: 3600000,
+      }
+    );
 
     // Debug: Check for untracked files
     const untrackedFiles = await sbx.commands.run(
-      `cd ${repoDir} && git ls-files --others --exclude-standard`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git ls-files --others --exclude-standard`,
       { timeoutMs: 3600000 }
     );
 
     const diffHead = await sbx.commands.run(
-      `cd ${repoDir} && git --no-pager diff --no-color HEAD`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git --no-pager diff --no-color HEAD`,
       {
         timeoutMs: 3600000,
       }
     );
 
     const patch = await sbx.commands.run(
-      `cd ${repoDir} && git --no-pager diff --no-color --diff-filter=ACMR`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git --no-pager diff --no-color --diff-filter=ACMR`,
       { timeoutMs: 3600000 }
     );
 
@@ -581,12 +608,12 @@ export abstract class BaseAgent {
 
     // If no diff but there are untracked files, we need to add them first
     if (!patchContent && untrackedFiles?.stdout) {
-      await sbx.commands.run(`cd ${repoDir} && git add .`, {
+      await sbx.commands.run(`cd ${this.WORKING_DIR}/${repoDir} && git add .`, {
         timeoutMs: 3600000,
       });
 
       const patchAfterAdd = await sbx.commands.run(
-        `cd ${repoDir} && git --no-pager diff --no-color --cached`,
+        `cd ${this.WORKING_DIR}/${repoDir} && git --no-pager diff --no-color --cached`,
         { timeoutMs: 3600000 }
       );
       patchContent = patchAfterAdd?.stdout || "";
@@ -610,16 +637,19 @@ export abstract class BaseAgent {
     const escapedCommitMessage = commitMessage.replace(/"/g, '\\"');
 
     const checkout = await sbx.commands.run(
-      `cd ${repoDir} && git checkout -b ${_branchName} && git add -A && git commit -m "${escapedCommitMessage}"`,
+      `cd ${this.WORKING_DIR}/${repoDir} && git checkout -b ${_branchName} && git add -A && git commit -m "${escapedCommitMessage}"`,
       {
         timeoutMs: 3600000,
       }
     );
 
     // Push the branch to GitHub
-    await sbx.commands.run(`cd ${repoDir} && git push origin ${_branchName}`, {
-      timeoutMs: 3600000,
-    });
+    await sbx.commands.run(
+      `cd ${this.WORKING_DIR}/${repoDir} && git push origin ${_branchName}`,
+      {
+        timeoutMs: 3600000,
+      }
+    );
 
     // Extract commit SHA from checkout output
     const commitMatch = checkout?.stdout.match(/\[[\w-]+ ([a-f0-9]+)\]/);

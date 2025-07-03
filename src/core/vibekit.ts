@@ -89,6 +89,7 @@ export class VibeKit {
         sandboxConfig,
         // Pass secrets to agent
         secrets: setup.secrets,
+        workingDirectory: setup.workingDirectory,
       };
       return new CodexAgent(codexConfig);
     } else if (setup.agent.type === "claude") {
@@ -107,6 +108,7 @@ export class VibeKit {
         sandboxConfig,
         // Pass secrets to agent
         secrets: setup.secrets,
+        workingDirectory: setup.workingDirectory,
       };
       return new ClaudeAgent(claudeConfig);
     } else if (setup.agent.type === "opencode") {
@@ -125,6 +127,7 @@ export class VibeKit {
         sandboxConfig,
         // Pass secrets to agent
         secrets: setup.secrets,
+        workingDirectory: setup.workingDirectory,
       };
       return new OpenCodeAgent(openCodeConfig);
     } else if (setup.agent.type === "gemini") {
@@ -142,6 +145,7 @@ export class VibeKit {
         sandboxConfig,
         // Pass secrets to agent
         secrets: setup.secrets,
+        workingDirectory: setup.workingDirectory,
       };
       return new GeminiAgent(geminiConfig);
     } else {

@@ -409,7 +409,6 @@ export class VibeKit {
     command: string,
     options: {
       timeoutMs?: number;
-      useRepoContext?: boolean;
       background?: boolean;
       callbacks?: VibeKitStreamCallbacks;
     } = {}

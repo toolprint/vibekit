@@ -47,5 +47,6 @@ test-opencode.ts
 test-gemini.ts
 test-northflank.ts
 test-nextjs.ts
+test-working-dir.ts
 .cluso/config.json
 .inngest/main.db

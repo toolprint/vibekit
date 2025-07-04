@@ -110,14 +110,19 @@ export default function Navbar() {
   };
 
   const handleNewSession = useCallback(async () => {
+    const template = templates.find((t) => t.id === "nextjs");
+
+    if (!template) return;
+
     const sessionId = await createSession({
       name: "Untitled session",
       status: "IN_PROGRESS",
+      templateId: template.id,
     });
 
     await createSessionAction({
       sessionId,
-      template: templates.find((t) => t.id === "nextjs"),
+      template,
     });
 
     router.push(`/session/${sessionId}`);

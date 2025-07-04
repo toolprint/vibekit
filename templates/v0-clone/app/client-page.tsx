@@ -32,6 +32,7 @@ export default function ClientPage() {
       name: "Untitled",
       status: "IN_PROGRESS" as const,
       createdBy: session?.githubId?.toString(),
+      templateId: "nextjs",
       ...(repository && { repository: repository.full_name }),
     };
 
@@ -64,6 +65,7 @@ export default function ClientPage() {
         name: "Untitled",
         status: "IN_PROGRESS",
         repository: template.repository,
+        templateId: id,
         createdBy: session?.githubId?.toString(),
       });
 

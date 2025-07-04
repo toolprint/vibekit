@@ -11,7 +11,8 @@ import { Template } from "@/config";
 export async function runAgentAction(
   sessionId: string,
   id: string,
-  message: string
+  message: string,
+  template: Template
 ) {
   await inngest.send({
     name: "vibe0/run.agent",
@@ -19,6 +20,7 @@ export async function runAgentAction(
       sessionId,
       id,
       message,
+      template,
     },
   });
 }
@@ -82,8 +84,6 @@ export const createPullRequestAction = async ({
 }) => {
   const session = await auth();
 
-  console.log(session, sessionId, repository);
-
   if (!session?.accessToken) {
     throw new Error("No GitHub token found. Please authenticate first.");
   }
@@ -111,7 +111,6 @@ export const createPullRequestAction = async ({
   const vibekit = new VibeKit(config);
 
   const pr = await vibekit.createPullRequest(
-    undefined, // Let the agent handle the path automatically
     {
       name: "🖖 vibe0",
       color: "42460b",

@@ -81,9 +81,9 @@ export default function Preview({ session }: { session?: Doc<"sessions"> }) {
                   <BootingMachine
                     label={
                       session?.tunnelUrl && !isUrlAvailable
-                        ? "GENERATING PREVIEW..."
+                        ? "GENERATING PREVIEW"
                         : (session?.status?.replace(/_/g, " ") ??
-                          "BOOTING MACHINE...")
+                          "BOOTING MACHINE")
                     }
                     size="lg"
                   />

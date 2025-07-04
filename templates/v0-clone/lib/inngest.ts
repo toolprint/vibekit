@@ -49,7 +49,7 @@ export const runAgent = inngest.createFunction(
   { id: "run-agent", retries: 0, concurrency: 100 },
   { event: "vibe0/run.agent" },
   async ({ event, step }) => {
-    const { sessionId, id, message } = event.data;
+    const { sessionId, id, message, template } = event.data;
 
     const config: VibeKitConfig = {
       agent: {
@@ -81,9 +81,7 @@ export const runAgent = inngest.createFunction(
       });
 
       const prompt =
-        "# GOAL\nYou are an helpful assistant that is tasked with helping the user build a NextJS app.\n" +
-        "The NextJS dev server is running on port 3000.\n" +
-        "ShadCN UI is installed, togehter with all the ShadCN components.\n" +
+        template.systemPrompt +
         "Do not run tests or restart the dev server.\n" +
         `Follow the users intructions:\n\n# INSTRUCTIONS\n${message}`;
 
@@ -184,20 +182,6 @@ export const runAgent = inngest.createFunction(
           },
         },
       });
-
-      // Generate the branch name in JavaScript to avoid shell variable issues
-      const diff = await vibekit.executeCommand(
-        "git --no-pager diff --no-color HEAD",
-        {
-          callbacks: {
-            onUpdate(message) {
-              console.log(message);
-            },
-          },
-        }
-      );
-
-      console.log(diff);
 
       // // Save checkpoint to database
       // if (checkpointBranch) {
@@ -332,6 +316,14 @@ export const createSession = inngest.createFunction(
         sandboxId = _sandboxId;
       }
 
+      await vibekit.executeCommand(`ls -la`, {
+        callbacks: {
+          onUpdate(message) {
+            console.log(message);
+          },
+        },
+      });
+
       for await (const command of template.startCommands) {
         console.log("COMMAND", command);
         await fetchMutation(api.sessions.update, {
@@ -342,7 +334,6 @@ export const createSession = inngest.createFunction(
 
         await vibekit.executeCommand(command.command, {
           background: command.background,
-          useRepoContext: command.useRepoContext,
           callbacks: {
             onUpdate(message) {
               console.log(message);
@@ -371,7 +362,7 @@ export const createSession = inngest.createFunction(
 
     if (message) {
       await step.run("run agent", async () => {
-        await runAgentAction(data.sandboxId, id, message);
+        await runAgentAction(data.sandboxId, id, message, template);
       });
     }
 

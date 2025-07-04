@@ -76,6 +76,7 @@ export const create = mutation({
     pullRequest: v.optional(v.any()),
     name: v.string(),
     tunnelUrl: v.optional(v.string()),
+    templateId: v.string(),
     status: v.union(
       v.literal("IN_PROGRESS"),
       v.literal("CLONING_REPO"),
@@ -104,6 +105,7 @@ export const update = mutation({
     tunnelUrl: v.optional(v.string()),
     repository: v.optional(v.string()),
     pullRequest: v.optional(v.any()),
+    templateId: v.optional(v.string()),
     branch: v.optional(v.string()),
     status: v.optional(
       v.union(

@@ -39,7 +39,6 @@ export type NorthflankConfig = {
   image?: string;
   projectId?: string;
   billingPlan?: string;
-  persistentVolume?: string;
   persistentVolumeStorage?: number;
 };
 
@@ -275,6 +274,7 @@ export interface SandboxConfig {
   billingPlan?: string; // for Northflank
   persistentVolume?: string; // for Northflank
   persistentVolumeStorage?: number; // for Northflank
+  workingDirectory?: string; // for Nortflank
 }
 
 export interface SandboxProvider {

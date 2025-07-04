@@ -569,7 +569,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
         mounts: [
           {
             containerMountPath:
-              config.persistentVolume ||
+              config.workingDirectory ||
               NorthflankSandboxProvider.DefaultPersistentVolume,
           },
         ],
@@ -605,7 +605,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
       apiClient,
       sandboxId,
       config.projectId,
-      config.persistentVolume ||
+      config.workingDirectory ||
         NorthflankSandboxProvider.DefaultPersistentVolume
     );
   }
@@ -641,7 +641,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
       apiClient,
       sandboxId,
       config.projectId,
-      config.persistentVolume ||
+      config.workingDirectory ||
         NorthflankSandboxProvider.DefaultPersistentVolume
     );
   }
@@ -666,7 +666,8 @@ export function createSandboxProvider(
 // Helper function to create SandboxConfig from VibeKitConfig environment
 export function createSandboxConfigFromEnvironment(
   environment: any,
-  agentType?: AgentType
+  agentType?: AgentType,
+  workingDirectory?: string
 ): SandboxConfig {
   const defaultImage = getDockerImageFromAgentType(agentType);
   if (environment.northflank) {
@@ -678,6 +679,7 @@ export function createSandboxConfigFromEnvironment(
       projectId: environment.northflank.projectId,
       billingPlan: environment.northflank.billingPlan,
       persistentVolume: environment.northflank.persistentVolume,
+      workingDirectory: workingDirectory || "/var/vibe0",
     };
   }
 

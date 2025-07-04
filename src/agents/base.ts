@@ -203,8 +203,8 @@ export abstract class BaseAgent {
   protected abstract getEnvironmentVariables(): Record<string, string>;
 
   private getMkdirCommand(path: string): string {
-    return this.config.sandboxConfig.type === "e2b" 
-      ? `sudo mkdir -p ${path} && sudo chown $USER:$USER ${path}` 
+    return this.config.sandboxConfig.type === "e2b"
+      ? `sudo mkdir -p ${path} && sudo chown $USER:$USER ${path}`
       : `mkdir -p ${path}`;
   }
 
@@ -331,7 +331,6 @@ export abstract class BaseAgent {
 
     try {
       const sbx = await this.getSandbox();
-      const repoDir = this.config.repoUrl?.split("/")[1] || "";
 
       if (!this.config.sandboxId && sbx.sandboxId) {
         callbacks?.onUpdate?.(
@@ -474,7 +473,6 @@ export abstract class BaseAgent {
       );
     }
 
-    const { repoUrl } = this.config;
     const sbx = await this.getSandbox();
 
     // Check git status for changes

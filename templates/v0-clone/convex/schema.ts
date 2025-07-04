@@ -8,6 +8,7 @@ export default defineSchema({
     name: v.string(),
     tunnelUrl: v.optional(v.string()),
     repository: v.optional(v.string()),
+    templateId: v.string(),
     pullRequest: v.optional(v.any()),
     status: v.union(
       v.literal("IN_PROGRESS"),

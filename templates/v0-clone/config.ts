@@ -8,10 +8,10 @@ export interface Template {
   startCommands: {
     command: string;
     status: "INSTALLING_DEPENDENCIES" | "STARTING_DEV_SERVER";
-    useRepoContext?: boolean;
     background?: boolean;
   }[];
   secrets?: Record<string, string>;
+  systemPrompt: string;
 }
 
 export const templates: Template[] = [
@@ -30,10 +30,13 @@ export const templates: Template[] = [
       {
         command: "npm run dev",
         status: "STARTING_DEV_SERVER",
-        useRepoContext: true,
         background: true,
       },
     ],
+    systemPrompt:
+      "# GOAL\nYou are an helpful assistant that is tasked with helping the user build a NextJS app.\n" +
+      "- The NextJS dev server is running on port 3000.\n" +
+      "- ShadCN UI is installed, togehter with all the ShadCN components.\n",
   },
   {
     id: "nextjs-supabase-auth",
@@ -51,10 +54,14 @@ export const templates: Template[] = [
       {
         command: "npm run dev",
         status: "STARTING_DEV_SERVER",
-        useRepoContext: true,
         background: true,
       },
     ],
+    systemPrompt:
+      "# GOAL\nYou are an helpful assistant that is tasked with helping the user build a NextJS app.\n" +
+      "- The NextJS dev server is running on port 3000.\n" +
+      "- ShadCN UI is installed, togehter with all the ShadCN components.\n" +
+      "- Supabase CLI and Auth is installed and ready to be used if needed.\n",
   },
   {
     id: "nextjs-convex-clerk",
@@ -71,10 +78,20 @@ export const templates: Template[] = [
       {
         command: "npm run dev",
         status: "STARTING_DEV_SERVER",
-        useRepoContext: true,
+        background: true,
+      },
+      {
+        command: "npx convex dev",
+        status: "STARTING_DEV_SERVER",
         background: true,
       },
     ],
+    systemPrompt:
+      "# GOAL\nYou are an helpful assistant that is tasked with helping the user build a NextJS app.\n" +
+      "- The NextJS dev server is running on port 3000.\n" +
+      "- The convex command npx convex dev is running\n" +
+      "- ShadCN UI is installed, togehter with all the ShadCN components.\n" +
+      "- Convex CLI is is installed and ready to be used if needed.\n",
   },
   {
     id: "shopify-hydrogen",
@@ -98,7 +115,6 @@ export const templates: Template[] = [
       },
       {
         command: "shopify hydrogen dev --codegen --host",
-        useRepoContext: true,
         background: true,
         status: "STARTING_DEV_SERVER",
       },
@@ -106,6 +122,10 @@ export const templates: Template[] = [
     secrets: {
       SESSION_SECRET: "foobar",
     },
+    systemPrompt:
+      "# GOAL\nYou are an helpful assistant that is tasked with helping the user build a Shopify Hydrogen app.\n" +
+      "- The hydrogen server is running on port 3000.\n" +
+      "- The Shopify CLI is installed and ready to be used if needed.\n",
   },
   {
     id: "fastapi-nextjs",
@@ -122,9 +142,13 @@ export const templates: Template[] = [
       {
         command: "npm run dev",
         status: "STARTING_DEV_SERVER",
-        useRepoContext: true,
         background: true,
       },
     ],
+    systemPrompt:
+      "# GOAL\nYou are an helpful assistant that is tasked with helping the user build a FastAPI and Next.js app.\n" +
+      "- The NextJS dev server is running on port 3000.\n" +
+      "- The FastAPI server is running on port 8000.\n" +
+      "- ShadCN UI is installed, togehter with all the ShadCN components.\n",
   },
 ];

@@ -305,7 +305,7 @@ describe("OpenCodeAgent", () => {
       await openCodeAgent.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        "cd /var/vibe0 && git clone https://x-access-token:test-github-token@github.com/octocat/hello-world.git",
+        "cd /vibe0 && git clone https://x-access-token:test-github-token@github.com/octocat/hello-world.git .",
         { timeoutMs: 3600000, background: false }
       );
     });
@@ -314,7 +314,7 @@ describe("OpenCodeAgent", () => {
       await openCodeAgent.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        'cd /var/vibe0/hello-world && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"',
+        'cd /vibe0 && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"',
         { timeoutMs: 60000, background: false }
       );
     });
@@ -324,7 +324,7 @@ describe("OpenCodeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && opencode run --model openai/gpt-4 --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        'cd /vibe0 && opencode run --model openai/gpt-4 --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,
@@ -337,7 +337,7 @@ describe("OpenCodeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && opencode run --model openai/gpt-4 --print-logs "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository.\n\nUser: test prompt"',
+        'cd /vibe0 && opencode run --model openai/gpt-4 --print-logs "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
@@ -353,7 +353,7 @@ describe("OpenCodeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && opencode run "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        'cd /vibe0 && opencode run "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,
@@ -369,7 +369,7 @@ describe("OpenCodeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && opencode run --model openai/gpt-3.5-turbo --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        'cd /vibe0 && opencode run --model openai/gpt-3.5-turbo --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,
@@ -390,7 +390,7 @@ describe("OpenCodeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && opencode run --model anthropic/claude-3-sonnet --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        'cd /vibe0 && opencode run --model anthropic/claude-3-sonnet --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,
@@ -406,7 +406,7 @@ describe("OpenCodeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && opencode run --model openai/gpt-4 --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: Create a function that prints \\"Hello \\`World\\` \\$USER\\""',
+        'cd /vibe0 && opencode run --model openai/gpt-4 --print-logs "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: Create a function that prints \\"Hello \\`World\\` \\$USER\\""',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,

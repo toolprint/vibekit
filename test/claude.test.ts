@@ -234,7 +234,7 @@ describe("ClaudeAgent", () => {
       await claudeAgent.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        "cd /var/vibe0 && git clone https://x-access-token:test-github-token@github.com/octocat/hello-world.git",
+        "cd /vibe0 && git clone https://x-access-token:test-github-token@github.com/octocat/hello-world.git .",
         { timeoutMs: 3600000, background: false }
       );
     });
@@ -243,7 +243,7 @@ describe("ClaudeAgent", () => {
       await claudeAgent.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        'cd /var/vibe0/hello-world && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"',
+        'cd /vibe0 && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"',
         { timeoutMs: 60000, background: false }
       );
     });
@@ -253,7 +253,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-sonnet',
+        'cd /vibe0 && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-sonnet',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,
@@ -266,7 +266,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && echo "test prompt" | claude -p --append-system-prompt "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository." --disallowedTools "Edit" "Replace" "Write" --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-sonnet',
+        'cd /vibe0 && echo "test prompt" | claude -p --append-system-prompt "Research the repository and answer the user\'s questions. Do NOT make any changes to any files in the repository." --disallowedTools "Edit" "Replace" "Write" --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-sonnet',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,
@@ -283,7 +283,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-sonnet-4-20250514',
+        'cd /vibe0 && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-sonnet-4-20250514',
         expect.objectContaining({
           timeoutMs: 3600000,
         })
@@ -298,7 +298,7 @@ describe("ClaudeAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-opus',
+        'cd /vibe0 && echo "test prompt" | claude -p --append-system-prompt "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions." --output-format stream-json --verbose --allowedTools "Edit,Write,MultiEdit,Read,Bash" --model claude-3-opus',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,

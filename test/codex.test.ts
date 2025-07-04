@@ -236,7 +236,7 @@ describe("CodexAgent", () => {
       await codexAgent.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        "cd /var/vibe0 && git clone https://x-access-token:test-github-token@github.com/octocat/hello-world.git",
+        "cd /vibe0 && git clone https://x-access-token:test-github-token@github.com/octocat/hello-world.git .",
         { timeoutMs: 3600000, background: false }
       );
     });
@@ -245,7 +245,7 @@ describe("CodexAgent", () => {
       await codexAgent.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        'cd /var/vibe0/hello-world && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"',
+        'cd /vibe0 && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"',
         { timeoutMs: 60000, background: false }
       );
     });
@@ -254,7 +254,7 @@ describe("CodexAgent", () => {
       await codexAgent.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        'cd /var/vibe0/hello-world && codex --approval-mode auto-edit --model gpt-4 --provider openai --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        'cd /vibe0 && codex --approval-mode auto-edit --model gpt-4 --provider openai --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,
@@ -270,7 +270,7 @@ describe("CodexAgent", () => {
       await agentWithoutModel.generateCode("test prompt");
 
       expect(mockSandbox.commands.run).toHaveBeenCalledWith(
-        'cd /var/vibe0/hello-world && codex --approval-mode auto-edit --provider openai --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        'cd /vibe0 && codex --approval-mode auto-edit --provider openai --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,
@@ -299,7 +299,7 @@ describe("CodexAgent", () => {
 
       expect(mockSandbox.commands.run).toHaveBeenNthCalledWith(
         4,
-        'cd /var/vibe0/hello-world && codex --approval-mode auto-edit --model gpt-4 --provider anthropic --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
+        'cd /vibe0 && codex --approval-mode auto-edit --model gpt-4 --provider anthropic --quiet "Do the necessary changes to the codebase based on the users input.\nDon\'t ask any follow up questions.\n\nUser: test prompt"',
         expect.objectContaining({
           timeoutMs: 3600000,
           background: false,

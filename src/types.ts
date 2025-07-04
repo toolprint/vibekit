@@ -39,7 +39,6 @@ export type NorthflankConfig = {
   image?: string;
   projectId?: string;
   billingPlan?: string;
-  persistentVolume?: string;
   persistentVolumeStorage?: number;
 };
 
@@ -90,6 +89,8 @@ export type VibeKitConfig = {
   github?: GithubConfig;
   telemetry?: TelemetryConfig;
   sessionId?: string;
+  /** Working directory inside the sandbox (defaults to "/var/vibe0") */
+  workingDirectory?: string;
 };
 
 // CONVERSATION HISTORY
@@ -139,6 +140,7 @@ export interface CodexConfig {
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
+  workingDirectory?: string;
 }
 
 export interface CodexResponse {
@@ -165,6 +167,7 @@ export interface ClaudeConfig {
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
+  workingDirectory?: string;
 }
 
 export interface ClaudeResponse {
@@ -191,6 +194,7 @@ export interface OpenCodeConfig {
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
+  workingDirectory?: string;
 }
 
 export interface OpenCodeResponse {
@@ -217,6 +221,7 @@ export interface GeminiConfig {
   model?: string;
   sandboxId?: string;
   telemetry?: TelemetryConfig;
+  workingDirectory?: string;
 }
 
 export interface GeminiResponse {
@@ -269,6 +274,7 @@ export interface SandboxConfig {
   billingPlan?: string; // for Northflank
   persistentVolume?: string; // for Northflank
   persistentVolumeStorage?: number; // for Northflank
+  workingDirectory?: string; // for Nortflank
 }
 
 export interface SandboxProvider {

@@ -131,6 +131,7 @@ class DaytonaSandboxInstance implements SandboxInstance {
             undefined // timeout - use default working directory
           );
 
+          // Set up logging for the background command
           this.workspace.process.getSessionCommandLogs(
             session.sessionId,
             response.cmdId!,
@@ -139,11 +140,25 @@ class DaytonaSandboxInstance implements SandboxInstance {
             }
           );
 
-          return {
-            exitCode: response.exitCode || 0,
-            stdout: response.output || "",
-            stderr: "", // SessionExecuteResponse doesn't have stderr
-          };
+          // Wait for the command to complete
+          while (true) {
+            const commandInfo = await this.workspace.process.getSessionCommand(
+              session.sessionId,
+              response.cmdId!
+            );
+
+            const exitCode = commandInfo.exitCode;
+            if (exitCode !== null && exitCode !== undefined) {
+              return {
+                exitCode: exitCode,
+                stdout: "Background command started successfully",
+                stderr: "", // SessionExecuteResponse doesn't have stderr
+              };
+            }
+
+            // Wait before checking again
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
         }
 
         try {
@@ -156,14 +171,6 @@ class DaytonaSandboxInstance implements SandboxInstance {
               runAsync: false,
             },
             undefined // timeout - use default working directory
-          );
-
-          this.workspace.process.getSessionCommandLogs(
-            session.sessionId,
-            response.cmdId!,
-            (chunk) => {
-              options?.onStdout?.(chunk);
-            }
           );
 
           return {
@@ -292,9 +299,6 @@ export class NorthflankSandboxInstance implements SandboxInstance {
   get commands(): SandboxCommands {
     return {
       run: async (command: string, options?: SandboxCommandOptions) => {
-        const cmd = [
-          `mkdir -p ${this.workingDirectory}; cd ${this.workingDirectory}; ${command}`,
-        ];
         if (options?.background) {
           const handle = await this.apiClient.exec.execServiceSession(
             {
@@ -303,7 +307,7 @@ export class NorthflankSandboxInstance implements SandboxInstance {
             },
             {
               shell: `bash -c`,
-              command: cmd,
+              command,
             }
           );
 
@@ -328,7 +332,7 @@ export class NorthflankSandboxInstance implements SandboxInstance {
           },
           {
             shell: `bash -c`,
-            command: cmd,
+            command,
           }
         );
 
@@ -349,8 +353,8 @@ export class NorthflankSandboxInstance implements SandboxInstance {
 
         const result = await handle.waitForCommandResult();
 
-        const fullStdout = stdoutChunks.join('');
-        const fullStderr = stderrChunks.join('');
+        const fullStdout = stdoutChunks.join("");
+        const fullStderr = stderrChunks.join("");
 
         //TODO: handle streaming callbacks if provided
 
@@ -450,7 +454,7 @@ export class NorthflankSandboxInstance implements SandboxInstance {
 
 export class NorthflankSandboxProvider implements SandboxProvider {
   private static readonly DefaultBillingPlan = "nf-compute-200";
-  private static readonly DefaultPersistentVolume = "/var/app";
+  private static readonly DefaultPersistentVolume = "/var/vibe0";
   private static readonly DefaultPersistentVolumeStorage = 10240; // 10GiB
   private static readonly StatusPollInterval = 1_000; // 1 second
   private static readonly MaxPollTimeout = 300000; // 5 minutes
@@ -565,7 +569,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
         mounts: [
           {
             containerMountPath:
-              config.persistentVolume ||
+              config.workingDirectory ||
               NorthflankSandboxProvider.DefaultPersistentVolume,
           },
         ],
@@ -601,7 +605,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
       apiClient,
       sandboxId,
       config.projectId,
-      config.persistentVolume ||
+      config.workingDirectory ||
         NorthflankSandboxProvider.DefaultPersistentVolume
     );
   }
@@ -637,7 +641,7 @@ export class NorthflankSandboxProvider implements SandboxProvider {
       apiClient,
       sandboxId,
       config.projectId,
-      config.persistentVolume ||
+      config.workingDirectory ||
         NorthflankSandboxProvider.DefaultPersistentVolume
     );
   }
@@ -662,7 +666,8 @@ export function createSandboxProvider(
 // Helper function to create SandboxConfig from VibeKitConfig environment
 export function createSandboxConfigFromEnvironment(
   environment: any,
-  agentType?: AgentType
+  agentType?: AgentType,
+  workingDirectory?: string
 ): SandboxConfig {
   const defaultImage = getDockerImageFromAgentType(agentType);
   if (environment.northflank) {
@@ -674,6 +679,7 @@ export function createSandboxConfigFromEnvironment(
       projectId: environment.northflank.projectId,
       billingPlan: environment.northflank.billingPlan,
       persistentVolume: environment.northflank.persistentVolume,
+      workingDirectory: workingDirectory || "/var/vibe0",
     };
   }
 

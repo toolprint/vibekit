@@ -31,6 +31,7 @@ export class OpenCodeAgent extends BaseAgent {
       secrets: config.secrets,
       sandboxId: config.sandboxId,
       telemetry: config.telemetry,
+      workingDirectory: config.workingDirectory,
     };
 
     super(baseConfig);

@@ -891,7 +891,6 @@ describe("VibeKit", () => {
 
     const result = await vibekit.executeCommand("echo 'Hello World'", {
       timeoutMs: 30000,
-      useRepoContext: false,
       callbacks: mockCallbacks,
     });
 

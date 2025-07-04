@@ -111,7 +111,7 @@ export const createPullRequestAction = async ({
   const vibekit = new VibeKit(config);
 
   const pr = await vibekit.createPullRequest(
-    "/var/app",
+    undefined, // Let the agent handle the path automatically
     {
       name: "🖖 vibe0",
       color: "42460b",

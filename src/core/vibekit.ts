@@ -70,7 +70,8 @@ export class VibeKit {
     // Create sandbox configuration from the environment
     const sandboxConfig = createSandboxConfigFromEnvironment(
       setup.environment,
-      setup.agent.type
+      setup.agent.type,
+      setup.workingDirectory
     );
 
     if (setup.agent.type === "codex") {
@@ -89,6 +90,7 @@ export class VibeKit {
         sandboxConfig,
         // Pass secrets to agent
         secrets: setup.secrets,
+        workingDirectory: setup.workingDirectory,
       };
       return new CodexAgent(codexConfig);
     } else if (setup.agent.type === "claude") {
@@ -107,6 +109,7 @@ export class VibeKit {
         sandboxConfig,
         // Pass secrets to agent
         secrets: setup.secrets,
+        workingDirectory: setup.workingDirectory,
       };
       return new ClaudeAgent(claudeConfig);
     } else if (setup.agent.type === "opencode") {
@@ -125,6 +128,7 @@ export class VibeKit {
         sandboxConfig,
         // Pass secrets to agent
         secrets: setup.secrets,
+        workingDirectory: setup.workingDirectory,
       };
       return new OpenCodeAgent(openCodeConfig);
     } else if (setup.agent.type === "gemini") {
@@ -142,6 +146,7 @@ export class VibeKit {
         sandboxConfig,
         // Pass secrets to agent
         secrets: setup.secrets,
+        workingDirectory: setup.workingDirectory,
       };
       return new GeminiAgent(geminiConfig);
     } else {
@@ -309,20 +314,14 @@ export class VibeKit {
    * This method is available for both Codex and Claude agents and automatically labels
    * the pull request with the agent name ('codex' or 'claude').
    *
-   * @param projectPath - Optional path to the project directory. If provided, overrides the default repository directory.
    * @returns Promise<PullRequestResponse> - Contains the PR URL, number, branch name, and commit SHA
    * @throws Error if the agent is not supported or if PR creation fails
    */
   async createPullRequest(
-    projectPath?: string,
     labelOptions?: LabelOptions,
     branchPrefix?: string
   ): Promise<PullRequestResponse> {
-    return this.agent.createPullRequest(
-      projectPath,
-      labelOptions,
-      branchPrefix
-    );
+    return this.agent.createPullRequest(labelOptions, branchPrefix);
   }
 
   /**
@@ -405,7 +404,6 @@ export class VibeKit {
     command: string,
     options: {
       timeoutMs?: number;
-      useRepoContext?: boolean;
       background?: boolean;
       callbacks?: VibeKitStreamCallbacks;
     } = {}

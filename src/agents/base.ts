@@ -548,7 +548,6 @@ export abstract class BaseAgent {
   }
 
   public async createPullRequest(
-    projectPath?: string,
     labelOptions?: LabelOptions,
     branchPrefix?: string
   ): Promise<PullRequestResult> {

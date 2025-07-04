@@ -131,6 +131,7 @@ class DaytonaSandboxInstance implements SandboxInstance {
             undefined // timeout - use default working directory
           );
 
+          // Set up logging for the background command
           this.workspace.process.getSessionCommandLogs(
             session.sessionId,
             response.cmdId!,
@@ -139,11 +140,25 @@ class DaytonaSandboxInstance implements SandboxInstance {
             }
           );
 
-          return {
-            exitCode: response.exitCode || 0,
-            stdout: response.output || "",
-            stderr: "", // SessionExecuteResponse doesn't have stderr
-          };
+          // Wait for the command to complete
+          while (true) {
+            const commandInfo = await this.workspace.process.getSessionCommand(
+              session.sessionId,
+              response.cmdId!
+            );
+
+            const exitCode = commandInfo.exitCode;
+            if (exitCode !== null && exitCode !== undefined) {
+              return {
+                exitCode: exitCode,
+                stdout: "Background command started successfully",
+                stderr: "", // SessionExecuteResponse doesn't have stderr
+              };
+            }
+
+            // Wait before checking again
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
         }
 
         try {
@@ -156,14 +171,6 @@ class DaytonaSandboxInstance implements SandboxInstance {
               runAsync: false,
             },
             undefined // timeout - use default working directory
-          );
-
-          this.workspace.process.getSessionCommandLogs(
-            session.sessionId,
-            response.cmdId!,
-            (chunk) => {
-              options?.onStdout?.(chunk);
-            }
           );
 
           return {

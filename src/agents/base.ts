@@ -165,7 +165,7 @@ export abstract class BaseAgent {
 
   constructor(config: BaseAgentConfig) {
     this.config = config;
-    this.WORKING_DIR = config.workingDirectory || "/var/vibe0";
+    this.WORKING_DIR = config.workingDirectory || "/vibe0";
   }
 
   protected abstract getCommandConfig(
@@ -201,6 +201,12 @@ export abstract class BaseAgent {
   }
 
   protected abstract getEnvironmentVariables(): Record<string, string>;
+
+  private getMkdirCommand(path: string): string {
+    return this.config.sandboxConfig.type === "e2b" 
+      ? `sudo mkdir -p ${path} && sudo chown $USER:$USER ${path}` 
+      : `mkdir -p ${path}`;
+  }
 
   public async killSandbox() {
     if (this.sandboxInstance) {
@@ -265,7 +271,7 @@ export abstract class BaseAgent {
       }
 
       // Ensure working directory exists first
-      await sbx.commands.run(`mkdir -p ${this.WORKING_DIR}`, {
+      await sbx.commands.run(this.getMkdirCommand(this.WORKING_DIR), {
         timeoutMs: 30000,
         background: false,
       });
@@ -333,7 +339,7 @@ export abstract class BaseAgent {
         );
 
         // Create working directory
-        await sbx.commands.run(`mkdir -p ${this.WORKING_DIR}`, {
+        await sbx.commands.run(this.getMkdirCommand(this.WORKING_DIR), {
           timeoutMs: 30000,
           background: background || false,
         });

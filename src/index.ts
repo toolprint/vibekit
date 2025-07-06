@@ -1,58 +1,46 @@
-// Main exports
+// Slim core export with dynamic imports
 export { VibeKit } from "./core/vibekit";
 
-// Type exports
+// Essential type exports only
 export type {
-  AgentResponse,
-  VibeKitStreamCallbacks,
-  PullRequestResponse,
-} from "./core/vibekit";
-
-export type {
-  VibeKitConfig,
   AgentType,
   AgentMode,
-  AgentModel,
   ModelProvider,
-  E2BConfig,
-  DaytonaConfig,
-  NorthflankConfig,
-  EnvironmentConfig,
-  GithubConfig,
+  SandboxConfig,
   TelemetryConfig,
-  LabelOptions,
+  Conversation,
 } from "./types";
 
-// Agent function exports
-export { CodexAgent } from "./agents/codex";
-export { ClaudeAgent } from "./agents/claude";
-export { OpenCodeAgent } from "./agents/opencode";
-export { GeminiAgent } from "./agents/gemini";
-export { BaseAgent } from "./agents/base";
+// Optional exports with dynamic imports
+export const createClaudeAgent = async () => {
+  const { ClaudeAgent } = await import('./agents/claude');
+  return ClaudeAgent;
+};
 
-// Agent config type exports
-export type { CodexConfig, CodexResponse, CodexStreamCallbacks } from "./types";
-export type {
-  ClaudeConfig,
-  ClaudeResponse,
-  ClaudeStreamCallbacks,
-} from "./types";
-export type {
-  OpenCodeConfig,
-  OpenCodeResponse,
-  OpenCodeStreamCallbacks,
-} from "./types";
-export type {
-  StreamCallbacks,
-  BaseAgentConfig,
-  PullRequestResult,
-} from "./agents/base";
-export type {
-  GeminiConfig,
-  GeminiResponse,
-  GeminiStreamCallbacks,
-} from "./types";
+export const createCodexAgent = async () => {
+  const { CodexAgent } = await import('./agents/codex');
+  return CodexAgent;
+};
 
-// Telemetry exports
-export { TelemetryService } from "./services/telemetry";
+export const createOpenCodeAgent = async () => {
+  const { OpenCodeAgent } = await import('./agents/opencode');
+  return OpenCodeAgent;
+};
+
+export const createGeminiAgent = async () => {
+  const { GeminiAgent } = await import('./agents/gemini');
+  return GeminiAgent;
+};
+
+export const createTelemetryService = async () => {
+  const { TelemetryService } = await import('./services/telemetry');
+  return TelemetryService;
+};
+
+// Type-only exports for advanced usage
+export type { ClaudeConfig, ClaudeResponse } from "./types";
+export type { CodexConfig, CodexResponse } from "./types";
+export type { OpenCodeConfig, OpenCodeResponse } from "./types";
+export type { GeminiConfig } from "./types";
 export type { TelemetryData } from "./services/telemetry";
+export type { BaseAgentConfig, PullRequestResult } from "./agents/base";

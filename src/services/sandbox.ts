@@ -90,7 +90,7 @@ export class E2BSandboxProvider implements SandboxProvider {
     const sandbox = await E2BSandbox.create(templateId, {
       envs,
       apiKey: config.apiKey,
-      timeoutMs: 86400000, // 24 hours in milliseconds
+      timeoutMs: 3600000, // 1 hour in milliseconds
     });
     return new E2BSandboxInstance(sandbox);
   }

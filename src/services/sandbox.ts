@@ -1,5 +1,5 @@
 import { Sandbox as E2BSandbox } from "@e2b/code-interpreter";
-import { Daytona, DaytonaConfig, Sandbox, Workspace } from "@daytonaio/sdk";
+import { Daytona, DaytonaConfig, Sandbox } from "@daytonaio/sdk";
 
 import {
   AgentType,
@@ -196,7 +196,7 @@ class DaytonaSandboxInstance implements SandboxInstance {
 
   async kill(): Promise<void> {
     if (this.daytona && this.workspace) {
-      await this.daytona.remove(this.workspace);
+      await this.daytona.delete(this.workspace);
     }
   }
 

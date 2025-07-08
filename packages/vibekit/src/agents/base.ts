@@ -6,10 +6,9 @@ import {
 import {
   Conversation,
   SandboxInstance,
-  SandboxConfig,
+  SandboxProvider,
   LabelOptions,
 } from "../types";
-import { createSandboxProvider } from "../services/sandbox";
 
 // StreamingBuffer class to handle chunked JSON data
 class StreamingBuffer {
@@ -99,7 +98,7 @@ class StreamingBuffer {
 export interface BaseAgentConfig {
   githubToken?: string;
   repoUrl?: string;
-  sandboxConfig: SandboxConfig; // Now required - no more fallback
+  sandboxProvider?: SandboxProvider;
   secrets?: Record<string, string>;
   sandboxId?: string;
   telemetry?: any;
@@ -179,13 +178,14 @@ export abstract class BaseAgent {
   private async getSandbox(): Promise<SandboxInstance> {
     if (this.sandboxInstance) return this.sandboxInstance;
 
-    const provider = createSandboxProvider(this.config.sandboxConfig.type);
+    if (!this.config.sandboxProvider) {
+      throw new Error("No sandbox provider configured");
+    }
+
+    const provider = this.config.sandboxProvider;
 
     if (this.config.sandboxId) {
-      this.sandboxInstance = await provider.resume(
-        this.config.sandboxId,
-        this.config.sandboxConfig
-      );
+      this.sandboxInstance = await provider.resume(this.config.sandboxId);
     } else {
       // Merge agent-specific environment variables with user-defined secrets
       const envVars = {
@@ -194,9 +194,9 @@ export abstract class BaseAgent {
       };
 
       this.sandboxInstance = await provider.create(
-        this.config.sandboxConfig,
         envVars,
-        this.getAgentType()
+        this.getAgentType(),
+        this.WORKING_DIR
       );
     }
     return this.sandboxInstance;
@@ -205,9 +205,8 @@ export abstract class BaseAgent {
   protected abstract getEnvironmentVariables(): Record<string, string>;
 
   private getMkdirCommand(path: string): string {
-    return this.config.sandboxConfig.type === "e2b"
-      ? `sudo mkdir -p ${path} && sudo chown $USER:$USER ${path}`
-      : `mkdir -p ${path}`;
+    // For now, assume E2B-style commands. This could be made configurable later.
+    return `sudo mkdir -p ${path} && sudo chown $USER:$USER ${path}`;
   }
 
   public async killSandbox() {
@@ -224,11 +223,9 @@ export abstract class BaseAgent {
   }
 
   public async resumeSandbox() {
-    if (this.sandboxInstance) {
-      const provider = createSandboxProvider(this.config.sandboxConfig.type);
-      this.sandboxInstance = await provider.resume(
-        this.sandboxInstance.sandboxId,
-        this.config.sandboxConfig
+    if (this.sandboxInstance && this.config.sandboxProvider) {
+      this.sandboxInstance = await this.config.sandboxProvider.resume(
+        this.sandboxInstance.sandboxId
       );
     }
   }

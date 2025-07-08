@@ -4,6 +4,7 @@ import type {
   AgentMode, 
   ModelProvider,
   SandboxConfig,
+  SandboxProvider,
   TelemetryConfig,
   Conversation
 } from '../types';
@@ -22,7 +23,7 @@ export interface VibeKitOptions {
     apiKey: string;
     model: string;
   };
-  sandbox?: SandboxConfig;
+  sandbox?: SandboxProvider;
   github?: {
     token: string;
     repository: string;
@@ -54,8 +55,8 @@ export class VibeKit extends EventEmitter {
     return this;
   }
 
-  withSandbox(config: SandboxConfig): this {
-    this.options.sandbox = config;
+  withSandbox(provider: SandboxProvider): this {
+    this.options.sandbox = provider;
     return this;
   }
 
@@ -115,8 +116,10 @@ export class VibeKit extends EventEmitter {
         throw new Error(`Unsupported agent type: ${type}`);
     }
 
-    // Create sandbox config
-    const sandboxConfig = this.options.sandbox || { type: 'e2b', apiKey: '' };
+    // Check if sandbox provider is configured
+    if (!this.options.sandbox) {
+      throw new Error('Sandbox provider is required. Use withSandbox() to configure a provider.');
+    }
 
     // Initialize agent with configuration
     const agentConfig = {
@@ -125,9 +128,7 @@ export class VibeKit extends EventEmitter {
       model,
       githubToken: this.options.github?.token,
       repoUrl: this.options.github?.repository,
-      e2bApiKey: sandboxConfig.type === 'e2b' ? sandboxConfig.apiKey : '',
-      e2bTemplateId: sandboxConfig.templateId,
-      sandboxConfig,
+      sandboxProvider: this.options.sandbox,
       secrets: this.options.secrets,
       workingDirectory: this.options.workingDirectory,
       telemetry: this.options.telemetry?.enabled 

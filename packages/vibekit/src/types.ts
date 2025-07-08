@@ -133,9 +133,7 @@ export interface CodexConfig {
   provider?: ModelProvider;
   githubToken?: string;
   repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
-  e2bApiKey: string;
-  e2bTemplateId?: string;
-  sandboxConfig?: SandboxConfig; // New unified sandbox config
+  sandboxProvider?: SandboxProvider;
   secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
@@ -160,9 +158,7 @@ export interface ClaudeConfig {
   provider?: ModelProvider;
   githubToken?: string;
   repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
-  e2bApiKey: string;
-  e2bTemplateId?: string;
-  sandboxConfig?: SandboxConfig; // New unified sandbox config
+  sandboxProvider?: SandboxProvider;
   secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
@@ -187,9 +183,7 @@ export interface OpenCodeConfig {
   provider?: ModelProvider;
   githubToken?: string;
   repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
-  e2bApiKey: string;
-  e2bTemplateId?: string;
-  sandboxConfig?: SandboxConfig; // New unified sandbox config
+  sandboxProvider?: SandboxProvider;
   secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
@@ -214,9 +208,7 @@ export interface GeminiConfig {
   provider?: ModelProvider;
   githubToken?: string;
   repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
-  e2bApiKey: string;
-  e2bTemplateId?: string;
-  sandboxConfig?: SandboxConfig; // New unified sandbox config
+  sandboxProvider?: SandboxProvider;
   secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
@@ -279,9 +271,9 @@ export interface SandboxConfig {
 
 export interface SandboxProvider {
   create(
-    config: SandboxConfig,
     envs?: Record<string, string>,
-    agentType?: "codex" | "claude" | "opencode" | "gemini"
+    agentType?: "codex" | "claude" | "opencode" | "gemini",
+    workingDirectory?: string
   ): Promise<SandboxInstance>;
-  resume(sandboxId: string, config: SandboxConfig): Promise<SandboxInstance>;
+  resume(sandboxId: string): Promise<SandboxInstance>;
 }

@@ -44,13 +44,13 @@ export class VibeKit extends EventEmitter {
     super();
   }
 
-  withAgent(
-    type: AgentType,
-    provider: ModelProvider,
-    apiKey: string,
-    model: string
-  ): this {
-    this.options.agent = { type, provider, apiKey, model };
+  withAgent(config: {
+    type: AgentType;
+    provider: ModelProvider;
+    apiKey: string;
+    model: string;
+  }): this {
+    this.options.agent = config;
     return this;
   }
 
@@ -59,13 +59,19 @@ export class VibeKit extends EventEmitter {
     return this;
   }
 
-  withGithub(token: string, repository: string): this {
-    this.options.github = { token, repository };
+  withGithub(config: {
+    token: string;
+    repository: string;
+  }): this {
+    this.options.github = config;
     return this;
   }
 
-  withTelemetry(enabled: boolean, sessionId?: string): this {
-    this.options.telemetry = { enabled, sessionId };
+  withTelemetry(config: {
+    enabled: boolean;
+    sessionId?: string;
+  }): this {
+    this.options.telemetry = config;
     return this;
   }
 

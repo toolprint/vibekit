@@ -17,7 +17,7 @@
     "type-check": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@vibe-kit/sdk": "workspace:*"
+    "@vibe-kit/sdk": "*"
   },
   "dependencies": {
     "@northflank/js-client": "^0.8.2"

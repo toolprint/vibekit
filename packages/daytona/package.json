@@ -19,12 +19,12 @@
   "peerDependencies": {
     "@vibe-kit/sdk": "*"
   },
-  "dependencies": {
-    "@daytonaio/sdk": "0.22.1-alpha.1"
-  },
   "devDependencies": {
     "@types/node": "^22.15.18",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@daytonaio/sdk": "^0.22.1"
   }
 }

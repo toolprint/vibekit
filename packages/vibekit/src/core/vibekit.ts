@@ -1,13 +1,10 @@
-import { EventEmitter } from 'events';
-import type { 
-  AgentType, 
-  AgentMode, 
+import { EventEmitter } from "events";
+import type {
+  AgentType,
+  AgentMode,
   ModelProvider,
-  SandboxConfig,
   SandboxProvider,
-  TelemetryConfig,
-  Conversation
-} from '../types';
+} from "../types";
 
 export interface VibeKitEvents {
   stdout: (chunk: string) => void;
@@ -19,9 +16,9 @@ export interface VibeKitEvents {
 export interface VibeKitOptions {
   agent: {
     type: AgentType;
-    provider: ModelProvider;
+    provider?: ModelProvider;
     apiKey: string;
-    model: string;
+    model?: string;
   };
   sandbox?: SandboxProvider;
   github?: {
@@ -60,18 +57,12 @@ export class VibeKit extends EventEmitter {
     return this;
   }
 
-  withGithub(config: {
-    token: string;
-    repository: string;
-  }): this {
+  withGithub(config: { token: string; repository: string }): this {
     this.options.github = config;
     return this;
   }
 
-  withTelemetry(config: {
-    enabled: boolean;
-    sessionId?: string;
-  }): this {
+  withTelemetry(config: { enabled: boolean; sessionId?: string }): this {
     this.options.telemetry = config;
     return this;
   }
@@ -88,7 +79,7 @@ export class VibeKit extends EventEmitter {
 
   private async initializeAgent(): Promise<void> {
     if (!this.options.agent) {
-      throw new Error('Agent configuration is required');
+      throw new Error("Agent configuration is required");
     }
 
     const { type, provider, apiKey, model } = this.options.agent;
@@ -96,20 +87,20 @@ export class VibeKit extends EventEmitter {
     // Dynamic imports for different agents
     let AgentClass;
     switch (type) {
-      case 'claude':
-        const { ClaudeAgent } = await import('../agents/claude');
+      case "claude":
+        const { ClaudeAgent } = await import("../agents/claude");
         AgentClass = ClaudeAgent;
         break;
-      case 'codex':
-        const { CodexAgent } = await import('../agents/codex');
+      case "codex":
+        const { CodexAgent } = await import("../agents/codex");
         AgentClass = CodexAgent;
         break;
-      case 'opencode':
-        const { OpenCodeAgent } = await import('../agents/opencode');
+      case "opencode":
+        const { OpenCodeAgent } = await import("../agents/opencode");
         AgentClass = OpenCodeAgent;
         break;
-      case 'gemini':
-        const { GeminiAgent } = await import('../agents/gemini');
+      case "gemini":
+        const { GeminiAgent } = await import("../agents/gemini");
         AgentClass = GeminiAgent;
         break;
       default:
@@ -118,7 +109,9 @@ export class VibeKit extends EventEmitter {
 
     // Check if sandbox provider is configured
     if (!this.options.sandbox) {
-      throw new Error('Sandbox provider is required. Use withSandbox() to configure a provider.');
+      throw new Error(
+        "Sandbox provider is required. Use withSandbox() to configure a provider."
+      );
     }
 
     // Initialize agent with configuration
@@ -131,7 +124,7 @@ export class VibeKit extends EventEmitter {
       sandboxProvider: this.options.sandbox,
       secrets: this.options.secrets,
       workingDirectory: this.options.workingDirectory,
-      telemetry: this.options.telemetry?.enabled 
+      telemetry: this.options.telemetry?.enabled
         ? { isEnabled: true, sessionId: this.options.telemetry.sessionId }
         : undefined,
     };
@@ -140,7 +133,7 @@ export class VibeKit extends EventEmitter {
 
     // Initialize telemetry if enabled
     if (this.options.telemetry?.enabled) {
-      const { TelemetryService } = await import('../services/telemetry');
+      const { TelemetryService } = await import("../services/telemetry");
       this.telemetryService = new TelemetryService(
         { isEnabled: true },
         this.options.telemetry.sessionId
@@ -148,20 +141,23 @@ export class VibeKit extends EventEmitter {
     }
   }
 
-  async generateCode(
-    prompt: string, 
-    mode: AgentMode = 'code'
-  ): Promise<any> {
+  async generateCode(prompt: string, mode: AgentMode = "code"): Promise<any> {
     if (!this.agent) {
       await this.initializeAgent();
     }
 
     const callbacks = {
-      onUpdate: (data: string) => this.emit('update', data),
-      onError: (error: string) => this.emit('error', error),
+      onUpdate: (data: string) => this.emit("update", data),
+      onError: (error: string) => this.emit("error", error),
     };
 
-    return this.agent.generateCode(prompt, mode, undefined, undefined, callbacks);
+    return this.agent.generateCode(
+      prompt,
+      mode,
+      undefined,
+      undefined,
+      callbacks
+    );
   }
 
   async createPullRequest(): Promise<any> {
@@ -178,8 +174,8 @@ export class VibeKit extends EventEmitter {
     }
 
     const callbacks = {
-      onUpdate: (data: string) => this.emit('update', data),
-      onError: (error: string) => this.emit('error', error),
+      onUpdate: (data: string) => this.emit("update", data),
+      onError: (error: string) => this.emit("error", error),
     };
 
     return this.agent.runTests(undefined, undefined, callbacks);
@@ -191,8 +187,8 @@ export class VibeKit extends EventEmitter {
     }
 
     const callbacks = {
-      onUpdate: (data: string) => this.emit('stdout', data),
-      onError: (error: string) => this.emit('stderr', error),
+      onUpdate: (data: string) => this.emit("stdout", data),
+      onError: (error: string) => this.emit("stderr", error),
     };
 
     return this.agent.executeCommand(command, { callbacks });

@@ -1,4 +1,8 @@
-import { Daytona, DaytonaConfig as DaytonaSDKConfig, Sandbox } from "@daytonaio/sdk";
+import {
+  Daytona,
+  DaytonaConfig as DaytonaSDKConfig,
+  Sandbox,
+} from "@daytonaio/sdk";
 
 // Define the interfaces we need from the SDK
 export interface SandboxExecutionResult {
@@ -55,7 +59,7 @@ const getDockerImageFromAgentType = (agentType?: AgentType) => {
   } else if (agentType === "opencode") {
     return "superagentai/vibekit-opencode:1.0";
   } else if (agentType === "gemini") {
-    return "superagentai/vibekit-gemini:1.0";
+    return "superagentai/vibekit-gemini:1.1";
   }
   return "ubuntu:22.04";
 };
@@ -72,7 +76,10 @@ class DaytonaSandboxInstance implements SandboxInstance {
   get commands(): SandboxCommands {
     return {
       run: async (command: string, options?: SandboxCommandOptions) => {
-        const session = await this.workspace.process.getSession(this.sandboxId);
+        console.log("WORKSPACE", this.workspace.id);
+        const session = await this.workspace.process.getSession(
+          this.workspace.id
+        );
         // Check if background execution is requested - not supported in Daytona
         if (options?.background) {
           const response = await this.workspace.process.executeSessionCommand(
@@ -178,7 +185,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
       // Dynamic import to avoid dependency issues if daytona-sdk is not installed
       const daytonaConfig: DaytonaSDKConfig = {
         apiKey: this.config.apiKey,
-        apiUrl: this.config.serverUrl || "https://app.daytona.io",
+        apiUrl: this.config.serverUrl || "https://app.daytona.io/api",
       };
 
       const daytona = new Daytona(daytonaConfig);
@@ -196,9 +203,8 @@ export class DaytonaSandboxProvider implements SandboxProvider {
 
       // Set up working directory if specified
       if (workingDirectory) {
-        const session = await workspace.process.getSession(workspace.id);
         await workspace.process.executeSessionCommand(
-          session.sessionId,
+          workspace.id,
           {
             command: `mkdir -p ${workingDirectory}`,
             runAsync: false,
@@ -229,7 +235,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
     try {
       const daytonaConfig: DaytonaSDKConfig = {
         apiKey: this.config.apiKey,
-        apiUrl: this.config.serverUrl || "https://app.daytona.io",
+        apiUrl: this.config.serverUrl || "https://app.daytona.io/api",
       };
 
       const daytona = new Daytona(daytonaConfig);
@@ -253,6 +259,8 @@ export class DaytonaSandboxProvider implements SandboxProvider {
   }
 }
 
-export function createDaytonaProvider(config: DaytonaConfig): DaytonaSandboxProvider {
+export function createDaytonaProvider(
+  config: DaytonaConfig
+): DaytonaSandboxProvider {
   return new DaytonaSandboxProvider(config);
 }

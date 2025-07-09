@@ -21,7 +21,7 @@ class StreamingBuffer {
 
   append(chunk: string): void {
     // Filter out null bytes that can corrupt JSON parsing
-    const cleanChunk = chunk.replace(/\0/g, '');
+    const cleanChunk = chunk.replace(/\0/g, "");
     this.buffer += cleanChunk;
     this.processBuffer();
   }
@@ -277,8 +277,6 @@ export abstract class BaseAgent {
         );
       }
 
-      console.log("RUN IT");
-
       // Ensure working directory exists first
       await sbx.commands.run(this.getMkdirCommand(this.WORKING_DIR), {
         timeoutMs: 30000,
@@ -363,12 +361,12 @@ export abstract class BaseAgent {
             `cd ${this.WORKING_DIR} && git clone https://x-access-token:${this.config.githubToken}@github.com/${this.config.repoUrl}.git .`,
             { timeoutMs: 3600000, background: background || false }
           );
-        }
 
-        await sbx.commands.run(
-          `cd ${this.WORKING_DIR} && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"`,
-          { timeoutMs: 60000, background: background || false }
-        );
+          await sbx.commands.run(
+            `cd ${this.WORKING_DIR} && git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"`,
+            { timeoutMs: 60000, background: background || false }
+          );
+        }
       } else if (this.config.sandboxId) {
         callbacks?.onUpdate?.(
           `{"type": "start", "sandbox_id": "${this.config.sandboxId}"}`

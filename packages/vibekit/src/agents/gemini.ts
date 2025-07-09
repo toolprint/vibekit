@@ -61,9 +61,9 @@ export class GeminiAgent extends BaseAgent {
     let _prompt = `${instruction}\n\nUser: ${escapedPrompt}`;
 
     return {
-      command: `gemini --model ${
-        this.model || "gemini-2.5-pro-preview-05-06"
-      } --prompt "${_prompt}" --yolo`,
+      command: `echo "${_prompt}" | gemini --model ${
+        this.model || "gemini-2.5-pro"
+      } --yolo`,
       errorPrefix: "Gemini",
       labelName: "gemini",
       labelColor: "4285F4",
@@ -125,15 +125,16 @@ export class GeminiAgent extends BaseAgent {
     }
 
     const escapedPrompt = this.escapePrompt(prompt);
+
     let _prompt = `${instruction}\n\nUser: ${escapedPrompt}`;
 
     // Override the command config with history-aware instruction
     const originalGetCommandConfig = this.getCommandConfig.bind(this);
     this.getCommandConfig = (p: string, m?: "ask" | "code") => ({
       ...originalGetCommandConfig(p, m),
-      command: `gemini --model ${
-        this.model || "gemini-2.5-pro-preview-05-06"
-      } --prompt "${_prompt}" --yolo`,
+      command: `echo "${_prompt}" | gemini --model ${
+        this.model || "gemini-2.5-pro"
+      } --yolo`,
     });
 
     const result = await super.generateCode(

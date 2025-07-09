@@ -62,7 +62,7 @@ export class E2BSandboxInstance implements SandboxInstance {
         // E2B has specific overloads for background vs non-background execution
         if (background) {
           // For background execution, E2B returns a CommandHandle, not a CommandResult
-          const handle = await this.sandbox.commands.run(command, {
+          await this.sandbox.commands.run(command, {
             ...e2bOptions,
             background: true,
             onStdout: (data) => console.log("stdout", data),

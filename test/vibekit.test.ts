@@ -34,7 +34,7 @@ describe("VibeKit SDK", () => {
     expect(pwd).toBe(dir);
   }, 60000);
 
-  it("should download reposity", async () => {
+  it("should download repository", async () => {
     const dir = "/var/vibe0";
 
     const e2bProvider = createE2BProvider({
@@ -76,4 +76,29 @@ describe("VibeKit SDK", () => {
 
     expect(gitUpdateReceived).toBe(true);
   }, 60000);
+  it("should set env variables", async () => {
+    const e2bProvider = createE2BProvider({
+      apiKey: process.env.E2B_API_KEY!,
+      templateId: "vibekit-claude",
+    });
+
+    const vibeKit = new VibeKit()
+      .withAgent({
+        type: "claude",
+        provider: "anthropic",
+        apiKey: process.env.ANTHROPIC_API_KEY!,
+        model: "claude-sonnet-4-20250514",
+      })
+      .withSandbox(e2bProvider)
+      .withGithub({
+        token: process.env.GITHUB_TOKEN!,
+        repository: process.env.GITHUB_REPOSITORY!,
+      })
+      .withSecrets({ MY_SECRET: "test" });
+
+    const output = await vibeKit.executeCommand("echo $MY_SECRET");
+    const secret = output.stdout.trim();
+
+    expect(secret).toBe("test");
+  });
 });

@@ -19,7 +19,7 @@ describe("Claude Code CLI", () => {
         type: "claude",
         provider: "anthropic",
         apiKey: process.env.ANTHROPIC_API_KEY!,
-        model: process.env.CLAUDE_MODEL || "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-20250514",
       })
       .withSandbox(e2bProvider);
 

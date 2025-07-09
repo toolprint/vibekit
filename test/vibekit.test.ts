@@ -12,7 +12,7 @@ describe("VibeKit SDK", () => {
 
     const e2bProvider = createE2BProvider({
       apiKey: process.env.E2B_API_KEY!,
-      templateId: process.env.E2B_TEMPLATE_ID || "vibekit-claude",
+      templateId: "vibekit-claude",
     });
 
     const vibeKit = new VibeKit()
@@ -20,7 +20,7 @@ describe("VibeKit SDK", () => {
         type: "claude",
         provider: "anthropic",
         apiKey: process.env.ANTHROPIC_API_KEY!,
-        model: process.env.CLAUDE_MODEL || "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-20250514",
       })
       .withSandbox(e2bProvider)
       .withWorkingDirectory(dir);
@@ -39,7 +39,7 @@ describe("VibeKit SDK", () => {
 
     const e2bProvider = createE2BProvider({
       apiKey: process.env.E2B_API_KEY!,
-      templateId: process.env.E2B_TEMPLATE_ID || "vibekit-claude",
+      templateId: "vibekit-claude",
     });
 
     const vibeKit = new VibeKit()
@@ -47,7 +47,7 @@ describe("VibeKit SDK", () => {
         type: "claude",
         provider: "anthropic",
         apiKey: process.env.ANTHROPIC_API_KEY!,
-        model: process.env.CLAUDE_MODEL || "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-20250514",
       })
       .withSandbox(e2bProvider)
       .withGithub({

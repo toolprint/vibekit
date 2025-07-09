@@ -67,7 +67,7 @@ export class CodexAgent extends BaseAgent {
     let _prompt = `${instruction}\n\nUser: ${escapedPrompt}`;
 
     return {
-      command: `codex --auto-edit${
+      command: `codex --full-auto${
         this.model ? ` --model ${this.model}` : ""
       }${
         this.provider ? ` --provider ${this.provider}` : ""
@@ -139,7 +139,7 @@ export class CodexAgent extends BaseAgent {
     const originalGetCommandConfig = this.getCommandConfig.bind(this);
     this.getCommandConfig = (p: string, m?: "ask" | "code") => ({
       ...originalGetCommandConfig(p, m),
-      command: `codex --auto-edit${
+      command: `codex --full-auto${
         this.model ? ` --model ${this.model}` : ""
       }${
         this.provider ? ` --provider ${this.provider}` : ""

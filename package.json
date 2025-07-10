@@ -3,7 +3,7 @@
     "type": "module",
     "main": "packages/vibekit/dist/index.js",
     "types": "packages/vibekit/dist/index.d.ts",
-    "version": "0.0.46-rc.1",
+    "version": "0.0.47-rc.1",
     "workspaces": [
         "packages/*"
     ],

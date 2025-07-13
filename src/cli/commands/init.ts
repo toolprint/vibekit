@@ -1,12 +1,30 @@
 import enquirer from 'enquirer';
 import chalk from 'chalk';
 import cfonts from 'cfonts';
+import { execa } from 'execa';
 import { installE2B } from './providers/e2b.js';
 import { installDaytona } from './providers/daytona.js';
 import { authenticate, checkAuth, isDaytonaInstalled, isE2BInstalled } from '../utils/auth.js';
 import { AGENT_TEMPLATES, SANDBOX_PROVIDERS } from '../../constants/enums.js';
 
 const { prompt } = enquirer;
+
+async function checkDockerStatus(): Promise<{ isInstalled: boolean; isRunning: boolean }> {
+  try {
+    // Check if Docker is installed
+    await execa('docker', ['--version']);
+    
+    try {
+      // Check if Docker daemon is running
+      await execa('docker', ['info']);
+      return { isInstalled: true, isRunning: true };
+    } catch {
+      return { isInstalled: true, isRunning: false };
+    }
+  } catch {
+    return { isInstalled: false, isRunning: false };
+  }
+}
 
 export async function initCommand() {
   try {
@@ -103,6 +121,29 @@ export async function initCommand() {
       disk: parseInt(disk)
     };
 
+    // Check Docker once upfront since all providers need it
+    console.log(chalk.blue('\n🐳 Checking Docker...'));
+    const dockerStatus = await checkDockerStatus();
+    if (!dockerStatus.isInstalled) {
+      console.log(chalk.red(
+        '❌ Docker not found.\n' +
+        'Please install Docker from: https://docker.com/get-started and try again.'
+      ));
+      console.log(chalk.red('\n❌ Setup failed: Docker is required for all providers\n'));
+      return;
+    }
+    
+    if (!dockerStatus.isRunning) {
+      console.log(chalk.red(
+        '❌ Docker is not running.\n' +
+        'Please start Docker and try again.'
+      ));
+      console.log(chalk.red('\n❌ Setup failed: Docker must be running to deploy templates\n'));
+      return;
+    }
+    
+    console.log(chalk.green('✅ Docker is installed and running'));
+
     // Install selected providers
     let successfulProviders = 0;
     let failedProviders = 0;
@@ -155,7 +196,7 @@ export async function initCommand() {
         continue; // Skip to next provider if not authenticated
       }
 
-      // Proceed with installation
+      // Proceed with installation (Docker already verified)
       let installationSuccess = false;
       if (provider === SANDBOX_PROVIDERS.E2B) {
         installationSuccess = await installE2B(config, templates);

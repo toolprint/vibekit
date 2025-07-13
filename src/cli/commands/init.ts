@@ -1,5 +1,6 @@
 import enquirer from 'enquirer';
 import chalk from 'chalk';
+import cfonts from 'cfonts';
 import { installE2B } from './providers/e2b.js';
 import { installDaytona } from './providers/daytona.js';
 import { authenticate, checkAuth, isDaytonaInstalled, isE2BInstalled } from '../utils/auth.js';
@@ -9,8 +10,24 @@ const { prompt } = enquirer;
 
 export async function initCommand() {
   try {
+    // Display banner
+    cfonts.say('VIBEKIT', {
+      font: 'block',
+      align: 'left',
+      colors: ['#FFA500'],
+      background: 'transparent',
+      letterSpacing: 1,
+      lineHeight: 1,
+      space: true,
+      maxLength: '0',
+      gradient: false,
+      independentGradient: false,
+      transitionGradient: false,
+      env: 'node'
+    });
+    
     // Prompt for provider selection
-    console.log(chalk.blue('\n🖖 Welcome to VibeKit Setup! 🖖\n'));
+    console.log(chalk.blue('🖖 Welcome to VibeKit Setup! 🖖\n'));
     console.log(chalk.gray('↑/↓: Navigate • Space: Select • Enter: Confirm\n'));
     
     const { providers } = await prompt<{ providers: SANDBOX_PROVIDERS[] }>({

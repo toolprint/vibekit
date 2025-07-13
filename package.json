@@ -1,20 +1,28 @@
 {
     "name": "@vibe-kit/sdk",
     "type": "module",
+    "engines": {
+        "node": ">=18.0.0"
+    },
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "version": "0.0.45",
+    "bin": {
+        "vibekit": "./dist/cli/index.js"
+    },
     "exports": {
         ".": {
             "import": "./dist/index.js",
             "require": "./dist/index.cjs"
-        }
+        },
+        "./cli": "./dist/cli/index.js"
     },
     "scripts": {
-        "build": "tsup src/index.ts --format esm,cjs --dts",
+        "build": "tsup",
         "dev": "tsup src/index.ts --watch",
         "type-check": "tsc --noEmit",
-        "test": "vitest"
+        "test": "vitest",
+        "cli": "tsx src/cli/index.ts"
     },
     "devDependencies": {
         "@types/node": "^22.15.18",
@@ -42,6 +50,12 @@
         "@opentelemetry/semantic-conventions": "^1.34.0",
         "@types/uuid": "^10.0.0",
         "ai": "^4.3.16",
+        "chalk": "^5.4.1",
+        "commander": "^14.0.0",
+        "enquirer": "^2.4.1",
+        "execa": "^9.6.0",
+        "open": "^10.1.2",
+        "ora": "^8.2.0",
         "uuid": "^11.1.0"
     }
 }

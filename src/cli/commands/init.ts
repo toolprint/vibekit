@@ -3,17 +3,9 @@ import chalk from 'chalk';
 import { installE2B } from './providers/e2b.js';
 import { installDaytona } from './providers/daytona.js';
 import { authenticate, checkAuth, isDaytonaInstalled, isE2BInstalled } from '../utils/auth.js';
+import { AGENT_TEMPLATES, SANDBOX_PROVIDERS } from '../../constants/enums.js';
 
 const { prompt } = enquirer;
-
-// Available agent templates
-const AGENT_TEMPLATES = [
-  { name: 'claude', message: 'Claude - Anthropic’s Claude Code agent' },
-  { name: 'codex', message: 'Codex - OpenAI’s Codex agent' },
-  { name: 'gemini', message: 'Gemini - Google’s Gemini CLI agent' },
-  { name: 'opencode', message: 'OpenCode - Open source coding agent' },
-  { name: 'shopify', message: 'Shopify - Shopify development agent' }
-];
 
 export async function initCommand() {
   try {
@@ -21,19 +13,19 @@ export async function initCommand() {
     console.log(chalk.blue('\n🖖 Welcome to VibeKit Setup! 🖖\n'));
     console.log(chalk.gray('↑/↓: Navigate • Space: Select • Enter: Confirm\n'));
     
-    const { providers } = await prompt<{ providers: string[] }>({
+    const { providers } = await prompt<{ providers: SANDBOX_PROVIDERS[] }>({
       type: 'multiselect',
       name: 'providers',
       message: 'Which providers would you like to set up?',
-      choices: [
-        { name: 'e2b', message: 'E2B (browser-based)' },
-        { name: 'daytona', message: 'Daytona (cloud-based)' }
-      ]
+      choices: Object.entries(SANDBOX_PROVIDERS).map(([key, value]) => ({
+        name: value.toLowerCase(),
+        message: value
+      }))
     });
 
     if (providers.length === 0) {
-      console.log(chalk.yellow('\nNo providers selected. Exiting setup.'));
-      return;
+      console.log(chalk.yellow('No providers selected. Exiting.'));
+      process.exit(0);
     }
 
     // Prompt for template selection
@@ -141,9 +133,9 @@ export async function initCommand() {
       }
 
       // Proceed with installation
-      if (provider === 'e2b') {
+      if (provider === SandboxProvider.E2B) {
         await installE2B(config, templates);
-      } else if (provider === 'daytona') {
+      } else if (provider === SandboxProvider.DAYTONA) {
         await installDaytona({ ...config, memory: Math.floor(config.memory / 1024) }, templates);
       }
     }

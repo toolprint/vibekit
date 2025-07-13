@@ -1,15 +1,7 @@
 import { execa } from 'execa';
 import ora from 'ora';
 import chalk from 'chalk';
-
-// List of available templates and their display names
-const TEMPLATES = [
-  { name: 'claude', display: 'Claude' },
-  { name: 'codex', display: 'Codex' },
-  { name: 'gemini', display: 'Gemini' },
-  { name: 'opencode', display: 'OpenCode' },
-  { name: 'shopify', display: 'Shopify' }
-];
+import { TEMPLATE_CONFIGS } from '../../../constants/enums.js';
 
 type InstallConfig = {
   cpu: number;
@@ -36,8 +28,8 @@ export async function installE2B(config: InstallConfig, selectedTemplates?: stri
     
     // Filter templates based on selection (default to all if none specified)
     const templatesToInstall = selectedTemplates 
-      ? TEMPLATES.filter(template => selectedTemplates.includes(template.name))
-      : TEMPLATES;
+      ? TEMPLATE_CONFIGS.filter(template => selectedTemplates.includes(template.name))
+      : TEMPLATE_CONFIGS;
     
     // Install each selected template
     for (let i = 0; i < templatesToInstall.length; i++) {

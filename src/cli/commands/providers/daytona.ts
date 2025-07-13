@@ -1,15 +1,7 @@
 import { execa } from 'execa';
 import ora from 'ora';
 import chalk from 'chalk';
-
-// List of available templates and their display names
-const TEMPLATES = [
-  { name: 'claude', display: 'Claude' },
-  { name: 'codex', display: 'Codex' },
-  { name: 'gemini', display: 'Gemini' },
-  { name: 'opencode', display: 'OpenCode' },
-  { name: 'shopify', display: 'Shopify' }
-];
+import { AGENT_TEMPLATES } from '../../../constants/enums.js';
 
 type InstallConfig = {
   cpu: number;
@@ -38,8 +30,8 @@ export async function installDaytona(config: InstallConfig, selectedTemplates?: 
 
   // Filter templates based on selection (default to all if none specified)
   const templatesToInstall = selectedTemplates 
-    ? TEMPLATES.filter(template => selectedTemplates.includes(template.name))
-    : TEMPLATES;
+    ? AGENT_TEMPLATES.filter(template => selectedTemplates.includes(template.name))
+    : AGENT_TEMPLATES;
 
   // Install each selected template
   for (let i = 0; i < templatesToInstall.length; i++) {

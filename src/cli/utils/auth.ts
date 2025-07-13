@@ -4,10 +4,12 @@ import ora from 'ora';
 import chalk from 'chalk';
 import open from 'open';
 
+import { SANDBOX_PROVIDERS } from '../../constants/enums.js';
+
 export interface AuthStatus {
   isAuthenticated: boolean;
   username?: string;
-  provider: 'e2b' | 'daytona';
+  provider: SANDBOX_PROVIDERS;
   needsInstall?: boolean;
 }
 
@@ -28,8 +30,8 @@ async function isCliInstalled(command: string): Promise<boolean> {
   }
 }
 
-export async function checkAuth(provider: 'e2b' | 'daytona'): Promise<AuthStatus> {
-  const cliCommand = provider === 'e2b' ? 'e2b' : 'daytona';
+export async function checkAuth(provider: SANDBOX_PROVIDERS): Promise<AuthStatus> {
+  const cliCommand = provider === SANDBOX_PROVIDERS.E2B ? 'e2b' : 'daytona';
   const isInstalled = await isCliInstalled(cliCommand);
   
   if (!isInstalled) {
@@ -146,7 +148,7 @@ async function installDaytonaCli(): Promise<boolean> {
   }
 }
 
-export async function authenticate(provider: 'e2b' | 'daytona'): Promise<boolean> {
+export async function authenticate(provider: SANDBOX_PROVIDERS): Promise<boolean> {
   const spinner = ora(`Authenticating with ${provider.toUpperCase()}...`).start();
   
   try {

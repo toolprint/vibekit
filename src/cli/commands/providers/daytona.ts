@@ -11,7 +11,7 @@ type InstallConfig = {
 
 export async function installDaytona(config: InstallConfig, selectedTemplates?: string[]) {
   console.log(chalk.blue('\n🔧 Setting up Daytona...'));
-  let spinner: ora.Ora | null = null;
+  let spinner: ReturnType<typeof ora> | null = null;
   const results = { successful: 0, failed: 0, errors: [] as string[] };
   
   // Check if Daytona CLI is installed
@@ -27,6 +27,26 @@ export async function installDaytona(config: InstallConfig, selectedTemplates?: 
     ));
     return false;
   }
+
+  // Check if Docker is installed and running
+  const dockerStatus = await checkDockerStatus();
+  if (!dockerStatus.isInstalled) {
+    console.log(chalk.red(
+      '❌ Docker not found.\n' +
+      'Please install Docker from: https://docker.com/get-started and try again.'
+    ));
+    return false;
+  }
+  
+  if (!dockerStatus.isRunning) {
+    console.log(chalk.red(
+      '❌ Docker is not running.\n' +
+      'Please start Docker and try again.'
+    ));
+    return false;
+  }
+  
+  console.log(chalk.green('✅ Docker is installed and running'));
 
   // Filter templates based on selection (default to all if none specified)
   const templatesToInstall = selectedTemplates 
@@ -142,5 +162,22 @@ async function isDaytonaInstalled(): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function checkDockerStatus(): Promise<{ isInstalled: boolean; isRunning: boolean }> {
+  try {
+    // Check if Docker is installed
+    await execa('docker', ['--version']);
+    
+    try {
+      // Check if Docker daemon is running
+      await execa('docker', ['info']);
+      return { isInstalled: true, isRunning: true };
+    } catch {
+      return { isInstalled: true, isRunning: false };
+    }
+  } catch {
+    return { isInstalled: false, isRunning: false };
   }
 }

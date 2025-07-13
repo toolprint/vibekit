@@ -87,6 +87,9 @@ export async function initCommand() {
     };
 
     // Install selected providers
+    let successfulProviders = 0;
+    let failedProviders = 0;
+    
     for (const provider of providers) {
       let isAuthenticated = false;
       
@@ -99,6 +102,7 @@ export async function initCommand() {
         const installed = await authenticate(provider);
         if (!installed) {
           console.log(chalk.yellow(`\nPlease install ${provider} CLI and try again.`));
+          failedProviders++;
           continue; // Skip to next provider
         }
       }
@@ -112,6 +116,7 @@ export async function initCommand() {
         const success = await authenticate(provider);
         if (!success) {
           console.log(chalk.yellow(`\nPlease authenticate with ${provider} and try again.`));
+          failedProviders++;
           continue; // Skip to next provider
         }
         
@@ -119,6 +124,7 @@ export async function initCommand() {
         const newAuthStatus = await checkAuth(provider);
         if (!newAuthStatus.isAuthenticated) {
           console.log(chalk.red(`❌ Failed to authenticate with ${provider}`));
+          failedProviders++;
           continue; // Skip to next provider
         }
         isAuthenticated = true;
@@ -128,18 +134,33 @@ export async function initCommand() {
       }
       
       if (!isAuthenticated) {
+        failedProviders++;
         continue; // Skip to next provider if not authenticated
       }
 
       // Proceed with installation
+      let installationSuccess = false;
       if (provider === SANDBOX_PROVIDERS.E2B) {
-        await installE2B(config, templates);
+        installationSuccess = await installE2B(config, templates);
       } else if (provider === SANDBOX_PROVIDERS.DAYTONA) {
-        await installDaytona({ ...config, memory: Math.floor(config.memory / 1024) }, templates);
+        installationSuccess = await installDaytona({ ...config, memory: Math.floor(config.memory / 1024) }, templates);
+      }
+      
+      if (installationSuccess) {
+        successfulProviders++;
+      } else {
+        failedProviders++;
       }
     }
 
-    console.log(chalk.green('\n✅ Setup complete!\n'));
+    // Show final result based on success/failure
+    if (successfulProviders > 0 && failedProviders === 0) {
+      console.log(chalk.green('\n✅ Setup complete!\n'));
+    } else if (successfulProviders > 0 && failedProviders > 0) {
+      console.log(chalk.yellow(`\n⚠️  Setup partially complete: ${successfulProviders} succeeded, ${failedProviders} failed\n`));
+    } else {
+      console.log(chalk.red('\n❌ Setup failed: No providers were successfully configured\n'));
+    }
   } catch (error) {
     console.error(chalk.red('\n❌ Setup failed:'), error instanceof Error ? error.message : error);
     process.exit(1);

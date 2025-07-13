@@ -26,9 +26,12 @@ export async function installDaytona(config: InstallConfig, selectedTemplates?: 
   const isInstalled = await isDaytonaInstalled();
   
   if (!isInstalled) {
+    const installCmd = process.platform === 'win32' 
+      ? 'powershell -Command "irm https://get.daytona.io/windows | iex"'
+      : 'brew install daytonaio/cli/daytona';
     console.log(chalk.yellow(
       '❌ Daytona CLI not found.\n' +
-      'Please install it from https://daytona.io/install and try again.'
+      `Please install it with: ${installCmd} and try again.`
     ));
     return false;
   }
@@ -134,7 +137,6 @@ export async function installDaytona(config: InstallConfig, selectedTemplates?: 
   }
   
   if (results.successful > 0) {
-    console.log(chalk.green('\n✨ Daytona setup completed with some templates installed!'));
     return true;
   } else {
     console.log(chalk.yellow('\n⚠️  No templates were successfully installed.'));

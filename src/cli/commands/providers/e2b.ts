@@ -64,24 +64,31 @@ export async function installE2B(config: InstallConfig, selectedTemplates?: stri
         // Run E2B setup with provided configuration
         await execa('e2b', [
           'template', 'build',
-          '--cpu', config.cpu.toString(),
+          '--cpu-count', config.cpu.toString(),
           '--memory-mb', config.memory.toString(),
           '--name', template.name,  // This will create names like 'claude', 'codex', etc.
-          '--dockerfile', `Dockerfile.${template.name}`,
-          '--docker-context', 'images'
+          '--dockerfile', `images/Dockerfile.${template.name}`
         ]);
 
         spinner.succeed(chalk.green(`✅ ${template.display} template installed successfully`));
         results.successful++;
+        
+        // Clean up the e2b.toml file that gets created after each template build
+        try {
+          await fs.unlink('e2b.toml');
+        } catch (cleanupError) {
+          // Ignore cleanup errors - file might not exist or already be deleted
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         
         // Handle specific error cases with user-friendly messages
         let friendlyMessage = `Failed to install ${template.display} template`;
         
-        if (errorMessage.includes('already exists')) {
+        if (errorMessage.includes('already exists') || errorMessage.includes('already used')) {
           friendlyMessage = `${template.display} template already exists - skipping`;
           spinner.info(chalk.yellow(`⚠️  ${friendlyMessage}`));
+          // Don't count this as a failure since it's expected behavior
         } else if (errorMessage.includes('Dockerfile not found')) {
           friendlyMessage = `${template.display} template files missing - skipping`;
           spinner.fail(chalk.red(`❌ ${friendlyMessage}`));
@@ -115,7 +122,6 @@ export async function installE2B(config: InstallConfig, selectedTemplates?: stri
     }
     
     if (results.successful > 0) {
-      console.log(chalk.green('\n✨ E2B setup completed with some templates installed!'));
       return true;
     } else {
       console.log(chalk.yellow('\n⚠️  No templates were successfully installed.'));

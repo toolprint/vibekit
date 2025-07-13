@@ -15,6 +15,10 @@ export async function isDaytonaInstalled(): Promise<boolean> {
   return isCliInstalled('daytona');
 }
 
+export async function isE2BInstalled(): Promise<boolean> {
+  return isCliInstalled('e2b');
+}
+
 async function isCliInstalled(command: string): Promise<boolean> {
   try {
     await execa(command, ['--version']);
@@ -34,8 +38,18 @@ export async function checkAuth(provider: 'e2b' | 'daytona'): Promise<AuthStatus
 
   try {
     if (provider === 'e2b') {
-      const { stdout } = await execa('e2b', ['auth', 'info']);
-      return { isAuthenticated: true, username: 'E2B User', provider };
+      try {
+        const { stdout } = await execa('e2b', ['auth', 'info']);
+        // Check if the output indicates the user is not logged in
+        if (stdout.includes('Not logged in') || stdout.includes('not logged in')) {
+          return { isAuthenticated: false, provider };
+        }
+        // If we get here and no "not logged in" message, user is authenticated
+        return { isAuthenticated: true, username: 'E2B User', provider };
+      } catch (authError) {
+        // If auth info fails, user is not authenticated
+        return { isAuthenticated: false, provider };
+      }
     } else {
       // Daytona - check if we can list organizations (a command that requires authentication)
       const { stdout, stderr } = await execa('daytona', ['organization', 'list'], { 
@@ -83,24 +97,51 @@ export async function checkAuth(provider: 'e2b' | 'daytona'): Promise<AuthStatus
   }
 }
 
+async function installE2BCli(): Promise<boolean> {
+  const spinner = ora('Installing E2B CLI...').start();
+  try {
+    // Install E2B CLI via npm (cross-platform)
+    await execa('npm', ['install', '-g', '@e2b/cli']);
+    spinner.succeed('E2B CLI installed successfully');
+    return true;
+  } catch (error) {
+    spinner.fail('Failed to install E2B CLI');
+    console.error(chalk.red('Please install it manually: npm install -g @e2b/cli'));
+    return false;
+  }
+}
+
 async function installDaytonaCli(): Promise<boolean> {
   const spinner = ora('Installing Daytona CLI...').start();
   try {
-    // Check if Homebrew is installed
-    try {
-      execaSync('brew', ['--version']);
-    } catch (error) {
-      spinner.fail('Homebrew is required to install Daytona CLI. Please install it first: https://brew.sh');
-      return false;
+    const platform = process.platform;
+    
+    if (platform === 'win32') {
+      // Windows installation using the official PowerShell script
+      await execa('powershell', ['-Command', 'irm https://get.daytona.io/windows | iex']);
+    } else {
+      // macOS and Linux installation using Homebrew
+      // First check if Homebrew is installed
+      try {
+        await execa('brew', ['--version']);
+      } catch (error) {
+        spinner.fail('Homebrew is required to install Daytona CLI on macOS/Linux');
+        console.error(chalk.red('Please install Homebrew first: https://brew.sh'));
+        return false;
+      }
+      
+      await execa('brew', ['install', 'daytonaio/cli/daytona']);
     }
-
-    // Install Daytona CLI via Homebrew
-    await execa('brew', ['install', 'daytonaio/cli/daytona']);
+    
     spinner.succeed('Daytona CLI installed successfully');
     return true;
   } catch (error) {
     spinner.fail('Failed to install Daytona CLI');
-    console.error(chalk.red('Please install it manually: https://www.daytona.io/docs/installation'));
+    const platform = process.platform;
+    const installCmd = platform === 'win32' 
+      ? 'powershell -Command "irm https://get.daytona.io/windows | iex"'
+      : 'brew install daytonaio/cli/daytona';
+    console.error(chalk.red(`Please install it manually: ${installCmd}`));
     return false;
   }
 }
@@ -114,24 +155,28 @@ export async function authenticate(provider: 'e2b' | 'daytona'): Promise<boolean
     const isInstalled = await isCliInstalled(cliCommand);
     
     if (!isInstalled) {
-      if (provider === 'daytona') {
-        spinner.info('Daytona CLI not found');
-        const { confirm } = await enquirer.prompt<{ confirm: boolean }>({
-          type: 'confirm',
-          name: 'confirm',
-          message: 'Would you like to install Daytona CLI now? (requires Homebrew)',
-          initial: true
-        });
-        
-        if (confirm) {
-          const installed = await installDaytonaCli();
-          if (!installed) return false;
-        } else {
-          console.log(chalk.yellow('\nPlease install Daytona CLI manually: https://www.daytona.io/docs/installation'));
-          return false;
-        }
+      spinner.info(`${provider.toUpperCase()} CLI not found`);
+      const { confirm } = await enquirer.prompt<{ confirm: boolean }>({
+        type: 'confirm',
+        name: 'confirm',
+        message: `Would you like to install ${provider.toUpperCase()} CLI now?`,
+        initial: true
+      });
+      
+      if (confirm) {
+        const installed = provider === 'e2b' ? await installE2BCli() : await installDaytonaCli();
+        if (!installed) return false;
       } else {
-        spinner.fail(`${provider.toUpperCase()} CLI not found. Please install it first.`);
+        let installCmd: string;
+        if (provider === 'e2b') {
+          installCmd = 'npm install -g @e2b/cli';
+        } else {
+          // Daytona installation command based on platform
+          installCmd = process.platform === 'win32' 
+            ? 'powershell -Command "irm https://get.daytona.io/windows | iex"'
+            : 'brew install daytonaio/cli/daytona';
+        }
+        console.log(chalk.yellow(`\nPlease install ${provider.toUpperCase()} CLI manually: ${installCmd}`));
         return false;
       }
     }

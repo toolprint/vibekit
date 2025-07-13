@@ -2,7 +2,7 @@ import enquirer from 'enquirer';
 import chalk from 'chalk';
 import { installE2B } from './providers/e2b.js';
 import { installDaytona } from './providers/daytona.js';
-import { authenticate, checkAuth, isDaytonaInstalled } from '../utils/auth.js';
+import { authenticate, checkAuth, isDaytonaInstalled, isE2BInstalled } from '../utils/auth.js';
 
 const { prompt } = enquirer;
 
@@ -100,7 +100,9 @@ export async function initCommand() {
       let isAuthenticated = false;
       
       // Check if we need to install the CLI first
-      const needsInstall = !(await isDaytonaInstalled());
+      const needsInstall = providerName === 'e2b' 
+        ? !(await isE2BInstalled()) 
+        : !(await isDaytonaInstalled());
       if (needsInstall) {
         console.log(chalk.yellow(`\n🔧 ${providerName.toUpperCase()} CLI needs to be installed`));
         const installed = await authenticate(providerName);

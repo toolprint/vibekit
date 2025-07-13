@@ -1,7 +1,7 @@
 import { execa } from 'execa';
 import ora from 'ora';
 import chalk from 'chalk';
-import { TEMPLATE_CONFIGS } from '../../../constants/enums.js';
+import { AGENT_TEMPLATES } from '../../../constants/enums.js';
 
 type InstallConfig = {
   cpu: number;
@@ -28,8 +28,8 @@ export async function installE2B(config: InstallConfig, selectedTemplates?: stri
     
     // Filter templates based on selection (default to all if none specified)
     const templatesToInstall = selectedTemplates 
-      ? TEMPLATE_CONFIGS.filter(template => selectedTemplates.includes(template.name))
-      : TEMPLATE_CONFIGS;
+      ? AGENT_TEMPLATES.filter(template => selectedTemplates.includes(template.name))
+      : AGENT_TEMPLATES;
     
     // Install each selected template
     for (let i = 0; i < templatesToInstall.length; i++) {

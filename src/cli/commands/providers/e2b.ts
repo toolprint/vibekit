@@ -16,7 +16,7 @@ type InstallConfig = {
   memory: number;
 };
 
-export async function installE2B(config: InstallConfig) {
+export async function installE2B(config: InstallConfig, selectedTemplates?: string[]) {
   console.log(chalk.blue('\n🔧 Setting up E2B...'));
   let spinner: ora.Ora | null = null;
   
@@ -25,24 +25,24 @@ export async function installE2B(config: InstallConfig) {
     const isInstalled = await isE2BInstalled();
     
     if (!isInstalled) {
-      spinner = ora(chalk.blue('Installing E2B CLI...')).start();
-      try {
-        await execa('npm', ['install', '-g', '@e2b/cli']);
-        spinner.succeed(chalk.green('✅ E2B CLI installed successfully'));
-      } catch (error) {
-        spinner?.fail(chalk.red('Failed to install E2B CLI'));
-        throw error;
-      } finally {
-        spinner = null;
-      }
+      spinner = ora(chalk.yellow(
+        '❌ E2B CLI not found.\n' +
+        'Please install it with: npm install -g @e2b/cli and try again.'
+      )).fail();
+      return false;
     }
 
     const results = { successful: 0, failed: 0, errors: [] as string[] };
     
-    // Install each template
-    for (let i = 0; i < TEMPLATES.length; i++) {
-      const template = TEMPLATES[i];
-      console.log(chalk.blue(`\n🔨 [${i + 1}/${TEMPLATES.length}] Installing ${template.display} template...`));
+    // Filter templates based on selection (default to all if none specified)
+    const templatesToInstall = selectedTemplates 
+      ? TEMPLATES.filter(template => selectedTemplates.includes(template.name))
+      : TEMPLATES;
+    
+    // Install each selected template
+    for (let i = 0; i < templatesToInstall.length; i++) {
+      const template = templatesToInstall[i];
+      console.log(chalk.blue(`\n🔨 [${i + 1}/${templatesToInstall.length}] Installing ${template.display} template...`));
       
       spinner = ora({
         text: '  Working...',

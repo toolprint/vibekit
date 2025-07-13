@@ -6,10 +6,19 @@ import { authenticate, checkAuth, isDaytonaInstalled } from '../utils/auth.js';
 
 const { prompt } = enquirer;
 
+// Available agent templates
+const AGENT_TEMPLATES = [
+  { name: 'claude', message: 'Claude - Anthropic’s Claude Code agent' },
+  { name: 'codex', message: 'Codex - OpenAI’s Codex agent' },
+  { name: 'gemini', message: 'Gemini - Google’s Gemini CLI agent' },
+  { name: 'opencode', message: 'OpenCode - Open source coding agent' },
+  { name: 'shopify', message: 'Shopify - Shopify development agent' }
+];
+
 export async function initCommand() {
   try {
     // Prompt for provider selection
-    console.log(chalk.blue('\n✨ Welcome to VibeKit Setup! ✨\n'));
+    console.log(chalk.blue('\n🖖 Welcome to VibeKit Setup! 🖖\n'));
     console.log(chalk.gray('↑/↓: Navigate • Space: Select • Enter: Confirm\n'));
     
     const { providers } = await prompt<{ providers: string[] }>({
@@ -24,6 +33,19 @@ export async function initCommand() {
 
     if (providers.length === 0) {
       console.log(chalk.yellow('\nNo providers selected. Exiting setup.'));
+      return;
+    }
+
+    // Prompt for template selection
+    const { templates } = await prompt<{ templates: string[] }>({
+      type: 'multiselect',
+      name: 'templates',
+      message: 'Which agent templates would you like to install?',
+      choices: AGENT_TEMPLATES
+    });
+
+    if (templates.length === 0) {
+      console.log(chalk.yellow('\nNo templates selected. Exiting setup.'));
       return;
     }
 
@@ -118,9 +140,9 @@ export async function initCommand() {
 
       // Proceed with installation
       if (provider === 'e2b') {
-        await installE2B(config);
+        await installE2B(config, templates);
       } else if (provider === 'daytona') {
-        await installDaytona({ ...config, memory: Math.floor(config.memory / 1024) });
+        await installDaytona({ ...config, memory: Math.floor(config.memory / 1024) }, templates);
       }
     }
 

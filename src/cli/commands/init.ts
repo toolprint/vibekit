@@ -18,7 +18,7 @@ export async function initCommand() {
       name: 'providers',
       message: 'Which providers would you like to set up?',
       choices: Object.entries(SANDBOX_PROVIDERS).map(([key, value]) => ({
-        name: value.toLowerCase(),
+        name: value,
         message: value
       }))
     });
@@ -33,7 +33,10 @@ export async function initCommand() {
       type: 'multiselect',
       name: 'templates',
       message: 'Which agent templates would you like to install?',
-      choices: AGENT_TEMPLATES
+      choices: AGENT_TEMPLATES.map(template => ({
+        name: template.name,
+        message: template.display
+      }))
     });
 
     if (templates.length === 0) {
@@ -47,8 +50,7 @@ export async function initCommand() {
       {
         type: 'input',
         name: 'cpu',
-        message: 'CPU cores per provider:',
-        hint: chalk.gray('Recommended: 2-4 cores'),
+        message: 'CPU cores per provider (Recommended: 2-4 cores):',
         initial: '2',
         validate: (value: string) => {
           const num = parseInt(value);
@@ -58,8 +60,7 @@ export async function initCommand() {
       {
         type: 'input',
         name: 'memory',
-        message: 'Memory (MB) per provider:',
-        hint: chalk.gray('Recommended: 1024-4096 MB'),
+        message: 'Memory (MB) per provider (Recommended: 1024-4096 MB):',
         initial: '1024',
         validate: (value: string) => {
           const num = parseInt(value);
@@ -69,14 +70,13 @@ export async function initCommand() {
       {
         type: 'input',
         name: 'disk',
-        message: 'Disk space (GB) for Daytona:',
-        hint: chalk.gray('Recommended: 1-10 GB'),
+        message: 'Disk space (GB) for Daytona (Recommended: 1-10 GB):',
         initial: '1',
         validate: (value: string) => {
           const num = parseInt(value);
           return !isNaN(num) && num > 0 ? true : 'Please enter a valid number';
         },
-        skip: () => !providers.includes('daytona')
+        skip: () => !providers.includes(SANDBOX_PROVIDERS.DAYTONA)
       }
     ]);
 
@@ -88,43 +88,42 @@ export async function initCommand() {
 
     // Install selected providers
     for (const provider of providers) {
-      const providerName = provider as 'e2b' | 'daytona';
       let isAuthenticated = false;
       
       // Check if we need to install the CLI first
-      const needsInstall = providerName === 'e2b' 
+      const needsInstall = provider === SANDBOX_PROVIDERS.E2B 
         ? !(await isE2BInstalled()) 
         : !(await isDaytonaInstalled());
       if (needsInstall) {
-        console.log(chalk.yellow(`\n🔧 ${providerName.toUpperCase()} CLI needs to be installed`));
-        const installed = await authenticate(providerName);
+        console.log(chalk.yellow(`\n🔧 ${provider} CLI needs to be installed`));
+        const installed = await authenticate(provider);
         if (!installed) {
-          console.log(chalk.yellow(`\nPlease install ${providerName.toUpperCase()} CLI and try again.`));
+          console.log(chalk.yellow(`\nPlease install ${provider} CLI and try again.`));
           continue; // Skip to next provider
         }
       }
       
       // Now check authentication
-      console.log(chalk.blue(`\n🔐 Checking ${providerName.toUpperCase()} authentication...`));
-      const authStatus = await checkAuth(providerName);
+      console.log(chalk.blue(`\n🔐 Checking ${provider} authentication...`));
+      const authStatus = await checkAuth(provider);
       
       if (!authStatus.isAuthenticated) {
-        console.log(chalk.yellow(`🔑 Authentication required for ${providerName.toUpperCase()}`));
-        const success = await authenticate(providerName);
+        console.log(chalk.yellow(`🔑 Authentication required for ${provider}`));
+        const success = await authenticate(provider);
         if (!success) {
-          console.log(chalk.yellow(`\nPlease authenticate with ${providerName.toUpperCase()} and try again.`));
+          console.log(chalk.yellow(`\nPlease authenticate with ${provider} and try again.`));
           continue; // Skip to next provider
         }
         
         // Verify authentication after login attempt
-        const newAuthStatus = await checkAuth(providerName);
+        const newAuthStatus = await checkAuth(provider);
         if (!newAuthStatus.isAuthenticated) {
-          console.log(chalk.red(`❌ Failed to authenticate with ${providerName.toUpperCase()}`));
+          console.log(chalk.red(`❌ Failed to authenticate with ${provider}`));
           continue; // Skip to next provider
         }
         isAuthenticated = true;
       } else {
-        console.log(chalk.green(`✅ Already authenticated with ${providerName.toUpperCase()}`));
+        console.log(chalk.green(`✅ Already authenticated with ${provider}`));
         isAuthenticated = true;
       }
       
@@ -133,9 +132,9 @@ export async function initCommand() {
       }
 
       // Proceed with installation
-      if (provider === SandboxProvider.E2B) {
+      if (provider === SANDBOX_PROVIDERS.E2B) {
         await installE2B(config, templates);
-      } else if (provider === SandboxProvider.DAYTONA) {
+      } else if (provider === SANDBOX_PROVIDERS.DAYTONA) {
         await installDaytona({ ...config, memory: Math.floor(config.memory / 1024) }, templates);
       }
     }

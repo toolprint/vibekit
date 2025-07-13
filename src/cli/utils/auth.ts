@@ -39,7 +39,7 @@ export async function checkAuth(provider: SANDBOX_PROVIDERS): Promise<AuthStatus
   }
 
   try {
-    if (provider === 'e2b') {
+    if (provider === SANDBOX_PROVIDERS.E2B) {
       try {
         const { stdout } = await execa('e2b', ['auth', 'info']);
         // Check if the output indicates the user is not logged in
@@ -153,24 +153,24 @@ export async function authenticate(provider: SANDBOX_PROVIDERS): Promise<boolean
   
   try {
     // Check if CLI is installed
-    const cliCommand = provider === 'e2b' ? 'e2b' : 'daytona';
+    const cliCommand = provider === SANDBOX_PROVIDERS.E2B ? 'e2b' : 'daytona';
     const isInstalled = await isCliInstalled(cliCommand);
     
     if (!isInstalled) {
-      spinner.info(`${provider.toUpperCase()} CLI not found`);
+      spinner.info(`${provider} CLI not found`);
       const { confirm } = await enquirer.prompt<{ confirm: boolean }>({
         type: 'confirm',
         name: 'confirm',
-        message: `Would you like to install ${provider.toUpperCase()} CLI now?`,
+        message: `Would you like to install ${provider} CLI now?`,
         initial: true
       });
       
       if (confirm) {
-        const installed = provider === 'e2b' ? await installE2BCli() : await installDaytonaCli();
+        const installed = provider === SANDBOX_PROVIDERS.E2B ? await installE2BCli() : await installDaytonaCli();
         if (!installed) return false;
       } else {
         let installCmd: string;
-        if (provider === 'e2b') {
+        if (provider === SANDBOX_PROVIDERS.E2B) {
           installCmd = 'npm install -g @e2b/cli';
         } else {
           // Daytona installation command based on platform
@@ -178,12 +178,12 @@ export async function authenticate(provider: SANDBOX_PROVIDERS): Promise<boolean
             ? 'powershell -Command "irm https://get.daytona.io/windows | iex"'
             : 'brew install daytonaio/cli/daytona';
         }
-        console.log(chalk.yellow(`\nPlease install ${provider.toUpperCase()} CLI manually: ${installCmd}`));
+        console.log(chalk.yellow(`\nPlease install ${provider} CLI manually: ${installCmd}`));
         return false;
       }
     }
 
-    if (provider === 'e2b') {
+    if (provider === SANDBOX_PROVIDERS.E2B) {
       // E2B handles browser opening automatically
       await execa('e2b', ['auth', 'login'], { stdio: 'inherit' });
     } else {

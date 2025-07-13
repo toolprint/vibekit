@@ -105,7 +105,7 @@ export async function initCommand() {
       {
         type: 'input',
         name: 'disk',
-        message: 'Disk space (GB) for Daytona (Recommended: 1-10 GB):',
+        message: 'Disk space (GB) for Daytona (Recommended: 1-3 GB):',
         initial: '1',
         validate: (value: string) => {
           const num = parseInt(value);

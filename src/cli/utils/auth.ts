@@ -13,15 +13,50 @@ export interface AuthStatus {
   needsInstall?: boolean;
 }
 
-export async function isDaytonaInstalled(): Promise<boolean> {
-  return isCliInstalled('daytona');
-}
+type ProviderAuthConfig = {
+  cliName: string;
+  installInstructions: string;
+  checkAuthCommand: string[];
+  parseAuthOutput: (stdout: string, stderr: string) => { isAuthenticated: boolean; username?: string };
+  loginCommand: string[];
+  needsBrowserOpen?: boolean;
+};
 
-export async function isE2BInstalled(): Promise<boolean> {
-  return isCliInstalled('e2b');
-}
+const authConfigs: Record<SANDBOX_PROVIDERS, ProviderAuthConfig> = {
+  [SANDBOX_PROVIDERS.E2B]: {
+    cliName: 'e2b',
+    installInstructions: 'npm install -g @e2b/cli',
+    checkAuthCommand: ['auth', 'info'],
+    parseAuthOutput: (stdout) => ({
+      isAuthenticated: !stdout.includes('Not logged in') && !stdout.includes('not logged in'),
+      username: 'E2B User',
+    }),
+    loginCommand: ['auth', 'login'],
+    needsBrowserOpen: true,
+  },
+  [SANDBOX_PROVIDERS.DAYTONA]: {
+    cliName: 'daytona',
+    installInstructions: process.platform === 'win32' ? 'powershell -Command "irm https://get.daytona.io/windows | iex"' : 'brew install daytonaio/cli/daytona',
+    checkAuthCommand: ['organization', 'list'],
+    parseAuthOutput: (stdout, stderr) => {
+      const isAuthError = stderr && (
+        stderr.toLowerCase().includes('authentication') ||
+        stderr.toLowerCase().includes('login') ||
+        stderr.toLowerCase().includes('unauthorized') ||
+        stderr.toLowerCase().includes('not logged in')
+      );
+      let username = 'Daytona User';
+      if (stdout) {
+        const emailMatch = stdout.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+        if (emailMatch) username = emailMatch[0];
+      }
+      return { isAuthenticated: !isAuthError, username };
+    },
+    loginCommand: ['login'],
+  },
+};
 
-async function isCliInstalled(command: string): Promise<boolean> {
+export async function isCliInstalled(command: string): Promise<boolean> {
   try {
     await execa(command, ['--version']);
     return true;
@@ -31,68 +66,17 @@ async function isCliInstalled(command: string): Promise<boolean> {
 }
 
 export async function checkAuth(provider: SANDBOX_PROVIDERS): Promise<AuthStatus> {
-  const cliCommand = provider === SANDBOX_PROVIDERS.E2B ? 'e2b' : 'daytona';
-  const isInstalled = await isCliInstalled(cliCommand);
+  const config = authConfigs[provider];
+  const isInstalled = await isCliInstalled(config.cliName);
   
   if (!isInstalled) {
     return { isAuthenticated: false, provider, needsInstall: true };
   }
 
   try {
-    if (provider === SANDBOX_PROVIDERS.E2B) {
-      try {
-        const { stdout } = await execa('e2b', ['auth', 'info']);
-        // Check if the output indicates the user is not logged in
-        if (stdout.includes('Not logged in') || stdout.includes('not logged in')) {
-          return { isAuthenticated: false, provider };
-        }
-        // If we get here and no "not logged in" message, user is authenticated
-        return { isAuthenticated: true, username: 'E2B User', provider };
-      } catch (authError) {
-        // If auth info fails, user is not authenticated
-        return { isAuthenticated: false, provider };
-      }
-    } else {
-      // Daytona - check if we can list organizations (a command that requires authentication)
-      const { stdout, stderr } = await execa('daytona', ['organization', 'list'], { 
-        reject: false, // Don't throw on non-zero exit codes
-        timeout: 15000 // 15 second timeout
-      });
-      
-      // If the command succeeded or returned a non-auth error, consider it authenticated
-      // We check for common auth-related error messages in stderr
-      const isAuthError = stderr && (
-        stderr.toLowerCase().includes('authentication') ||
-        stderr.toLowerCase().includes('login') ||
-        stderr.toLowerCase().includes('unauthorized') ||
-        stderr.toLowerCase().includes('not logged in')
-      );
-      
-      if (!isAuthError) {
-        // Try to extract username from the output if possible
-        let username = 'Daytona User';
-        if (stdout) {
-          // Look for email patterns in the output
-          const emailMatch = stdout.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-          if (emailMatch) {
-            username = emailMatch[0];
-          }
-        }
-        
-        return { 
-          isAuthenticated: true, 
-          username,
-          provider 
-        };
-      }
-      
-      // If we got here, authentication failed
-      if (stderr) {
-        console.error(chalk.gray(`Daytona auth check error: ${stderr}`));
-      }
-      
-      return { isAuthenticated: false, provider };
-    }
+    const { stdout, stderr } = await execa(config.cliName, config.checkAuthCommand, { reject: false });
+    const { isAuthenticated, username } = config.parseAuthOutput(stdout, stderr);
+    return { isAuthenticated, username, provider };
   } catch (error) {
     console.error(chalk.gray(`Error checking ${provider} auth: ${error instanceof Error ? error.message : String(error)}`));
     return { isAuthenticated: false, provider };
@@ -149,12 +133,11 @@ async function installDaytonaCli(): Promise<boolean> {
 }
 
 export async function authenticate(provider: SANDBOX_PROVIDERS): Promise<boolean> {
+  const config = authConfigs[provider];
   const spinner = ora(`Authenticating with ${provider.toUpperCase()}...`).start();
   
   try {
-    // Check if CLI is installed
-    const cliCommand = provider === SANDBOX_PROVIDERS.E2B ? 'e2b' : 'daytona';
-    const isInstalled = await isCliInstalled(cliCommand);
+    const isInstalled = await isCliInstalled(config.cliName);
     
     if (!isInstalled) {
       spinner.info(`${provider} CLI not found`);
@@ -166,58 +149,27 @@ export async function authenticate(provider: SANDBOX_PROVIDERS): Promise<boolean
       });
       
       if (confirm) {
-        const installed = provider === SANDBOX_PROVIDERS.E2B ? await installE2BCli() : await installDaytonaCli();
+        const installed = await installCli(provider);
         if (!installed) return false;
       } else {
-        let installCmd: string;
-        if (provider === SANDBOX_PROVIDERS.E2B) {
-          installCmd = 'npm install -g @e2b/cli';
-        } else {
-          // Daytona installation command based on platform
-          installCmd = process.platform === 'win32' 
-            ? 'powershell -Command "irm https://get.daytona.io/windows | iex"'
-            : 'brew install daytonaio/cli/daytona';
-        }
-        console.log(chalk.yellow(`\nPlease install ${provider} CLI manually: ${installCmd}`));
+        console.log(chalk.yellow(`\nPlease install ${provider} CLI manually: ${config.installInstructions}`));
         return false;
       }
     }
 
-    if (provider === SANDBOX_PROVIDERS.E2B) {
-      // E2B handles browser opening automatically
-      await execa('e2b', ['auth', 'login'], { stdio: 'inherit' });
-    } else {
-      // Daytona login - we'll run this in a child process and wait for it to complete
-      spinner.text = 'Opening Daytona authentication in your browser...';
-      const { execa: execaAsync } = await import('execa');
-      
-      try {
-        // Run the login command in a separate process
-        await execaAsync('daytona', ['login'], { 
-          stdio: 'inherit',
-          // Don't reject on non-zero exit code since Daytona CLI exits after auth
-          reject: false 
-        });
-      } catch (error) {
-        // Ignore errors from the Daytona CLI as it may exit after auth
-      }
-      
-      // Give a moment for any cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+    // Run login
+    spinner.text = `Running ${provider} login...`;
+    await execa(config.cliName, config.loginCommand, { stdio: 'inherit' });
     
-    // Verify authentication with retries
+    // Verify with retries
     const maxRetries = 5;
-    const retryDelay = 2000; // 2 seconds
-    
+    const retryDelay = 2000;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const verifiedAuth = await checkAuth(provider);
-      
       if (verifiedAuth.isAuthenticated) {
         spinner.succeed(`Successfully authenticated with ${provider} as ${verifiedAuth.username}`);
         return true;
       }
-      
       if (attempt < maxRetries) {
         spinner.text = `Waiting for ${provider} authentication to complete (${attempt}/${maxRetries})...`;
         await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -229,6 +181,28 @@ export async function authenticate(provider: SANDBOX_PROVIDERS): Promise<boolean
   } catch (error) {
     spinner.fail(chalk.red(`Failed to authenticate with ${provider.toUpperCase()}`));
     console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+    return false;
+  }
+}
+
+async function installCli(provider: SANDBOX_PROVIDERS): Promise<boolean> {
+  const config = authConfigs[provider];
+  const spinner = ora(`Installing ${provider} CLI...`).start();
+  try {
+    if (provider === SANDBOX_PROVIDERS.E2B) {
+      await execa('npm', ['install', '-g', '@e2b/cli']);
+    } else {
+      if (process.platform === 'win32') {
+        await execa('powershell', ['-Command', 'irm https://get.daytona.io/windows | iex']);
+      } else {
+        await execa('brew', ['install', 'daytonaio/cli/daytona']);
+      }
+    }
+    spinner.succeed(`${provider} CLI installed successfully`);
+    return true;
+  } catch (error) {
+    spinner.fail(`Failed to install ${provider} CLI`);
+    console.error(chalk.red(`Please install it manually: ${config.installInstructions}`));
     return false;
   }
 }

@@ -4,7 +4,7 @@ import cfonts from 'cfonts';
 import { execa } from 'execa';
 import { installE2B } from './providers/e2b.js';
 import { installDaytona } from './providers/daytona.js';
-import { authenticate, checkAuth, isDaytonaInstalled, isE2BInstalled } from '../utils/auth.js';
+import { authenticate, checkAuth, isCliInstalled } from '../utils/auth.js';
 import { AGENT_TEMPLATES, SANDBOX_PROVIDERS } from '../../constants/enums.js';
 
 const { prompt } = enquirer;
@@ -24,12 +24,12 @@ type ProviderInstaller = {
 
 const installers: Record<SANDBOX_PROVIDERS, ProviderInstaller> = {
   [SANDBOX_PROVIDERS.E2B]: {
-    isInstalled: isE2BInstalled,
+    isInstalled: async () => await isCliInstalled('e2b'),
     configTransform: (config) => config,
     install: installE2B,
   },
   [SANDBOX_PROVIDERS.DAYTONA]: {
-    isInstalled: isDaytonaInstalled,
+    isInstalled: async () => await isCliInstalled('daytona'),
     configTransform: (config) => ({ ...config, memory: Math.floor(config.memory / 1024) }),
     install: installDaytona,
   },

@@ -3,7 +3,7 @@ import ora from 'ora';
 import chalk from 'chalk';
 import { AGENT_TEMPLATES } from '../../../constants/enums.js';
 
-import { isDaytonaInstalled } from '../../utils/auth.js';
+import { isCliInstalled } from '../../utils/auth.js';
 
 import { installTemplates, InstallConfig } from '../../utils/install.js';
 
@@ -11,7 +11,7 @@ export async function installDaytona(config: InstallConfig, selectedTemplates?: 
   return installTemplates({
     provider: 'Daytona',
     cliCommand: 'daytona',
-    isInstalled: isDaytonaInstalled,
+    isInstalled: async () => await isCliInstalled('daytona'),
     buildArgs: (template, config, tempDockerfile) => [
       'snapshots', 'create',
       template,

@@ -111,41 +111,53 @@ export async function initCommand() {
       return;
     }
 
-    // Get resource allocation
-    console.log(chalk.gray('\nConfigure resource allocation for your providers:'));
-    const { cpu, memory, disk } = await prompt<{ cpu: string; memory: string; disk: string }>([
-      {
-        type: 'input',
-        name: 'cpu',
-        message: 'CPU cores per provider (Recommended: 2-4 cores):',
-        initial: '2',
-        validate: (value: string) => {
-          const num = parseInt(value);
-          return !isNaN(num) && num > 0 ? true : 'Please enter a valid number';
-        }
-      },
-      {
-        type: 'input',
-        name: 'memory',
-        message: 'Memory (MB) per provider (Recommended: 1024-4096 MB):',
-        initial: '1024',
-        validate: (value: string) => {
-          const num = parseInt(value);
-          return !isNaN(num) && num > 0 ? true : 'Please enter a valid number';
-        }
-      },
-      {
-        type: 'input',
-        name: 'disk',
-        message: 'Disk space (GB) for Daytona (Recommended: 1-3 GB):',
-        initial: '1',
-        validate: (value: string) => {
-          const num = parseInt(value);
-          return !isNaN(num) && num > 0 ? true : 'Please enter a valid number';
-        },
-        skip: () => !providers.includes(SANDBOX_PROVIDERS.DAYTONA)
+    // Add this function before the prompts
+function getResourcePrompts(providers: SANDBOX_PROVIDERS[]) {
+  const prompts = [
+    {
+      type: 'input',
+      name: 'cpu',
+      message: 'CPU cores per provider (Recommended: 2-4 cores):',
+      initial: '2',
+      validate: (value: string) => {
+        const num = parseInt(value);
+        return !isNaN(num) && num > 0 ? true : 'Please enter a valid number';
       }
-    ]);
+    },
+    {
+      type: 'input',
+      name: 'memory',
+      message: 'Memory (MB) per provider (Recommended: 1024-4096 MB):',
+      initial: '1024',
+      validate: (value: string) => {
+        const num = parseInt(value);
+        return !isNaN(num) && num > 0 ? true : 'Please enter a valid number';
+      }
+    }
+  ];
+
+  if (providers.includes(SANDBOX_PROVIDERS.DAYTONA)) {
+    prompts.push({
+      type: 'input',
+      name: 'disk',
+      message: 'Disk space (GB) for Daytona (Recommended: 1-3 GB):',
+      initial: '1',
+      validate: (value: string) => {
+        const num = parseInt(value);
+        return !isNaN(num) && num > 0 ? true : 'Please enter a valid number';
+      }
+    });
+  }
+
+  // Add more conditional prompts for other providers here in the future
+
+  return prompts;
+}
+
+    // Use the function for dynamic prompts
+    console.log(chalk.gray('\nConfigure resource allocation for your providers:'));
+    const resourceResponses = await prompt<{ cpu: string; memory: string; disk?: string }>(getResourcePrompts(providers));
+    const { cpu, memory, disk } = resourceResponses;
 
     const config = {
       cpu: parseInt(cpu),

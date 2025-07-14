@@ -9,6 +9,32 @@ import { AGENT_TEMPLATES, SANDBOX_PROVIDERS } from '../../constants/enums.js';
 
 const { prompt } = enquirer;
 
+// Add this type and registry after imports
+type InstallConfig = {
+  cpu: number;
+  memory: number;
+  disk: number; // Make required to match Daytona expectations
+};
+
+type ProviderInstaller = {
+  isInstalled: () => Promise<boolean>;
+  configTransform: (config: InstallConfig) => InstallConfig;
+  install: (config: InstallConfig, templates: string[]) => Promise<boolean>;
+};
+
+const installers: Record<SANDBOX_PROVIDERS, ProviderInstaller> = {
+  [SANDBOX_PROVIDERS.E2B]: {
+    isInstalled: isE2BInstalled,
+    configTransform: (config) => config,
+    install: installE2B,
+  },
+  [SANDBOX_PROVIDERS.DAYTONA]: {
+    isInstalled: isDaytonaInstalled,
+    configTransform: (config) => ({ ...config, memory: Math.floor(config.memory / 1024) }),
+    install: installDaytona,
+  },
+};
+
 async function checkDockerStatus(): Promise<{ isInstalled: boolean; isRunning: boolean }> {
   try {
     // Check if Docker is installed
@@ -124,7 +150,7 @@ export async function initCommand() {
     const config = {
       cpu: parseInt(cpu),
       memory: parseInt(memory),
-      disk: parseInt(disk)
+      disk: parseInt(disk ?? '1') // Default to 1 GB if not prompted
     };
 
     // Check Docker once upfront since all providers need it
@@ -157,10 +183,11 @@ export async function initCommand() {
     for (const provider of providers) {
       let isAuthenticated = false;
       
+      // Use registry for provider-specific handlers
+      const installer = installers[provider];
+      
       // Check if we need to install the CLI first
-      const needsInstall = provider === SANDBOX_PROVIDERS.E2B 
-        ? !(await isE2BInstalled()) 
-        : !(await isDaytonaInstalled());
+      const needsInstall = !(await installer.isInstalled());
       if (needsInstall) {
         console.log(chalk.yellow(`\n🔧 ${provider} CLI needs to be installed`));
         const installed = await authenticate(provider);
@@ -203,12 +230,8 @@ export async function initCommand() {
       }
 
       // Proceed with installation (Docker already verified)
-      let installationSuccess = false;
-      if (provider === SANDBOX_PROVIDERS.E2B) {
-        installationSuccess = await installE2B(config, templates);
-      } else if (provider === SANDBOX_PROVIDERS.DAYTONA) {
-        installationSuccess = await installDaytona({ ...config, memory: Math.floor(config.memory / 1024) }, templates);
-      }
+      const transformedConfig = installer.configTransform(config);
+      const installationSuccess = await installer.install(transformedConfig, templates);
       
       if (installationSuccess) {
         successfulProviders++;

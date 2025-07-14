@@ -52,18 +52,19 @@ export async function installTemplates(options: {
         indent: 2
       }).start();
 
+      const fs = await import('fs/promises');
+      let tempDockerfile = '';
+      let tempFileCreated = false;
+
       try {
         // Check if Dockerfile exists
         const dockerfilePath = `${options.dockerfilePathPrefix}${template.name}`;
-        const fs = await import('fs/promises');
         try {
           await fs.access(dockerfilePath);
         } catch (error) {
           throw new Error(`Dockerfile not found at: ${dockerfilePath}`);
         }
         
-        let tempDockerfile = '';
-        let tempFileCreated = false;
         if (options.needsTempFile) {
           tempDockerfile = `Dockerfile.${template.name}.tmp`;
           await fs.copyFile(dockerfilePath, tempDockerfile);
@@ -78,14 +79,6 @@ export async function installTemplates(options: {
         spinner.succeed(chalk.green(`✅ ${template.display} template installed successfully`));
         results.successful++;
         
-        // Clean up the temporary file if created
-        if (tempFileCreated) {
-          try {
-            await fs.unlink(tempDockerfile);
-          } catch (cleanupError) {
-            // Ignore cleanup errors
-          }
-        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         
@@ -108,6 +101,13 @@ export async function installTemplates(options: {
         console.log(chalk.gray('   Continuing with next template...'));
       } finally {
         spinner = null;
+        if (tempFileCreated) {
+          try {
+            await fs.unlink(tempDockerfile);
+          } catch (cleanupError) {
+            // Ignore
+          }
+        }
       }
     }
 

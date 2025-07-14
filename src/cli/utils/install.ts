@@ -36,8 +36,8 @@ export async function installTemplates(options: {
     const results = { successful: 0, failed: 0, errors: [] as string[] };
     
     // Filter templates based on selection (default to all if none specified)
-    const templatesToInstall = options.selectedTemplates ?? [] 
-      ? AGENT_TEMPLATES.filter(template => (options.selectedTemplates ?? []).includes(template.name))
+    const templatesToInstall = options.selectedTemplates && options.selectedTemplates.length > 0
+      ? AGENT_TEMPLATES.filter(template => options.selectedTemplates!.includes(template.name))
       : AGENT_TEMPLATES;
     
     // Install each selected template

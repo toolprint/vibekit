@@ -44,8 +44,14 @@ export async function initCommand() {
       env: 'node'
     });
     
-    // Prompt for provider selection
+    // Show requirements
     console.log(chalk.blue('🖖 Welcome to VibeKit Setup! 🖖\n'));
+    console.log(chalk.yellow('📋 Requirements:'));
+    console.log(chalk.gray('  • Internet connection'));
+    console.log(chalk.gray('  • Docker installed and running'));
+    console.log(chalk.gray('  • Account on at least one sandbox provider\n'));
+    
+    // Prompt for provider selection
     console.log(chalk.gray('↑/↓: Navigate • Space: Select • Enter: Confirm\n'));
     
     const { providers } = await prompt<{ providers: SANDBOX_PROVIDERS[] }>({

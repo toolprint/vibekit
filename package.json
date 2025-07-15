@@ -3,7 +3,10 @@
     "type": "module",
     "main": "packages/vibekit/dist/index.js",
     "types": "packages/vibekit/dist/index.d.ts",
-    "version": "0.0.47-rc.1",
+    "version": "0.0.48-rc.1",
+    "bin": {
+        "vibekit": "./packages/vibekit/dist/cli/index.js"
+    },
     "engines": {
         "node": ">=18.0.0"
     },

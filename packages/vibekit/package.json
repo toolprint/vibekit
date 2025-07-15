@@ -1,6 +1,6 @@
 {
   "name": "@vibe-kit/vibekit",
-  "version": "0.0.43",
+  "version": "0.0.48-rc.1",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,9 +17,10 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/agents/*.ts --format esm,cjs",
+    "build": "tsup",
     "dev": "tsup src/index.ts --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "cli": "tsx src/cli/index.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
@@ -38,7 +39,12 @@
     "@types/uuid": "^10.0.0",
     "ai": "^4.3.16",
     "uuid": "^11.1.0",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "commander": "^12.1.0",
+    "enquirer": "^2.4.1",
+    "chalk": "^5.3.0",
+    "cfonts": "^3.3.0",
+    "execa": "^9.5.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.18",

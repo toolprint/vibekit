@@ -31,6 +31,7 @@ export interface VibeKitOptions {
   };
   workingDirectory?: string;
   secrets?: Record<string, string>;
+  sandboxId?: string;
 }
 
 export class VibeKit extends EventEmitter {
@@ -74,6 +75,11 @@ export class VibeKit extends EventEmitter {
 
   withSecrets(secrets: Record<string, string>): this {
     this.options.secrets = secrets;
+    return this;
+  }
+
+  withSession(sandboxId: string): this {
+    this.options.sandboxId = sandboxId;
     return this;
   }
 
@@ -127,6 +133,7 @@ export class VibeKit extends EventEmitter {
       telemetry: this.options.telemetry?.enabled
         ? { isEnabled: true, sessionId: this.options.telemetry.sessionId }
         : undefined,
+      sandboxId: this.options.sandboxId,
     };
 
     this.agent = new AgentClass(agentConfig);

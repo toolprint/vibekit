@@ -4,6 +4,9 @@
     "main": "packages/vibekit/dist/index.js",
     "types": "packages/vibekit/dist/index.d.ts",
     "version": "0.0.47-rc.1",
+    "engines": {
+        "node": ">=18.0.0"
+    },
     "workspaces": [
         "packages/*"
     ],

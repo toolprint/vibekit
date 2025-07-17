@@ -76,7 +76,6 @@ class DaytonaSandboxInstance implements SandboxInstance {
   get commands(): SandboxCommands {
     return {
       run: async (command: string, options?: SandboxCommandOptions) => {
-        console.log("WORKSPACE", this.workspace.id);
         const session = await this.workspace.process.getSession(
           this.workspace.id
         );

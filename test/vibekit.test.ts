@@ -70,7 +70,7 @@ describe("VibeKit SDK", () => {
       } catch {}
     });
 
-    await vibeKit.generateCode("Hi there");
+    await vibeKit.generateCode({ prompt: "Hi there" });
 
     await vibeKit.kill();
 

@@ -4,7 +4,9 @@ import type {
   AgentMode,
   ModelProvider,
   SandboxProvider,
+  Conversation,
 } from "../types";
+import { AgentResponse } from "../agents/base";
 
 export interface VibeKitEvents {
   stdout: (chunk: string) => void;
@@ -148,7 +150,17 @@ export class VibeKit extends EventEmitter {
     }
   }
 
-  async generateCode(prompt: string, mode: AgentMode = "code"): Promise<any> {
+  async generateCode({
+    prompt,
+    mode = "code",
+    branch,
+    history,
+  }: {
+    prompt: string;
+    mode?: AgentMode;
+    branch?: string;
+    history?: Conversation[];
+  }): Promise<AgentResponse> {
     if (!this.agent) {
       await this.initializeAgent();
     }
@@ -158,13 +170,7 @@ export class VibeKit extends EventEmitter {
       onError: (error: string) => this.emit("error", error),
     };
 
-    return this.agent.generateCode(
-      prompt,
-      mode,
-      undefined,
-      undefined,
-      callbacks
-    );
+    return this.agent.generateCode(prompt, mode, branch, history, callbacks);
   }
 
   async createPullRequest(): Promise<any> {

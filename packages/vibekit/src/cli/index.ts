@@ -40,6 +40,14 @@ program
     "-d, --disk <gb>",
     "Disk space per provider in GB (Recommended: 10-50 GB)"
   )
+  .option(
+    "--project-id <id>",
+    "Project ID for Northflank (can also use NORTHFLANK_PROJECT_ID env var)"
+  )
+  .option(
+    "--workspace-id <id>",
+    "Workspace ID for Daytona workspace naming (can also use DAYTONA_WORKSPACE_ID env var)"
+  )
   .action(initCommand);
 
 program.parse(process.argv);

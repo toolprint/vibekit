@@ -7,6 +7,8 @@ export type InstallConfig = {
   cpu: number;
   memory: number;
   disk: number;
+  projectId?: string;    // For Northflank project ID
+  workspaceId?: string;  // For Daytona workspace naming
 };
 
 export async function installTemplates(options: {

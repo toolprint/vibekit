@@ -15,6 +15,8 @@ type InstallConfig = {
   cpu: number;
   memory: number;
   disk: number; // Make required to match Daytona expectations
+  projectId?: string;    // For Northflank project ID
+  workspaceId?: string;  // For Daytona workspace naming
 };
 
 type ProviderInstaller = {
@@ -70,6 +72,8 @@ export async function initCommand(options: {
   cpu?: string; 
   memory?: string; 
   disk?: string; 
+  projectId?: string;
+  workspaceId?: string;
 } = {}) {
   try {
     // Display banner
@@ -277,10 +281,33 @@ export async function initCommand(options: {
       process.exit(1);
     }
 
+    // Handle project ID and workspace ID from CLI flags or environment variables
+    let projectId = options.projectId || process.env.NORTHFLANK_PROJECT_ID;
+    let workspaceId = options.workspaceId || process.env.DAYTONA_WORKSPACE_ID;
+
+    // Validate required IDs for specific providers
+    if (providers.includes(SANDBOX_PROVIDERS.NORTHFLANK) && !projectId) {
+      console.log(chalk.red(`❌ Northflank requires a project ID.`));
+      console.log(chalk.yellow(`💡 Solutions:`));
+      console.log(chalk.yellow(`   1. Use --project-id flag: vibekit init --project-id your-project-id`));
+      console.log(chalk.yellow(`   2. Set environment variable: export NORTHFLANK_PROJECT_ID=your-project-id`));
+      console.log(chalk.gray(`📖 Learn more: https://northflank.com/docs/v1/api/projects`));
+      process.exit(1);
+    }
+
+    if (projectId) {
+      console.log(chalk.gray(`🔧 Using Northflank project ID: ${projectId}`));
+    }
+    if (workspaceId) {
+      console.log(chalk.gray(`🔧 Using Daytona workspace ID: ${workspaceId}`));
+    }
+
     const config = {
       cpu: cpuNum,
       memory: memoryNum,
       disk: diskNum,
+      projectId,
+      workspaceId,
     };
 
     // Check Docker once upfront since all providers need it

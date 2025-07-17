@@ -16,10 +16,7 @@ export async function installNorthflank(config: InstallConfig, selectedTemplates
   console.log(`📝 Available templates: ${selectedTemplates?.join(', ')}`);
   
   // Return success without running the templates - just create them
-  return {
-    success: true,
-    message: `Northflank templates created for: ${selectedTemplates?.join(', ')}`
-  };
+  return true;
 }
 
 async function ensureVibeKitTemplates(config: InstallConfig, selectedTemplates: string[]): Promise<void> {
@@ -72,7 +69,7 @@ async function createAgentTemplate(agentName: string, config: InstallConfig): Pr
       spec: {
         type: "sequential",
         context: {
-          projectId: "vibekit"
+          projectId: config.projectId || "vibekit"
         },
         steps: [
           {

@@ -4,6 +4,7 @@ import cfonts from "cfonts";
 import { execa } from "execa";
 import { installE2B } from "./providers/e2b.js";
 import { installDaytona } from "./providers/daytona.js";
+import { installNorthflank } from "./providers/northflank.js";
 import { authenticate, checkAuth, isCliInstalled } from "../utils/auth.js";
 import { AGENT_TEMPLATES, SANDBOX_PROVIDERS } from "../../constants/enums.js";
 
@@ -36,6 +37,11 @@ const installers: Record<SANDBOX_PROVIDERS, ProviderInstaller> = {
     }),
     install: installDaytona,
   },
+  [SANDBOX_PROVIDERS.NORTHFLANK]: {
+    isInstalled: async () => await isCliInstalled("northflank"),
+    configTransform: (config: InstallConfig) => config,
+    install: installNorthflank,
+  },
 };
 
 async function checkDockerStatus(): Promise<{
@@ -58,7 +64,13 @@ async function checkDockerStatus(): Promise<{
   }
 }
 
-export async function initCommand() {
+export async function initCommand(options: { 
+  providers?: string; 
+  agents?: string; 
+  cpu?: string; 
+  memory?: string; 
+  disk?: string; 
+} = {}) {
   try {
     // Display banner
     cfonts.say("VIBEKIT", {
@@ -83,34 +95,85 @@ export async function initCommand() {
     console.log(chalk.gray("  • Docker installed and running"));
     console.log(chalk.gray("  • Account on at least one sandbox provider\n"));
 
-    // Prompt for provider selection
-    console.log(chalk.gray("↑/↓: Navigate • Space: Select • Enter: Confirm\n"));
+    // Parse CLI options
+    let providers: SANDBOX_PROVIDERS[] = [];
+    let templates: string[] = [];
 
-    const { providers } = await prompt<{ providers: SANDBOX_PROVIDERS[] }>({
-      type: "multiselect",
-      name: "providers",
-      message: "Which providers would you like to set up?",
-      choices: Object.entries(SANDBOX_PROVIDERS).map(([key, value]) => ({
-        name: value,
-        message: value,
-      })),
-    });
+    // Handle providers from CLI flag
+    if (options.providers) {
+      const providersInput = options.providers.split(',').map(p => p.trim());
+      const validProviders = Object.values(SANDBOX_PROVIDERS);
+      
+      // Create mapping for case-insensitive lookup
+      const providerMapping: Record<string, SANDBOX_PROVIDERS> = {
+        'e2b': SANDBOX_PROVIDERS.E2B,
+        'daytona': SANDBOX_PROVIDERS.DAYTONA,
+        'northflank': SANDBOX_PROVIDERS.NORTHFLANK,
+      };
+      
+      for (const provider of providersInput) {
+        const lowerProvider = provider.toLowerCase();
+        const mappedProvider = providerMapping[lowerProvider] || provider as SANDBOX_PROVIDERS;
+        
+        if (validProviders.includes(mappedProvider)) {
+          providers.push(mappedProvider);
+        } else {
+          console.log(chalk.red(`❌ Invalid provider: ${provider}`));
+          console.log(chalk.gray(`   Valid providers: ${Object.keys(providerMapping).join(', ')} (case-insensitive)`));
+          process.exit(1);
+        }
+      }
+    } else {
+      // Prompt for provider selection
+      console.log(chalk.gray("↑/↓: Navigate • Space: Select • Enter: Confirm\n"));
+
+      const result = await prompt<{ providers: SANDBOX_PROVIDERS[] }>({
+        type: "multiselect",
+        name: "providers",
+        message: "Which providers would you like to set up?",
+        choices: Object.entries(SANDBOX_PROVIDERS).map(([key, value]) => ({
+          name: value,
+          message: value,
+        })),
+      });
+      providers = result.providers;
+    }
 
     if (providers.length === 0) {
       console.log(chalk.yellow("No providers selected. Exiting."));
       process.exit(0);
     }
 
-    // Prompt for template selection
-    const { templates } = await prompt<{ templates: string[] }>({
-      type: "multiselect",
-      name: "templates",
-      message: "Which agent templates would you like to install?",
-      choices: AGENT_TEMPLATES.map((template) => ({
-        name: template.name,
-        message: template.display,
-      })),
-    });
+    // Handle agents from CLI flag
+    if (options.agents) {
+      const agentsInput = options.agents.split(',').map(a => a.trim());
+      const validAgents = AGENT_TEMPLATES.map(t => t.name);
+      
+      for (const agent of agentsInput) {
+        const lowerAgent = agent.toLowerCase();
+        const foundAgent = validAgents.find(valid => valid.toLowerCase() === lowerAgent);
+        
+        if (foundAgent) {
+          templates.push(foundAgent);
+        } else {
+          console.log(chalk.red(`❌ Invalid agent: ${agent}`));
+          console.log(chalk.gray(`   Valid agents: ${validAgents.join(', ')} (case-insensitive)`));
+          process.exit(1);
+        }
+      }
+    } else {
+      // Prompt for template selection
+      const result = await prompt<{ templates: string[] }>({
+        type: "multiselect",
+        name: "templates",
+        message: "Which agent templates would you like to install?",
+        choices: AGENT_TEMPLATES.map((template) => ({
+          name: template.name,
+          message: template.display,
+        })),
+      });
+      templates = result.templates;
+    }
 
     if (templates.length === 0) {
       console.log(chalk.yellow("No templates selected"));
@@ -166,21 +229,58 @@ export async function initCommand() {
       return prompts;
     }
 
-    // Use the function for dynamic prompts
-    console.log(
-      chalk.gray("\nConfigure resource allocation for your providers:")
-    );
-    const resourceResponses = await prompt<{
-      cpu: string;
-      memory: string;
-      disk?: string;
-    }>(getResourcePrompts(providers));
-    const { cpu, memory, disk } = resourceResponses;
+    // Handle resource configuration from CLI flags or prompts
+    let cpu: string, memory: string, disk: string;
+    
+    if (options.cpu && options.memory && (options.disk || !providers.includes(SANDBOX_PROVIDERS.DAYTONA))) {
+      // Use CLI flags when provided
+      cpu = options.cpu;
+      memory = options.memory;
+      disk = options.disk || "1"; // Default for providers that don't need disk config
+      
+      console.log(chalk.gray("\nUsing provided resource configuration:"));
+      console.log(chalk.gray(`  CPU cores: ${cpu}`));
+      console.log(chalk.gray(`  Memory: ${memory} MB`));
+      if (providers.includes(SANDBOX_PROVIDERS.DAYTONA)) {
+        console.log(chalk.gray(`  Disk space: ${disk} GB`));
+      }
+    } else {
+      // Use interactive prompts
+      console.log(
+        chalk.gray("\nConfigure resource allocation for your providers:")
+      );
+      const resourceResponses = await prompt<{
+        cpu: string;
+        memory: string;
+        disk?: string;
+      }>(getResourcePrompts(providers));
+      cpu = resourceResponses.cpu;
+      memory = resourceResponses.memory;
+      disk = resourceResponses.disk ?? "1";
+    }
+
+    // Validate CLI flag values
+    const cpuNum = parseInt(cpu);
+    const memoryNum = parseInt(memory);
+    const diskNum = parseInt(disk);
+    
+    if (isNaN(cpuNum) || cpuNum <= 0) {
+      console.log(chalk.red(`❌ Invalid CPU value: ${cpu}. Must be a positive number.`));
+      process.exit(1);
+    }
+    if (isNaN(memoryNum) || memoryNum <= 0) {
+      console.log(chalk.red(`❌ Invalid memory value: ${memory}. Must be a positive number.`));
+      process.exit(1);
+    }
+    if (isNaN(diskNum) || diskNum <= 0) {
+      console.log(chalk.red(`❌ Invalid disk value: ${disk}. Must be a positive number.`));
+      process.exit(1);
+    }
 
     const config = {
-      cpu: parseInt(cpu),
-      memory: parseInt(memory),
-      disk: parseInt(disk ?? "1"), // Default to 1 GB if not prompted
+      cpu: cpuNum,
+      memory: memoryNum,
+      disk: diskNum,
     };
 
     // Check Docker once upfront since all providers need it

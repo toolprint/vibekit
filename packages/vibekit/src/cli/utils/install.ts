@@ -22,6 +22,38 @@ export async function installTemplates(options: {
   console.log(chalk.blue(`\n🔧 Setting up ${options.provider}...`));
   let spinner: ReturnType<typeof ora> | null = null;
   
+  // Import path utilities at the top
+  const path = await import('path');
+  const fs = await import('fs/promises');
+  
+  // Find the project root by looking for package.json with workspaces OR assets/dockerfiles
+  let projectRoot = process.cwd();
+  
+  // Start from current working directory and search up
+  let currentDir = process.cwd();
+  while (currentDir !== path.parse(currentDir).root) {
+    try {
+      // Look for assets/dockerfiles directory (most reliable indicator)
+      const dockerfilesPath = path.join(currentDir, 'assets', 'dockerfiles');
+      await fs.access(dockerfilesPath);
+      projectRoot = currentDir;
+      break;
+    } catch (error) {
+      // Also try looking for package.json with workspaces as fallback
+      try {
+        const packageJsonPath = path.join(currentDir, 'package.json');
+        const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+        if (packageJson.workspaces) {
+          projectRoot = currentDir;
+          break;
+        }
+      } catch (error2) {
+        // Continue searching up
+      }
+    }
+    currentDir = path.dirname(currentDir);
+  }
+  
   try {
     const isInstalled = await options.isInstalled();
     
@@ -52,21 +84,27 @@ export async function installTemplates(options: {
         indent: 2
       }).start();
 
-      const fs = await import('fs/promises');
       let tempDockerfile = '';
       let tempFileCreated = false;
 
       try {
         // Check if Dockerfile exists
-        const dockerfilePath = `${options.dockerfilePathPrefix}${template.name}`;
+        const dockerfilePath = path.join(projectRoot, options.dockerfilePathPrefix, `Dockerfile.${template.name}`);
         try {
           await fs.access(dockerfilePath);
         } catch (error) {
+          // Add more debugging info
+          const cwd = process.cwd();
+          const relativePath = `${options.dockerfilePathPrefix}${template.name}`;
+          console.error(chalk.gray(`   Debug: CWD: ${cwd}`));
+          console.error(chalk.gray(`   Debug: Project root: ${projectRoot}`));
+          console.error(chalk.gray(`   Debug: Looking for: ${dockerfilePath}`));
+          console.error(chalk.gray(`   Debug: Relative path: ${relativePath}`));
           throw new Error(`Dockerfile not found at: ${dockerfilePath}`);
         }
         
         if (options.needsTempFile) {
-          tempDockerfile = `Dockerfile.${template.name}.tmp`;
+          tempDockerfile = path.join(process.cwd(), `Dockerfile.${template.name}.tmp`);
           await fs.copyFile(dockerfilePath, tempDockerfile);
           tempFileCreated = true;
         } else {

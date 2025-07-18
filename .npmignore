@@ -6,3 +6,4 @@ coverage/
 !dist/**/*.ts
 tsconfig.json
 test-*.ts
+.env*

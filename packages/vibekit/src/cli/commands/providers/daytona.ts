@@ -12,16 +12,19 @@ export async function installDaytona(config: InstallConfig, selectedTemplates?: 
     provider: 'Daytona',
     cliCommand: 'daytona',
     isInstalled: async () => await isCliInstalled('daytona'),
-    buildArgs: (template, config, tempDockerfile) => [
-      'snapshots', 'create',
-      template,
-      '--cpu', config.cpu.toString(),
-      '--memory', config.memory.toString(),
-      '--disk', config.disk.toString(),
-      '--dockerfile', tempDockerfile
-    ],
+    buildArgs: (template, config, tempDockerfile) => {
+      const snapshotName = config.workspaceId ? `${config.workspaceId}-${template}` : template;
+      return [
+        'snapshots', 'create',
+        snapshotName,
+        '--cpu', config.cpu.toString(),
+        '--memory', config.memory.toString(),
+        '--disk', config.disk.toString(),
+        '--dockerfile', tempDockerfile
+      ];
+    },
     needsTempFile: true,
-    dockerfilePathPrefix: 'images/Dockerfile.',
+    dockerfilePathPrefix: 'assets/dockerfiles/',
     config,
     selectedTemplates
   });

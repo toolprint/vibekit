@@ -51,8 +51,8 @@ describe("VibeKit SDK", () => {
       })
       .withSandbox(e2bProvider)
       .withGithub({
-        token: process.env.GITHUB_TOKEN!,
-        repository: process.env.GITHUB_REPOSITORY!,
+        token: process.env.GH_TOKEN!,
+        repository: process.env.GH_REPOSITORY!,
       })
       .withWorkingDirectory(dir);
 
@@ -91,8 +91,8 @@ describe("VibeKit SDK", () => {
       })
       .withSandbox(e2bProvider)
       .withGithub({
-        token: process.env.GITHUB_TOKEN!,
-        repository: process.env.GITHUB_REPOSITORY!,
+        token: process.env.GH_TOKEN!,
+        repository: process.env.GH_REPOSITORY!,
       })
       .withSecrets({ MY_SECRET: "test" });
 

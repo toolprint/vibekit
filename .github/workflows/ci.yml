@@ -23,6 +23,15 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     needs: lint
+    env:
+      E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+      DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GH_REPOSITORY: ${{ secrets.GH_REPOSITORY }}
+      WORKING_DIRECTORY: ${{ secrets.WORKING_DIRECTORY }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3

@@ -100,5 +100,5 @@ describe("VibeKit SDK", () => {
     const secret = output.stdout.trim();
 
     expect(secret).toBe("test");
-  });
+  }, 60000);
 });

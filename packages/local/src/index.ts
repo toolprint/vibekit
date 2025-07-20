@@ -23,6 +23,42 @@ export type {
   ValidationWarning 
 } from './setup/validator';
 
+// Provider and sandbox instances
+export { LocalSandboxProvider, createLocalProvider } from './provider';
+export { LocalSandboxInstance } from './sandbox-instance';
+export type {
+  LocalProviderConfig,
+  SandboxProvider,
+  SandboxInstance,
+  SandboxCommands,
+  SandboxCommandOptions,
+  SandboxExecutionResult,
+} from './provider';
+
+// Environment management
+export { EnvironmentManager } from './environment/manager';
+export { EnvironmentLifecycle } from './environment/lifecycle';
+export { EnvironmentSelector } from './environment/selector';
+export { FileSynchronizer } from './environment/sync';
+export { ResourceManager } from './environment/resources';
+
+// Environment management types
+export type { LifecycleOptions } from './environment/lifecycle';
+export type { 
+  SelectionCriteria,
+  SelectionOptions,
+  SelectionResult 
+} from './environment/selector';
+export type { 
+  SyncOptions,
+  SyncResult 
+} from './environment/sync';
+export type { 
+  ResourceLimits,
+  ResourceAlert,
+  ResourceMonitoringOptions 
+} from './environment/resources';
+
 // Re-export key types for convenience
 export type {
   Environment,

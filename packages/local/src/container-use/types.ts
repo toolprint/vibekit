@@ -49,6 +49,7 @@ export interface Environment {
   resources?: ResourceUsage;
   gitCommit?: string;
   workingDirectory: string;
+  environment?: Record<string, string>; // Environment variables
 }
 
 // Port mapping information

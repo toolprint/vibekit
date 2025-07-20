@@ -5,6 +5,7 @@ import { execa } from "execa";
 import { installE2B } from "./providers/e2b.js";
 import { installDaytona } from "./providers/daytona.js";
 import { installNorthflank } from "./providers/northflank.js";
+import { installLocal, isContainerUseInstalled } from "./providers/local.js";
 import { authenticate, checkAuth, isCliInstalled } from "../utils/auth.js";
 import { AGENT_TEMPLATES, SANDBOX_PROVIDERS } from "../../constants/enums.js";
 
@@ -43,6 +44,11 @@ const installers: Record<SANDBOX_PROVIDERS, ProviderInstaller> = {
     isInstalled: async () => await isCliInstalled("northflank"),
     configTransform: (config: InstallConfig) => config,
     install: installNorthflank,
+  },
+  [SANDBOX_PROVIDERS.LOCAL]: {
+    isInstalled: async () => await isContainerUseInstalled(),
+    configTransform: (config: InstallConfig) => config,
+    install: installLocal,
   },
 };
 
@@ -113,6 +119,7 @@ export async function initCommand(options: {
         'e2b': SANDBOX_PROVIDERS.E2B,
         'daytona': SANDBOX_PROVIDERS.DAYTONA,
         'northflank': SANDBOX_PROVIDERS.NORTHFLANK,
+        'local': SANDBOX_PROVIDERS.LOCAL,
       };
       
       for (const provider of providersInput) {
@@ -342,6 +349,25 @@ export async function initCommand(options: {
 
       // Use registry for provider-specific handlers
       const installer = installers[provider];
+
+      // Special handling for Local provider (no authentication needed)
+      if (provider === SANDBOX_PROVIDERS.LOCAL) {
+        console.log(chalk.blue(`\n🏠 Setting up ${provider} provider...`));
+        
+        // Proceed directly to installation for local provider
+        const transformedConfig = installer.configTransform(config);
+        const installationSuccess = await installer.install(
+          transformedConfig,
+          templates
+        );
+
+        if (installationSuccess) {
+          successfulProviders++;
+        } else {
+          failedProviders++;
+        }
+        continue; // Skip to next provider
+      }
 
       // Check if we need to install the CLI first
       const needsInstall = !(await installer.isInstalled());

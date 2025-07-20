@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
+import { createLocalCommand } from "./commands/local.js";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -49,5 +50,8 @@ program
     "Workspace ID for Daytona workspace naming (can also use DAYTONA_WORKSPACE_ID env var)"
   )
   .action(initCommand);
+
+// Add local command with subcommands
+program.addCommand(createLocalCommand());
 
 program.parse(process.argv);

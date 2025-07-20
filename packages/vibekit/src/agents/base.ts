@@ -103,6 +103,13 @@ export interface BaseAgentConfig {
   sandboxId?: string;
   telemetry?: any;
   workingDirectory?: string;
+  // Local MCP server configuration
+  localMCP?: {
+    enabled: boolean;
+    environment?: any; // Environment from @vibekit/local
+    serverType?: 'stdio' | 'transport';
+    autoStart?: boolean;
+  };
 }
 
 export interface StreamCallbacks {
@@ -163,6 +170,7 @@ export abstract class BaseAgent {
   protected lastPrompt?: string;
   protected currentBranch?: string;
   protected readonly WORKING_DIR: string;
+  protected mcpServerInstance?: any; // MCPServerInstance from local-mcp.ts
 
   constructor(config: BaseAgentConfig) {
     this.config = config;
@@ -199,7 +207,89 @@ export abstract class BaseAgent {
         this.WORKING_DIR
       );
     }
+
+    // Initialize local MCP server if configured
+    if (this.config.localMCP?.enabled && this.config.localMCP.autoStart) {
+      await this.initializeLocalMCPServer();
+      await this.createAgentSession();
+    }
+
     return this.sandboxInstance;
+  }
+
+  /**
+   * Initialize local MCP server for this agent
+   */
+  protected async initializeLocalMCPServer(): Promise<void> {
+    if (!this.config.localMCP?.enabled || !this.config.localMCP.environment) {
+      return;
+    }
+
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { initializeMCPForAgent } = await import('./local-mcp');
+      
+      const agentType = this.getAgentType();
+      this.mcpServerInstance = await initializeMCPForAgent(
+        agentType,
+        this.config.localMCP.environment
+      );
+
+      console.log(`MCP server initialized for ${agentType} agent`);
+    } catch (error) {
+      console.warn(`Failed to initialize MCP server: ${error}`);
+      // Don't throw - MCP is optional
+    }
+  }
+
+  /**
+   * Get MCP server URL if available
+   */
+  protected getMCPServerURL(): string | undefined {
+    return this.mcpServerInstance?.serverUrl;
+  }
+
+  /**
+   * Check if local MCP is enabled and running
+   */
+  protected isLocalMCPEnabled(): boolean {
+    return !!(this.config.localMCP?.enabled && this.mcpServerInstance?.isRunning);
+  }
+
+  /**
+   * Create and register agent session
+   */
+  protected async createAgentSession(): Promise<void> {
+    if (!this.config.localMCP?.environment) {
+      return;
+    }
+
+    try {
+      const { createAgentSession } = await import('./session-manager');
+      createAgentSession(
+        this.getAgentType(),
+        this.config.localMCP.environment,
+        this.mcpServerInstance,
+        this
+      );
+    } catch (error) {
+      console.warn(`Failed to create agent session: ${error}`);
+    }
+  }
+
+  /**
+   * Update agent activity in session
+   */
+  protected updateActivity(metadata?: any): void {
+    if (this.config.localMCP?.enabled) {
+      try {
+        import('./session-manager').then(({ updateAgentActivity }) => {
+          updateAgentActivity(this, metadata);
+        });
+      } catch (error) {
+        // Silently ignore session tracking errors
+      }
+    }
   }
 
   protected abstract getEnvironmentVariables(): Record<string, string>;
@@ -210,6 +300,17 @@ export abstract class BaseAgent {
   }
 
   public async killSandbox() {
+    // Clean up MCP server first
+    if (this.mcpServerInstance && this.config.localMCP?.environment) {
+      try {
+        const { cleanupMCPForEnvironment } = await import('./local-mcp');
+        await cleanupMCPForEnvironment(this.config.localMCP.environment);
+        this.mcpServerInstance = undefined;
+      } catch (error) {
+        console.warn(`Failed to cleanup MCP server: ${error}`);
+      }
+    }
+
     if (this.sandboxInstance) {
       await this.sandboxInstance.kill();
       this.sandboxInstance = undefined;
@@ -312,6 +413,11 @@ export abstract class BaseAgent {
           sbx.sandboxId
         }", "output": "${JSON.stringify(result)}"}`
       );
+
+      // Update activity tracking
+      this.updateActivity({
+        lastPrompt: command.substring(0, 100), // First 100 chars
+      });
 
       return {
         sandboxId: sbx.sandboxId,
@@ -446,6 +552,12 @@ export abstract class BaseAgent {
       );
 
       this.lastPrompt = prompt;
+
+      // Update activity tracking
+      this.updateActivity({
+        lastPrompt: prompt.substring(0, 100), // First 100 chars
+        branch: branch,
+      });
 
       return {
         sandboxId: sbx.sandboxId,

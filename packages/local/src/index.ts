@@ -74,6 +74,22 @@ export type {
   ServiceConnectionInfo
 } from './services/manager';
 
+// Git integration
+export {
+  LocalGitIntegration,
+  globalGitIntegration,
+  initializeGitForEnvironment,
+  mergeEnvironmentToMain,
+  getGitStatus
+} from './git/integration';
+export type {
+  GitBranchInfo,
+  MergeConflict,
+  MergeResult,
+  ChangePreview,
+  CommitInfo
+} from './git/integration';
+
 // Re-export key types for convenience
 export type {
   Environment,
@@ -86,5 +102,4 @@ export type {
   LogEntry,
   PortMapping,
   ResourceUsage,
-  MergeResult,
 } from './container-use/types'; 

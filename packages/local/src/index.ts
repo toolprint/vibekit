@@ -59,6 +59,21 @@ export type {
   ResourceMonitoringOptions 
 } from './environment/resources';
 
+// Service management
+export { 
+  LocalServiceManager,
+  ServiceTemplates,
+  globalServiceManager,
+  startServiceFromTemplate,
+  getServiceEnvironmentVariables
+} from './services/manager';
+export type {
+  ServiceConfig,
+  ServiceInstance,
+  ServiceTemplate,
+  ServiceConnectionInfo
+} from './services/manager';
+
 // Re-export key types for convenience
 export type {
   Environment,

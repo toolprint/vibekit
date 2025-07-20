@@ -619,6 +619,10 @@ export async function deleteCommand(
 }
 
 /**
+ * Service management commands (TODO: Complete service integration)
+ */
+
+/**
  * Install shell completion
  */
 export async function completionCommand(options: {

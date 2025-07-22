@@ -7,6 +7,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
+import enquirer from 'enquirer';
 import { 
   LocalDaggerSandboxProvider, 
   createLocalProvider,
@@ -15,6 +16,19 @@ import {
 } from '@vibekit/local';
 
 let localProvider: LocalDaggerSandboxProvider | null = null;
+
+// Mock environment interface for the commands
+interface Environment {
+  name: string;
+  status: 'running' | 'stopped' | 'starting' | 'stopping' | 'error';
+  agent?: AgentType;
+  branch?: string;
+  created: Date;
+  sandboxId?: string;
+}
+
+// In-memory storage for demonstration (in real implementation, this would be persistent)
+let environments: Environment[] = [];
 
 /**
  * Get or create the local provider instance
@@ -27,12 +41,167 @@ function getLocalProvider(): LocalDaggerSandboxProvider {
 }
 
 /**
+ * List sandbox environments
+ */
+export async function listCommand(options: {
+  status?: string;
+  agent?: string;
+  branch?: string;
+  json?: boolean;
+}) {
+  try {
+    let filteredEnvironments = [...environments];
+
+    // Apply filters
+    if (options.status) {
+      filteredEnvironments = filteredEnvironments.filter(env => env.status === options.status);
+    }
+    if (options.agent) {
+      filteredEnvironments = filteredEnvironments.filter(env => env.agent === options.agent);
+    }
+    if (options.branch) {
+      filteredEnvironments = filteredEnvironments.filter(env => env.branch === options.branch);
+    }
+
+    if (options.json) {
+      console.log(JSON.stringify(filteredEnvironments, null, 2));
+      return;
+    }
+
+    if (filteredEnvironments.length === 0) {
+      console.log(chalk.yellow('📭 No sandbox environments found'));
+      return;
+    }
+
+    console.log(chalk.blue('\n📦 Local Sandbox Environments\n'));
+    
+    for (const env of filteredEnvironments) {
+      const statusColor = env.status === 'running' ? 'green' : 
+                         env.status === 'error' ? 'red' : 'yellow';
+      
+      console.log(chalk.cyan(`🔹 ${env.name}`));
+      console.log(`   Status: ${chalk[statusColor](env.status)}`);
+      if (env.agent) console.log(`   Agent: ${env.agent}`);
+      if (env.branch) console.log(`   Branch: ${env.branch}`);
+      if (env.sandboxId) console.log(`   Sandbox ID: ${env.sandboxId}`);
+      console.log(`   Created: ${env.created.toLocaleString()}`);
+      console.log();
+    }
+  } catch (error) {
+    console.error(chalk.red(`\n❌ Failed to list environments: ${error instanceof Error ? error.message : String(error)}`));
+    process.exit(1);
+  }
+}
+
+/**
+ * Delete sandbox environments
+ */
+export async function deleteCommand(options: {
+  force?: boolean;
+  all?: boolean;
+  interactive?: boolean;
+}, names?: string[]) {
+  try {
+    let envsToDelete: Environment[] = [];
+
+    if (options.all) {
+      envsToDelete = [...environments];
+    } else if (names && names.length > 0) {
+      for (const name of names) {
+        const env = environments.find(e => e.name === name);
+        if (env) {
+          envsToDelete.push(env);
+        } else {
+          console.log(chalk.yellow(`⚠️ Environment '${name}' not found`));
+        }
+      }
+    } else if (options.interactive) {
+      if (environments.length === 0) {
+        console.log(chalk.yellow('📭 No environments to delete'));
+        return;
+      }
+
+      const { selectedEnvs } = await enquirer.prompt<{ selectedEnvs: string[] }>({
+        type: 'multiselect',
+        name: 'selectedEnvs',
+        message: 'Select environments to delete:',
+        choices: environments.map(env => ({
+          name: env.name,
+          message: `${env.name} (${env.status})`,
+          value: env.name
+        }))
+      });
+
+      envsToDelete = environments.filter(env => selectedEnvs.includes(env.name));
+    } else {
+      console.error(chalk.red('❌ Please specify environment names, use --all, or use --interactive'));
+      process.exit(1);
+    }
+
+    if (envsToDelete.length === 0) {
+      console.log(chalk.yellow('📭 No environments selected for deletion'));
+      return;
+    }
+
+    // Confirm deletion unless --force is used
+    if (!options.force) {
+      const envNames = envsToDelete.map(e => e.name).join(', ');
+      const { confirmed } = await enquirer.prompt<{ confirmed: boolean }>({
+        type: 'confirm',
+        name: 'confirmed',
+        message: `Are you sure you want to delete ${envsToDelete.length} environment(s): ${envNames}?`,
+        initial: false
+      });
+
+      if (!confirmed) {
+        console.log(chalk.yellow('❌ Deletion cancelled'));
+        return;
+      }
+    }
+
+    const spinner = ora('Deleting environments...').start();
+    
+    let deletedCount = 0;
+    const provider = getLocalProvider();
+
+    for (const env of envsToDelete) {
+      try {
+        // If environment has a running sandbox, kill it
+        if (env.sandboxId && env.status === 'running') {
+          try {
+            const sandbox = await provider.resume(env.sandboxId);
+            await sandbox.kill();
+          } catch (killError) {
+            console.warn(chalk.yellow(`⚠️ Could not kill sandbox for ${env.name}: ${killError instanceof Error ? killError.message : String(killError)}`));
+          }
+        }
+
+        // Remove from environments list
+        const index = environments.indexOf(env);
+        if (index > -1) {
+          environments.splice(index, 1);
+          deletedCount++;
+        }
+      } catch (error) {
+        console.warn(chalk.yellow(`⚠️ Error deleting ${env.name}: ${error instanceof Error ? error.message : String(error)}`));
+      }
+    }
+
+    spinner.succeed(`✅ Deleted ${deletedCount} environment(s)`);
+  } catch (error) {
+    console.error(chalk.red(`\n❌ Failed to delete environments: ${error instanceof Error ? error.message : String(error)}`));
+    process.exit(1);
+  }
+}
+
+/**
  * Create a new local sandbox instance
  */
 export async function createCommand(options: {
   agent?: string;
   workingDirectory?: string;
   env?: string;
+  name?: string;
 }) {
   try {
     const spinner = ora('Creating sandbox instance...').start();
@@ -56,9 +225,21 @@ export async function createCommand(options: {
 
     const sandbox = await provider.create(envVars, agentType, workingDirectory);
     
+    // Create environment record
+    const envName = options.name || `env-${Date.now().toString(36)}`;
+    const newEnv: Environment = {
+      name: envName,
+      status: 'running',
+      agent: agentType,
+      created: new Date(),
+      sandboxId: sandbox.sandboxId
+    };
+    environments.push(newEnv);
+    
     spinner.succeed(`Sandbox created with ID: ${sandbox.sandboxId}`);
     
     console.log(chalk.green('\n✅ Sandbox instance created successfully!'));
+    console.log(chalk.cyan(`📦 Environment: ${envName}`));
     console.log(chalk.cyan(`📦 Sandbox ID: ${sandbox.sandboxId}`));
     if (agentType) {
       console.log(chalk.cyan(`🤖 Agent Type: ${agentType}`));
@@ -133,6 +314,8 @@ export async function helpCommand() {
   
   console.log(chalk.green('Available Commands:'));
   console.log('  create     Create a new sandbox instance');
+  console.log('  list       List sandbox environments');
+  console.log('  delete     Delete sandbox environments');
   console.log('  run        Run a command in a sandbox');
   console.log('  help       Show this help message\n');
   
@@ -143,7 +326,9 @@ export async function helpCommand() {
   console.log('  gemini     Google Gemini environment\n');
   
   console.log(chalk.green('Examples:'));
-  console.log('  vibekit local create --agent claude');
+  console.log('  vibekit local create --agent claude --name my-claude-env');
+  console.log('  vibekit local list --status running');
+  console.log('  vibekit local delete --interactive');
   console.log('  vibekit local run --command "npm install" --agent codex');
   console.log('  vibekit local run --sandbox sandbox-id --command "ls -la"\n');
 }
@@ -159,10 +344,32 @@ export function createLocalCommand(): Command {
   localCmd
     .command('create')
     .description('Create a new sandbox instance')
+    .option('--name <name>', 'Environment name')
     .option('--agent <type>', 'Agent type (claude, codex, opencode, gemini)')
     .option('--working-directory <path>', 'Working directory in sandbox', '/workspace')
     .option('--env <env>', 'Environment variables (key=value,key2=value2)')
     .action(createCommand);
+
+  // List subcommand
+  localCmd
+    .command('list')
+    .alias('ls')
+    .description('List sandbox environments')
+    .option('--status <status>', 'Filter by status (running, stopped, error)')
+    .option('--agent <agent>', 'Filter by agent type')
+    .option('--branch <branch>', 'Filter by branch')
+    .option('--json', 'Output as JSON')
+    .action(listCommand);
+
+  // Delete subcommand
+  localCmd
+    .command('delete [names...]')
+    .alias('rm')
+    .description('Delete sandbox environments')
+    .option('--force', 'Force deletion without confirmation')
+    .option('--all', 'Delete all environments')
+    .option('--interactive', 'Interactive selection mode')
+    .action((names, options) => deleteCommand(options, names));
 
   // Run subcommand
   localCmd

@@ -208,7 +208,7 @@ export abstract class BaseAgent {
       );
     }
 
-    // Initialize local MCP server if configured
+    // Initialize local MCP server if configured (after sandbox is created)
     if (this.config.localMCP?.enabled && this.config.localMCP.autoStart) {
       await this.initializeLocalMCPServer();
       await this.createAgentSession();
@@ -221,7 +221,7 @@ export abstract class BaseAgent {
    * Initialize local MCP server for this agent
    */
   protected async initializeLocalMCPServer(): Promise<void> {
-    if (!this.config.localMCP?.enabled || !this.config.localMCP.environment) {
+    if (!this.config.localMCP?.enabled || !this.sandboxInstance) {
       return;
     }
 
@@ -231,8 +231,8 @@ export abstract class BaseAgent {
       
       const agentType = this.getAgentType();
       this.mcpServerInstance = await initializeMCPForAgent(
-        agentType,
-        this.config.localMCP.environment
+        this.sandboxInstance,
+        agentType
       );
 
       console.log(`MCP server initialized for ${agentType} agent`);
@@ -260,15 +260,26 @@ export abstract class BaseAgent {
    * Create and register agent session
    */
   protected async createAgentSession(): Promise<void> {
-    if (!this.config.localMCP?.environment) {
+    if (!this.sandboxInstance) {
       return;
     }
 
     try {
       const { createAgentSession } = await import('./session-manager');
+      
+      // Create a mock environment object since we're moving away from tight coupling
+      const mockEnvironment = {
+        name: this.sandboxInstance.sandboxId,
+        status: 'running' as const,
+        createdAt: new Date(),
+        environment: {
+          VIBEKIT_AGENT_TYPE: this.getAgentType()
+        }
+      };
+      
       createAgentSession(
         this.getAgentType(),
-        this.config.localMCP.environment,
+        mockEnvironment,
         this.mcpServerInstance,
         this
       );
@@ -295,16 +306,17 @@ export abstract class BaseAgent {
   protected abstract getEnvironmentVariables(): Record<string, string>;
 
   private getMkdirCommand(path: string): string {
-    // For now, assume E2B-style commands. This could be made configurable later.
-    return `sudo mkdir -p ${path} && sudo chown $USER:$USER ${path}`;
+    // Use non-sudo commands for better compatibility with Docker containers
+    // This works for both E2B-style environments and Docker containers
+    return `mkdir -p ${path} || true`;
   }
 
   public async killSandbox() {
     // Clean up MCP server first
-    if (this.mcpServerInstance && this.config.localMCP?.environment) {
+    if (this.mcpServerInstance && this.sandboxInstance) {
       try {
-        const { cleanupMCPForEnvironment } = await import('./local-mcp');
-        await cleanupMCPForEnvironment(this.config.localMCP.environment);
+        const { cleanupMCPForSandbox } = await import('./local-mcp');
+        await cleanupMCPForSandbox(this.sandboxInstance.sandboxId);
         this.mcpServerInstance = undefined;
       } catch (error) {
         console.warn(`Failed to cleanup MCP server: ${error}`);

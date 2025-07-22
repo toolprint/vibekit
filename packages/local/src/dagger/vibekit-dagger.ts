@@ -7,8 +7,10 @@
 
 import { connect } from "@dagger.io/dagger";
 import type { Client, Container, Directory } from "@dagger.io/dagger";
+import { Octokit } from "@octokit/rest";
 import { exec } from 'child_process';
 import { promisify } from 'util';
+
 const execAsync = promisify(exec);
 
 // Interface definitions matching E2B/Northflank patterns
@@ -52,7 +54,20 @@ export interface SandboxProvider {
 export type AgentType = "codex" | "claude" | "opencode" | "gemini";
 
 export interface LocalDaggerConfig {
-  // Configuration for local Dagger provider
+  githubToken?: string;
+}
+
+export interface GitConfig {
+  repoUrl: string;
+  branch?: string;
+  commitMessage?: string;
+}
+
+export interface PRConfig {
+  title: string;
+  body: string;
+  headBranch: string;
+  baseBranch?: string;
 }
 
 // Helper function to get Dockerfile path based on agent type
@@ -69,7 +84,7 @@ const getDockerfilePathFromAgentType = (agentType?: AgentType): string | undefin
   return undefined; // fallback to base image
 };
 
-// Helper to get tagged image name for local caching
+// Helper to get tagged image name
 const getImageTag = (agentType?: AgentType): string => {
   return `vibekit-${agentType || 'default'}:latest`;
 };
@@ -77,28 +92,49 @@ const getImageTag = (agentType?: AgentType): string => {
 // Local Dagger implementation with proper workspace state persistence
 class LocalDaggerSandboxInstance implements SandboxInstance {
   private isRunning = true;
+  private octokit?: Octokit;
   private workspaceDirectory: Directory | null = null;
-  private client: Client | null = null;
+  private baseContainer: Container | null = null;
+  private initializationPromise: Promise<void> | null = null;
 
   constructor(
     public sandboxId: string,
     private image: string, // Fallback image if no Dockerfile
     private envs?: Record<string, string>,
     private workDir?: string,
+    private githubToken?: string,
     private dockerfilePath?: string, // Path to Dockerfile if building from source
     private agentType?: AgentType
-  ) {}
+  ) {
+    if (githubToken) {
+      this.octokit = new Octokit({ auth: githubToken });
+    }
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initializationPromise) {
+      this.initializationPromise = this.initializeBaseContainer();
+    }
+    await this.initializationPromise;
+  }
+
+  private async initializeBaseContainer(): Promise<void> {
+    await connect(async (client) => {
+      // Create the base container once and store it for reuse
+      this.baseContainer = await this.createBaseContainer(client, this.dockerfilePath, this.agentType);
+    });
+  }
 
   get commands(): SandboxCommands {
     return {
       run: async (command: string, options?: SandboxCommandOptions): Promise<SandboxExecutionResult> => {
+        await this.ensureInitialized();
+        
         let result: SandboxExecutionResult = { exitCode: 1, stdout: "", stderr: "Command execution failed" };
         
         await connect(async (client) => {
           try {
-            this.client = client;
-            
-            // Get or create persistent workspace
+            // Get or create persistent workspace container using our reusable base
             let container = await this.getWorkspaceContainer(client);
             
             if (options?.background) {
@@ -122,23 +158,34 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
               // CRITICAL: Export the workspace directory to capture filesystem changes
               this.workspaceDirectory = container.directory(this.workDir || "/vibe0");
               
-              // Execute the command and get output
-              const stdout = await container.stdout();
-              const stderr = await container.stderr();
-              
-              // Call streaming callbacks if provided
-              if (options?.onStdout && stdout) {
-                options.onStdout(stdout);
+              try {
+                // Execute the command and get output
+                const stdout = await container.stdout();
+                const stderr = await container.stderr();
+                
+                // Call streaming callbacks if provided
+                if (options?.onStdout && stdout) {
+                  options.onStdout(stdout);
+                }
+                if (options?.onStderr && stderr) {
+                  options.onStderr(stderr);
+                }
+                
+                result = {
+                  exitCode: 0,
+                  stdout: stdout,
+                  stderr: stderr,
+                };
+              } catch (execError) {
+                // If the container execution failed, extract exit code and throw for proper error handling
+                const errorMessage = execError instanceof Error ? execError.message : String(execError);
+                const exitCode = errorMessage.includes('exit code') 
+                  ? parseInt(errorMessage.match(/exit code (\d+)/)?.[1] || '1') 
+                  : 1;
+                
+                // For foreground commands, throw the error so base agent can handle it
+                throw new Error(`Command failed with exit code ${exitCode}: ${errorMessage}`);
               }
-              if (options?.onStderr && stderr) {
-                options.onStderr(stderr);
-              }
-              
-              result = {
-                exitCode: 0,
-                stdout: stdout,
-                stderr: stderr,
-              };
             }
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -164,8 +211,12 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
    * This is the key method that makes our implementation work like E2B/Northflank
    */
   private async getWorkspaceContainer(client: Client): Promise<Container> {
-    // Create base container
-    let container = await this.createBaseContainer(client, this.dockerfilePath, this.agentType);
+    if (!this.baseContainer) {
+      throw new Error("Base container not initialized");
+    }
+
+    // Start with our cached base container but create a new instance for this session
+    let container = this.baseContainer;
     
     // If we have a saved workspace directory, restore it using withDirectory (copies content)
     if (this.workspaceDirectory) {
@@ -185,49 +236,281 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
     const imageTag = getImageTag(agentType);
     let container: Container;
 
-    // Check if image exists locally
     try {
-      const { stdout } = await execAsync(`docker images -q ${imageTag}`);
-      if (stdout.trim()) {
-        // Image exists: Load from local Docker
-        container = client.container().from(imageTag);
-        console.log(`Using existing local image: ${imageTag}`);
-      } else {
-        // Image doesn't exist: Build and tag it
-        console.log(`Building and tagging image: ${imageTag}`);
+      // Build image once
+      console.log(`Building image: ${imageTag}`);
+      if (dockerfilePath) {
         const context = client.host().directory(".");
         container = client
           .container()
-          .build(context, { dockerfile: dockerfilePath || 'Dockerfile' }); // Fallback Dockerfile if needed
-
-        // Export the built image to local Docker daemon with tag
-        await container.export(imageTag); // Dagger's export saves it locally
+          .build(context, { dockerfile: dockerfilePath });
+        
+        // Export to local Docker daemon for future use
+        try {
+          await container.export(imageTag);
+          console.log(`Image ${imageTag} built and exported to local Docker`);
+        } catch (exportError) {
+          console.log(`Note: Could not export ${imageTag} to local Docker: ${exportError instanceof Error ? exportError.message : String(exportError)}`);
+        }
+      } else {
+        // Use fallback base image
+        container = client
+          .container()
+          .from(this.image);
       }
     } catch (error) {
-      console.error(`Error checking/building image: ${error instanceof Error ? error.message : String(error)}`);
-      throw error; // Or fallback to always build
+      console.error(`Error building image: ${error instanceof Error ? error.message : String(error)}`);
+      // Fallback to base image
+      if (dockerfilePath) {
+        const context = client.host().directory(".");
+        container = client
+          .container()
+          .build(context, { dockerfile: dockerfilePath });
+      } else {
+        container = client
+          .container()
+          .from(this.image);
+      }
     }
 
-    // Add envs, workdir, etc.
-    container = container.withWorkdir(this.workDir || "/vibe0");
+    // Add environment variables
     if (this.envs) {
       for (const [key, value] of Object.entries(this.envs)) {
         container = container.withEnvVariable(key, value);
       }
     }
 
+    // Add GitHub token for git operations (if provided via config)
+    if (this.githubToken) {
+      container = container.withEnvVariable("GITHUB_TOKEN", this.githubToken);
+    }
+
     return container;
+  }
+
+  // File operations for git workflow
+  async readFile(path: string): Promise<string> {
+    await this.ensureInitialized();
+    
+    let content = "";
+    await connect(async (client) => {
+      if (!this.baseContainer) {
+        throw new Error("Base container not initialized");
+      }
+      
+      const container = await this.getWorkspaceContainer(client);
+      content = await container.file(path).contents();
+    });
+    return content;
+  }
+
+  async writeFile(path: string, content: string): Promise<void> {
+    await this.ensureInitialized();
+    
+    await connect(async (client) => {
+      if (!this.baseContainer) {
+        throw new Error("Base container not initialized");
+      }
+      
+      let container = await this.getWorkspaceContainer(client);
+      container = container.withNewFile(path, content);
+      // CRITICAL: Export the workspace directory to persist the file write
+      this.workspaceDirectory = container.directory(this.workDir || "/vibe0");
+    });
+  }
+
+  async createBranch(branchName: string): Promise<SandboxExecutionResult> {
+    return await this.commands.run(`git checkout -b ${branchName}`);
+  }
+
+  async commitChanges(message: string): Promise<SandboxExecutionResult> {
+    await this.commands.run('git add .');
+    return await this.commands.run(`git commit -m "${message}"`);
+  }
+
+  async pushChanges(branchName: string): Promise<SandboxExecutionResult> {
+    return await this.commands.run(`git push origin ${branchName}`);
+  }
+
+  // GitHub API integration for PR creation
+  async createPullRequest(prConfig: PRConfig): Promise<{ success: boolean; prUrl?: string; error?: string }> {
+    if (!this.octokit || !this.githubToken) {
+      return { success: false, error: "GitHub token not configured" };
+    }
+
+    try {
+      // Extract owner/repo from current git remote
+      const remoteResult = await this.commands.run('git remote get-url origin');
+      const repoMatch = remoteResult.stdout.match(/github\.com[/:]([\w-]+)\/([\w-]+)(?:\.git)?/);
+      
+      if (!repoMatch) {
+        return { success: false, error: "Could not determine GitHub repository from git remote" };
+      }
+
+      const [, owner, repo] = repoMatch;
+
+      const response = await this.octokit.pulls.create({
+        owner,
+        repo,
+        title: prConfig.title,
+        body: prConfig.body,
+        head: prConfig.headBranch,
+        base: prConfig.baseBranch || 'main',
+      });
+
+      return {
+        success: true,
+        prUrl: response.data.html_url,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  async cloneRepository(gitConfig: GitConfig): Promise<SandboxExecutionResult> {
+    await this.ensureInitialized();
+    
+    let cloneResult: SandboxExecutionResult = { exitCode: 1, stdout: "", stderr: "Clone failed" };
+    
+    await connect(async (client) => {
+      // Set basic global git config
+      await this.commands.run('git config --global init.defaultBranch main');
+      
+      // If we have a GitHub token, modify the URL to include authentication
+      let cloneUrl = gitConfig.repoUrl;
+      if (this.githubToken && gitConfig.repoUrl.includes('github.com')) {
+        // Convert github.com URLs to include token authentication
+        if (gitConfig.repoUrl.startsWith('https://github.com/')) {
+          // Handle HTTPS URLs
+          cloneUrl = gitConfig.repoUrl.replace('https://github.com/', `https://x-access-token:${this.githubToken}@github.com/`);
+        } else if (gitConfig.repoUrl.startsWith('git@github.com:')) {
+          // Handle SSH URLs by converting to HTTPS with token
+          cloneUrl = gitConfig.repoUrl
+            .replace('git@github.com:', `https://x-access-token:${this.githubToken}@github.com/`);
+        } else if (gitConfig.repoUrl.includes('github.com/') && !gitConfig.repoUrl.includes('@')) {
+          // Handle plain github.com URLs (add https and token)
+          cloneUrl = gitConfig.repoUrl.replace('github.com/', `x-access-token:${this.githubToken}@github.com/`);
+          if (!cloneUrl.startsWith('https://')) {
+            cloneUrl = 'https://' + cloneUrl;
+          }
+        }
+        
+        // Ensure it has .git extension for push operations
+        if (!cloneUrl.endsWith('.git')) {
+          cloneUrl += '.git';
+        }
+      }
+      
+      // Clone the repository with authentication
+      const cloneCommand = gitConfig.branch 
+        ? `git clone --branch ${gitConfig.branch} ${cloneUrl} .`
+        : `git clone ${cloneUrl} .`;
+      
+      cloneResult = await this.commands.run(cloneCommand);
+      
+      // IMPORTANT: Set user config in repository context after cloning
+      if (cloneResult.exitCode === 0) {
+        await this.commands.run('git config user.name "VibeKit Agent"');
+        await this.commands.run('git config user.email "agent@vibekit.ai"');
+      }
+    });
+    
+    return cloneResult;
+  }
+
+  async executeWorkflow(
+    gitConfig: GitConfig,
+    agentCommand: string,
+    prConfig: PRConfig
+  ): Promise<{ success: boolean; prUrl?: string; error?: string; logs: string[] }> {
+    const logs: string[] = [];
+    
+    try {
+      // Step 1: Clone repository
+      logs.push("🔄 Cloning repository...");
+      const cloneResult = await this.cloneRepository(gitConfig);
+      if (cloneResult.exitCode !== 0) {
+        return { success: false, error: `Clone failed: ${cloneResult.stderr}`, logs };
+      }
+      logs.push("✅ Repository cloned successfully");
+
+      // Step 2: Create feature branch
+      logs.push("🔄 Creating feature branch...");
+      const branchResult = await this.createBranch(prConfig.headBranch);
+      if (branchResult.exitCode !== 0) {
+        return { success: false, error: `Branch creation failed: ${branchResult.stderr}`, logs };
+      }
+      logs.push(`✅ Branch '${prConfig.headBranch}' created`);
+
+      // Step 3: Execute agent command
+      logs.push("🔄 Executing agent command...");
+      const execResult = await this.commands.run(agentCommand);
+      if (execResult.exitCode !== 0) {
+        return { success: false, error: `Agent execution failed: ${execResult.stderr}`, logs };
+      }
+      logs.push("✅ Agent command executed successfully");
+
+      // Step 4: Check for changes
+      logs.push("🔄 Checking for changes...");
+      const statusResult = await this.commands.run('git status --porcelain');
+      if (!statusResult.stdout.trim()) {
+        logs.push("ℹ️ No changes detected, skipping commit and PR creation");
+        return { success: true, logs };
+      }
+      logs.push(`📝 Found ${statusResult.stdout.trim().split('\n').length} changed files`);
+
+      // Step 5: Commit changes
+      logs.push("🔄 Committing changes...");
+      const commitResult = await this.commitChanges(gitConfig.commitMessage || 'VibeKit agent changes');
+      if (commitResult.exitCode !== 0) {
+        return { success: false, error: `Commit failed: ${commitResult.stderr}`, logs };
+      }
+      logs.push("✅ Changes committed");
+
+      // Step 6: Push changes
+      logs.push("🔄 Pushing changes...");
+      const pushResult = await this.pushChanges(prConfig.headBranch);
+      if (pushResult.exitCode !== 0) {
+        return { success: false, error: `Push failed: ${pushResult.stderr}`, logs };
+      }
+      logs.push("✅ Changes pushed to remote");
+
+      // Step 7: Create Pull Request
+      logs.push("🔄 Creating Pull Request...");
+      const prResult = await this.createPullRequest(prConfig);
+      if (!prResult.success) {
+        return { success: false, error: `PR creation failed: ${prResult.error}`, logs };
+      }
+      logs.push(`✅ Pull Request created: ${prResult.prUrl}`);
+
+      return {
+        success: true,
+        prUrl: prResult.prUrl,
+        logs
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        logs
+      };
+    }
   }
 
   async kill(): Promise<void> {
     this.isRunning = false;
     this.workspaceDirectory = null;
-    this.client = null;
+    this.baseContainer = null;
+    
+    // Close the Dagger connection
+    // No explicit action needed here as the connection is managed by the shared connect
   }
 
   async pause(): Promise<void> {
-    // Dagger containers don't have pause/resume, but we maintain this for interface compatibility
-    console.log(`Pausing Dagger sandbox ${this.sandboxId} (state preserved)`);
+    // Not applicable for Dagger containers
   }
 
   async getHost(port: number): Promise<string> {
@@ -255,6 +538,7 @@ export class LocalDaggerSandboxProvider implements SandboxProvider {
       "ubuntu:24.04", // fallback image
       envs,
       workDir,
+      this.config.githubToken,
       dockerfilePath,
       agentType
     );
@@ -271,4 +555,63 @@ export class LocalDaggerSandboxProvider implements SandboxProvider {
 
 export function createLocalProvider(config: LocalDaggerConfig = {}): LocalDaggerSandboxProvider {
   return new LocalDaggerSandboxProvider(config);
+}
+
+/**
+ * Pre-build all agent images for faster startup times
+ * This function should be called during setup to cache images locally
+ */
+export async function prebuildAgentImages(): Promise<{ success: boolean; results: Array<{ agentType: AgentType; success: boolean; error?: string }> }> {
+  const agentTypes: AgentType[] = ["claude", "codex", "opencode", "gemini"];
+  const results: Array<{ agentType: AgentType; success: boolean; error?: string }> = [];
+  
+  console.log("🏗️ Pre-building agent images for faster future startup...");
+  
+  for (const agentType of agentTypes) {
+    const imageTag = getImageTag(agentType);
+    const dockerfilePath = getDockerfilePathFromAgentType(agentType);
+    
+    try {
+      console.log(`⏳ Checking/building ${imageTag}...`);
+      
+      // Check if image already exists
+      const { stdout } = await execAsync(`docker images -q ${imageTag}`);
+      if (stdout.trim()) {
+        console.log(`✅ ${imageTag} already exists locally`);
+        results.push({ agentType, success: true });
+        continue;
+      }
+      
+      // Build image using Dagger and cache it
+      if (dockerfilePath) {
+        await connect(async (client) => {
+          const context = client.host().directory(".");
+          const container = client
+            .container()
+            .build(context, { dockerfile: dockerfilePath });
+          
+          // Export to local Docker daemon
+          await container.export(imageTag);
+        });
+        
+        console.log(`✅ ${imageTag} built and cached successfully`);
+        results.push({ agentType, success: true });
+      } else {
+        console.log(`⚠️ No Dockerfile found for ${agentType}, skipping`);
+        results.push({ agentType, success: false, error: "No Dockerfile found" });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Failed to build ${imageTag}: ${errorMessage}`);
+      results.push({ agentType, success: false, error: errorMessage });
+    }
+  }
+  
+  const successCount = results.filter(r => r.success).length;
+  console.log(`🎯 Pre-build complete: ${successCount}/${agentTypes.length} images ready`);
+  
+  return {
+    success: successCount > 0,
+    results
+  };
 } 

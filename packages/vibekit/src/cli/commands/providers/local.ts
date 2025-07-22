@@ -3,7 +3,7 @@
  * 
  * Handles installation and setup of the local provider using Dagger.
  * This includes dependency validation, Dagger CLI installation, and
- * basic configuration setup.
+ * pre-building agent images for faster startup.
  */
 
 import chalk from 'chalk';
@@ -75,37 +75,88 @@ export async function installLocal(config: InstallConfig, selectedTemplates?: st
     try {
       // Simple test to ensure Dagger engine can start
       await execa('dagger', ['query', '--help'], { timeout: 10000 });
-      spinner.succeed('Dagger engine connectivity verified');
+      spinner.text = 'Dagger engine connectivity verified';
     } catch (error) {
-      spinner.warn('Dagger engine test skipped (may start on first use)');
+      spinner.text = 'Dagger engine test skipped (may start on first use)';
       console.log(chalk.yellow('\n⚠️  Dagger engine will start automatically on first use'));
+    }
+
+    // Step 5: Pre-build agent images for faster startup
+    if (selectedTemplates && selectedTemplates.length > 0) {
+      spinner.text = 'Pre-building agent images for faster startup...';
+      
+      try {
+        // Import and call the pre-build function
+        const { setupLocalProvider } = await import('@vibekit/local/src/setup/installer');
+        
+        const setupResult = await setupLocalProvider({
+          skipPreBuild: false,
+          selectedAgents: selectedTemplates as any[],
+          verbose: false
+        });
+
+        if (setupResult.success) {
+          const preBuildResults = setupResult.preBuildResults || [];
+          const successCount = preBuildResults.filter(r => r.success).length;
+          
+          if (successCount > 0) {
+            spinner.text = `Pre-built ${successCount}/${preBuildResults.length} agent images`;
+            console.log(chalk.green(`\n✅ ${successCount} agent images pre-built and cached`));
+            
+            const successfulAgents = preBuildResults
+              .filter(r => r.success)
+              .map(r => r.agentType);
+              
+            if (successfulAgents.length > 0) {
+              console.log(chalk.cyan(`🎯 Ready agents: ${successfulAgents.join(', ')}`));
+            }
+            
+            const failedAgents = preBuildResults
+              .filter(r => !r.success)
+              .map(r => r.agentType);
+              
+            if (failedAgents.length > 0) {
+              console.log(chalk.yellow(`⚠️  Will build on first use: ${failedAgents.join(', ')}`));
+            }
+          } else {
+            console.log(chalk.yellow('\n⚠️ No images were pre-built, but they will be built on first use'));
+          }
+        } else {
+          console.log(chalk.yellow('\n⚠️ Pre-build step had issues, but images will be built on first use'));
+        }
+      } catch (error) {
+        console.log(chalk.yellow(`\n⚠️ Pre-build failed: ${error instanceof Error ? error.message : String(error)}`));
+        console.log(chalk.gray('Images will be built automatically on first use instead'));
+      }
+    } else {
+      console.log(chalk.blue('\n⏭️ Skipping pre-build (no agents selected)'));
     }
       
     spinner.succeed('Local provider with Dagger configured successfully');
       
-      console.log(chalk.green('\n✅ Local provider is ready!'));
-      console.log(chalk.blue('\n📋 What\'s available:'));
-      console.log(`  • Create sandboxes: ${chalk.cyan('vibekit local create')}`);
-      console.log(`  • List environments: ${chalk.cyan('vibekit local list')}`);
-    console.log(`  • Watch logs: ${chalk.cyan('vibekit local watch <n>')}`);
-    console.log(`  • Access terminal: ${chalk.cyan('vibekit local terminal <n>')}`);
-    console.log(`  • Clean up: ${chalk.cyan('vibekit local delete <n>')}`);
+    console.log(chalk.green('\n✅ Local provider is ready!'));
+    console.log(chalk.blue('\n📋 What\'s available:'));
+    console.log(`  • Create sandboxes: ${chalk.cyan('vibekit local create')}`);
+    console.log(`  • Fast startup: ${chalk.cyan('Pre-built images cached locally')}`);
+    console.log(`  • Git integration: ${chalk.cyan('Built-in GitHub operations')}`);
+    console.log(`  • Isolation: ${chalk.cyan('Containerized environments')}`);
       
-      console.log(chalk.yellow('\n💡 Quick start:'));
-      console.log(chalk.cyan('  vibekit local create --agent claude --name my-sandbox'));
-      console.log(chalk.cyan('  vibekit local watch my-sandbox'));
+    console.log(chalk.yellow('\n💡 Quick start:'));
+    console.log(chalk.cyan('  vibekit local create --agent claude'));
+    console.log(chalk.cyan('  vibekit local run --command "npm install" --agent codex'));
       
-      if (selectedTemplates && selectedTemplates.length > 0) {
-        console.log(chalk.blue(`\n🎯 Agent templates available: ${selectedTemplates.join(', ')}`));
-      }
+    if (selectedTemplates && selectedTemplates.length > 0) {
+      console.log(chalk.blue(`\n🎯 Agent templates available: ${selectedTemplates.join(', ')}`));
+    }
     
-    console.log(chalk.blue('\n🔧 Dagger Benefits:'));
-    console.log(chalk.gray('  • Isolated containerized environments'));
-    console.log(chalk.gray('  • Built-in git operations and PR creation'));
-    console.log(chalk.gray('  • Cross-platform compatibility'));
-    console.log(chalk.gray('  • Programmatic pipeline control'));
+    console.log(chalk.blue('\n🔧 Benefits:'));
+    console.log(chalk.gray('  • ⚡ Fast startup with pre-built images'));
+    console.log(chalk.gray('  • 🔒 Isolated containerized environments'));
+    console.log(chalk.gray('  • 🔄 Built-in git operations and PR creation'));
+    console.log(chalk.gray('  • 🌐 Cross-platform compatibility'));
+    console.log(chalk.gray('  • 📦 Automatic dependency management'));
       
-      return true;
+    return true;
     
   } catch (error) {
     spinner.fail('Local provider setup failed');

@@ -1,7 +1,7 @@
 {
   "name": "@vibekit/local",
   "version": "0.1.0",
-  "description": "Local sandbox provider for Vibekit using Container Use",
+  "description": "Local sandbox provider for Vibekit using Dagger",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -18,7 +18,7 @@
     "vibekit",
     "local",
     "sandbox",
-    "container-use",
+    "dagger",
     "development"
   ],
   "author": "Vibekit Team",

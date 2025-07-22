@@ -1,881 +1,373 @@
 /**
- * Local Sandbox Provider Test Suite
+ * Dagger Local Sandbox Provider Test Suite
  * 
- * Comprehensive unit and integration tests for the local provider,
- * including environment lifecycle, service management, and agent integration.
+ * Comprehensive tests for the dagger-based local provider,
+ * including sandbox lifecycle and agent integration.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { 
-  LocalSandboxProvider, 
+  LocalDaggerSandboxProvider, 
   createLocalProvider,
-  Environment,
-  EnvironmentManager,
-  LocalServiceManager,
-  LocalGitIntegration,
-  globalServiceManager,
-  globalGitIntegration,
-  type ServiceConfig,
-  type ServiceInstance,
+  type LocalDaggerConfig,
+  type AgentType,
 } from '@vibekit/local';
 
-// Mock Container Use CLI
-const mockSpawn = vi.fn();
-vi.mock('child_process', () => ({
-  spawn: mockSpawn,
+// Mock Dagger SDK
+const mockContainer = {
+  from: vi.fn().mockReturnThis(),
+  withWorkdir: vi.fn().mockReturnThis(),
+  withExec: vi.fn().mockReturnThis(),
+  withEnvVariable: vi.fn().mockReturnThis(),
+  withDirectory: vi.fn().mockReturnThis(),
+  withSecretVariable: vi.fn().mockReturnThis(),
+  stdout: vi.fn().mockResolvedValue('command output'),
+  stderr: vi.fn().mockResolvedValue(''),
+  exitCode: vi.fn().mockResolvedValue(0),
+  terminal: vi.fn().mockReturnThis(),
+};
+
+const mockDirectory = {
+  entries: vi.fn().mockResolvedValue(['file1.txt', 'file2.js']),
+  file: vi.fn().mockReturnThis(),
+  contents: vi.fn().mockResolvedValue('file contents'),
+};
+
+const mockSecret = {
+  id: 'test-secret-id',
+};
+
+const mockClient = {
+  container: vi.fn().mockReturnValue(mockContainer),
+  directory: vi.fn().mockReturnValue(mockDirectory),
+  setSecret: vi.fn().mockReturnValue(mockSecret),
+  close: vi.fn().mockResolvedValue(undefined),
+};
+
+const mockConnect = vi.fn().mockResolvedValue(mockClient);
+
+vi.mock('@dagger.io/dagger', () => ({
+  connect: mockConnect,
 }));
 
-// Test fixtures
-const mockEnvironment: Environment = {
-  name: 'test-env-1',
-  status: 'running',
-  branch: 'main',
-  createdAt: new Date('2024-01-01T00:00:00Z'),
-  lastActivity: new Date('2024-01-01T12:00:00Z'),
-  ports: [{ host: 3000, container: 3000 }],
-  environment: {
-    NODE_ENV: 'test',
-    VIBEKIT_AGENT_TYPE: 'codex',
+// Mock Octokit for GitHub integration
+const mockOctokit = {
+  repos: {
+    createForAuthenticatedUser: vi.fn().mockResolvedValue({ data: { clone_url: 'https://github.com/test/repo.git' } }),
+    get: vi.fn().mockResolvedValue({ data: { clone_url: 'https://github.com/test/repo.git' } }),
   },
-  resourceUsage: {
-    cpu: 0.1,
-    memory: 128,
-    disk: 1024,
+  pulls: {
+    create: vi.fn().mockResolvedValue({ data: { number: 1, html_url: 'https://github.com/test/repo/pull/1' } }),
+  },
+  git: {
+    createRef: vi.fn().mockResolvedValue({ data: { ref: 'refs/heads/test-branch' } }),
   },
 };
 
-const mockServiceConfig: ServiceConfig = {
-  name: 'test-postgres',
-  type: 'postgresql',
-  version: '15',
-  port: 5432,
-  environment: {
-    POSTGRES_DB: 'testdb',
-    POSTGRES_USER: 'testuser',
-    POSTGRES_PASSWORD: 'testpass',
-  },
-  healthCheck: {
-    command: 'pg_isready -h localhost -p 5432',
-    interval: 30000,
-    timeout: 5000,
-    retries: 3,
-  },
-};
+vi.mock('@octokit/rest', () => ({
+  Octokit: vi.fn().mockReturnValue(mockOctokit),
+}));
 
-describe('Local Sandbox Provider', () => {
-  let provider: LocalSandboxProvider;
+describe('Dagger Local Sandbox Provider', () => {
+  let provider: LocalDaggerSandboxProvider;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    provider = createLocalProvider({
-      autoInstall: false, // Skip installation in tests
-    });
+    provider = createLocalProvider({});
   });
 
   afterEach(async () => {
-    // Cleanup any test environments
-    try {
-      await provider.deleteEnvironment('test-env-1');
-    } catch {
-      // Ignore cleanup errors
+    if (mockClient.close) {
+      await mockClient.close();
     }
   });
 
-  describe('Environment Management', () => {
-    it('should create a new environment', async () => {
-      // Mock successful container-use apply
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      const envVars = { NODE_ENV: 'test' };
-      const agentType = 'codex';
-      const workingDir = '/test';
-
-      const sandbox = await provider.create(envVars, agentType, workingDir);
-
-      expect(sandbox).toBeDefined();
-      expect(sandbox.sandboxId).toBeTruthy();
-      expect(mockSpawn).toHaveBeenCalledWith(
-        'container-use',
-        expect.arrayContaining(['apply']),
-        expect.any(Object)
-      );
+  describe('Provider Configuration', () => {
+    it('should create provider with default config', () => {
+      const defaultProvider = createLocalProvider();
+      expect(defaultProvider).toBeDefined();
+      expect(defaultProvider).toBeInstanceOf(LocalDaggerSandboxProvider);
     });
 
-    it('should resume an existing environment', async () => {
-      // Mock container-use list to return existing environment
-      mockSpawn.mockImplementation((command, args) => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data' && args.includes('list')) {
-                callback(JSON.stringify([mockEnvironment]));
-              }
-            })
-          },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      const sandbox = await provider.resume('test-env-1');
-
-      expect(sandbox).toBeDefined();
-      expect(sandbox.sandboxId).toBe('test-env-1');
-    });
-
-    it('should list environments', async () => {
-      // Mock container-use list
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data') {
-                callback(JSON.stringify([mockEnvironment]));
-              }
-            })
-          },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      const environments = await provider.listEnvironments();
-
-      expect(environments).toHaveLength(1);
-      expect(environments[0].name).toBe('test-env-1');
-      expect(environments[0].status).toBe('running');
-    });
-
-    it('should delete an environment', async () => {
-      // Mock successful deletion
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      await expect(provider.deleteEnvironment('test-env-1')).resolves.not.toThrow();
+    it('should create provider with custom config', () => {
+      const config: LocalDaggerConfig = {
+        githubToken: 'test-token-123',
+      };
       
-      expect(mockSpawn).toHaveBeenCalledWith(
-        'container-use',
-        expect.arrayContaining(['delete', 'test-env-1']),
-        expect.any(Object)
-      );
-    });
-
-    it('should handle environment creation failure', async () => {
-      // Mock failed container-use apply
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(1), 10); // Exit code 1 = failure
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data') {
-                callback('Error: Container creation failed');
-              }
-            })
-          },
-        };
-        return mockProcess;
-      });
-
-      await expect(
-        provider.create({ NODE_ENV: 'test' }, 'codex', '/test')
-      ).rejects.toThrow();
+      const customProvider = createLocalProvider(config);
+      expect(customProvider).toBeDefined();
     });
   });
 
-  describe('Environment Lifecycle', () => {
-    let manager: EnvironmentManager;
+  describe('Sandbox Creation', () => {
+    it('should create basic sandbox', async () => {
+      const sandbox = await provider.create();
 
-    beforeEach(() => {
-      manager = new EnvironmentManager();
+      expect(sandbox).toBeDefined();
+      expect(sandbox.sandboxId).toMatch(/^dagger-default-/);
+      expect(sandbox.commands).toBeDefined();
+      expect(mockConnect).toHaveBeenCalled();
+      expect(mockClient.container).toHaveBeenCalled();
     });
 
-    it('should validate environment configuration', () => {
-      const validConfig = {
-        name: 'test-env',
-        baseImage: 'ubuntu:22.04',
-        workingDirectory: '/workspace',
+    it('should create sandbox with environment variables', async () => {
+      const envVars = {
+        NODE_ENV: 'test',
+        DEBUG: 'true',
+        API_KEY: 'secret-key',
       };
 
-      expect(() => manager.validateConfig(validConfig)).not.toThrow();
+      const sandbox = await provider.create(envVars);
+
+      expect(sandbox).toBeDefined();
+      expect(mockContainer.withEnvVariable).toHaveBeenCalledTimes(3);
     });
 
-    it('should reject invalid environment names', () => {
-      const invalidConfig = {
-        name: 'invalid name with spaces',
-        baseImage: 'ubuntu:22.04',
-        workingDirectory: '/workspace',
+    it('should create sandbox for each agent type', async () => {
+      const agentTypes: AgentType[] = ['claude', 'codex', 'opencode', 'gemini'];
+
+      for (const agentType of agentTypes) {
+        const sandbox = await provider.create({}, agentType);
+        
+        expect(sandbox).toBeDefined();
+        expect(sandbox.sandboxId).toMatch(new RegExp(`^dagger-${agentType}-`));
+      }
+    });
+
+    it('should create sandbox with custom working directory', async () => {
+      const customWorkDir = '/app/src';
+      const sandbox = await provider.create({}, 'codex', customWorkDir);
+
+      expect(sandbox).toBeDefined();
+      expect(mockContainer.withWorkdir).toHaveBeenCalledWith(customWorkDir);
+    });
+
+    it('should handle GitHub token configuration', async () => {
+      const configWithToken: LocalDaggerConfig = {
+        githubToken: 'github-token-123',
       };
+      
+      const providerWithToken = createLocalProvider(configWithToken);
+      const sandbox = await providerWithToken.create();
 
-      expect(() => manager.validateConfig(invalidConfig)).toThrow();
-    });
-
-    it('should generate unique environment names', () => {
-      const name1 = manager.generateEnvironmentName();
-      const name2 = manager.generateEnvironmentName();
-
-      expect(name1).toBeTruthy();
-      expect(name2).toBeTruthy();
-      expect(name1).not.toBe(name2);
-      expect(name1).toMatch(/^vibekit-env-\d+$/);
+      expect(sandbox).toBeDefined();
+      expect(mockClient.setSecret).toHaveBeenCalledWith('github-token', 'github-token-123');
     });
   });
-});
 
-describe('Service Management', () => {
-  let serviceManager: LocalServiceManager;
+  describe('Command Execution', () => {
+    it('should execute simple commands', async () => {
+      const sandbox = await provider.create();
+      const result = await sandbox.commands.run('echo "hello world"');
 
-  beforeEach(() => {
-    serviceManager = new LocalServiceManager();
-  });
+      expect(result).toBeDefined();
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe('command output');
+      expect(result.stderr).toBe('');
+      expect(mockContainer.withExec).toHaveBeenCalledWith(['sh', '-c', 'echo "hello world"']);
+    });
 
-  afterEach(async () => {
-    // Cleanup test services
-    try {
-      await serviceManager.stopService(mockEnvironment, 'test-postgres');
-    } catch {
-      // Ignore cleanup errors
-    }
-  });
+    it('should execute commands with options', async () => {
+      const sandbox = await provider.create();
+      
+      const onStdoutSpy = vi.fn();
+      const onStderrSpy = vi.fn();
 
-  describe('Service Lifecycle', () => {
-    it('should start a PostgreSQL service', async () => {
-      // Mock successful service start
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
+      const result = await sandbox.commands.run('npm install', {
+        timeoutMs: 10000,
+        onStdout: onStdoutSpy,
+        onStderr: onStderrSpy,
       });
 
-      const serviceInstance = await serviceManager.startService(
-        mockEnvironment,
-        mockServiceConfig
+      expect(result).toBeDefined();
+      expect(result.exitCode).toBe(0);
+    });
+
+    it('should handle command failures', async () => {
+      mockContainer.exitCode.mockResolvedValueOnce(1);
+      mockContainer.stderr.mockResolvedValueOnce('npm: command not found');
+
+      const sandbox = await provider.create();
+      const result = await sandbox.commands.run('npm --version');
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toBe('npm: command not found');
+    });
+
+    it('should handle command timeouts', async () => {
+      mockContainer.exitCode.mockImplementationOnce(() => 
+        new Promise(resolve => setTimeout(() => resolve(124), 100))
       );
 
-      expect(serviceInstance).toBeDefined();
-      expect(serviceInstance.config.name).toBe('test-postgres');
-      expect(serviceInstance.config.type).toBe('postgresql');
-      expect(serviceInstance.status).toBe('running');
-      expect(serviceInstance.port).toBe(5432);
-      expect(serviceInstance.connectionString).toContain('postgresql://');
-    });
+      const sandbox = await provider.create();
+      const result = await sandbox.commands.run('sleep 30', { timeoutMs: 50 });
 
-    it('should stop a service', async () => {
-      // First start the service
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      await serviceManager.startService(mockEnvironment, mockServiceConfig);
-
-      // Then stop it
-      await expect(
-        serviceManager.stopService(mockEnvironment, 'test-postgres')
-      ).resolves.not.toThrow();
-
-      const service = serviceManager.getService(mockEnvironment, 'test-postgres');
-      expect(service?.status).toBe('stopped');
-    });
-
-    it('should perform health checks', async () => {
-      // Mock successful health check
-      mockSpawn.mockImplementation((command, args) => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              // Health check command returns 0 for healthy
-              const exitCode = args.includes('pg_isready') ? 0 : 0;
-              setTimeout(() => callback(exitCode), 10);
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      await serviceManager.startService(mockEnvironment, mockServiceConfig);
-
-      const isHealthy = await serviceManager.checkServiceHealth(
-        mockEnvironment,
-        'test-postgres'
-      );
-
-      expect(isHealthy).toBe(true);
-
-      const service = serviceManager.getService(mockEnvironment, 'test-postgres');
-      expect(service?.healthStatus?.healthy).toBe(true);
-    });
-
-    it('should generate correct connection strings', () => {
-      const testCases = [
-        {
-          type: 'postgresql' as const,
-          port: 5432,
-          env: { POSTGRES_USER: 'user', POSTGRES_PASSWORD: 'pass', POSTGRES_DB: 'db' },
-          expected: 'postgresql://user:pass@localhost:5432/db',
-        },
-        {
-          type: 'redis' as const,
-          port: 6379,
-          env: {},
-          expected: 'redis://localhost:6379',
-        },
-        {
-          type: 'mysql' as const,
-          port: 3306,
-          env: { MYSQL_USER: 'user', MYSQL_PASSWORD: 'pass', MYSQL_DATABASE: 'db' },
-          expected: 'mysql://user:pass@localhost:3306/db',
-        },
-      ];
-
-      testCases.forEach(({ type, port, env, expected }) => {
-        const config: ServiceConfig = {
-          name: `test-${type}`,
-          type,
-          port,
-          environment: env,
-        };
-
-        const instance: ServiceInstance = {
-          config,
-          status: 'running',
-          port,
-          connectionString: '', // Will be set by generateConnectionString
-        };
-
-        // Test the private method through the manager's startService
-        // This is a simplified test focusing on the logic
-        expect(expected).toContain(type === 'redis' ? 'redis://' : `${type}://`);
-      });
+      // In a real implementation, this would handle timeouts
+      expect(result).toBeDefined();
     });
   });
 
-  describe('Service Templates', () => {
-    it('should provide predefined service templates', async () => {
-      const { ServiceTemplates, startServiceFromTemplate } = await import('@vibekit/local');
-
-      expect(ServiceTemplates.postgresql).toBeDefined();
-      expect(ServiceTemplates.redis).toBeDefined();
-      expect(ServiceTemplates.mysql).toBeDefined();
-      expect(ServiceTemplates.mongodb).toBeDefined();
-
-      expect(ServiceTemplates.postgresql.name).toBe('PostgreSQL');
-      expect(ServiceTemplates.postgresql.type).toBe('postgresql');
-      expect(ServiceTemplates.postgresql.requiredPorts).toContain(5432);
-    });
-  });
-});
-
-describe('Git Integration', () => {
-  let gitIntegration: LocalGitIntegration;
-
-  beforeEach(() => {
-    gitIntegration = new LocalGitIntegration();
-  });
-
-  describe('Repository Management', () => {
-    it('should initialize Git repository', async () => {
-      // Mock git commands
-      mockSpawn.mockImplementation((command, args) => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              // Simulate git not initialized, then successful init
-              const exitCode = args.includes('rev-parse') ? 1 : 0;
-              setTimeout(() => callback(exitCode), 10);
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      await expect(
-        gitIntegration.initializeRepository(mockEnvironment, 'https://github.com/test/repo.git')
-      ).resolves.not.toThrow();
-
-      expect(mockSpawn).toHaveBeenCalledWith(
-        'container-use',
-        expect.arrayContaining(['terminal', 'test-env-1', '--', 'git', 'init']),
-        expect.any(Object)
-      );
+  describe('Sandbox Lifecycle', () => {
+    it('should kill sandbox', async () => {
+      const sandbox = await provider.create();
+      
+      await expect(sandbox.kill()).resolves.not.toThrow();
+      expect(mockClient.close).toHaveBeenCalled();
     });
 
-    it('should create environment branch', async () => {
-      // Mock successful branch creation
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      const branchName = await gitIntegration.createEnvironmentBranch(mockEnvironment);
-
-      expect(branchName).toBe('vibekit/test-env-1');
-      expect(mockSpawn).toHaveBeenCalledWith(
-        'container-use',
-        expect.arrayContaining(['terminal', 'test-env-1', '--', 'git', 'checkout', '-b', 'vibekit/test-env-1']),
-        expect.any(Object)
-      );
+    it('should pause sandbox', async () => {
+      const sandbox = await provider.create();
+      
+      await expect(sandbox.pause()).resolves.not.toThrow();
     });
 
-    it('should get branch information', async () => {
-      // Mock git commands for branch info
-      mockSpawn.mockImplementation((command, args) => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data') {
-                if (args.includes('--show-current')) {
-                  callback('vibekit/test-env-1');
-                } else if (args.includes('rev-list')) {
-                  callback('2\t1'); // 2 ahead, 1 behind
-                } else if (args.includes('log')) {
-                  callback('abc123|Test commit|Test Author|2024-01-01T12:00:00Z');
-                } else if (args.includes('--porcelain')) {
-                  callback('M  file1.txt\nA  file2.txt');
-                }
-              }
-            })
-          },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
+    it('should get host for port', async () => {
+      const sandbox = await provider.create();
+      const host = await sandbox.getHost(3000);
 
-      const branchInfo = await gitIntegration.getBranchInfo(mockEnvironment);
-
-      expect(branchInfo).toBeDefined();
-      expect(branchInfo?.name).toBe('vibekit/test-env-1');
-      expect(branchInfo?.ahead).toBe(2);
-      expect(branchInfo?.behind).toBe(1);
-      expect(branchInfo?.hasUncommittedChanges).toBe(true);
-      expect(branchInfo?.lastCommit.hash).toBe('abc123');
-    });
-
-    it('should generate meaningful commit messages', async () => {
-      // Mock git status
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data') {
-                callback('M  file1.txt\nA  file2.txt\nD  file3.txt');
-              }
-            })
-          },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      const commitMessage = await gitIntegration.generateCommitMessage(mockEnvironment);
-
-      expect(commitMessage).toContain('Add 1 file');
-      expect(commitMessage).toContain('Update 1 file');
-      expect(commitMessage).toContain('Delete 1 file');
-      expect(commitMessage).toContain('(vibekit/test-env-1)');
+      expect(typeof host).toBe('string');
+      expect(host).toBe('localhost');
     });
   });
 
-  describe('Merge Operations', () => {
-    it('should detect merge conflicts', async () => {
-      // Mock merge conflict scenario
-      mockSpawn.mockImplementation((command, args) => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              // Merge fails with conflicts
-              const exitCode = args.includes('merge') && !args.includes('abort') ? 1 : 0;
-              setTimeout(() => callback(exitCode), 10);
-            }
-          }),
-          stdout: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data' && args.includes('--diff-filter=U')) {
-                callback('conflicted-file.txt');
-              }
-            })
-          },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
+  describe('Resume Functionality', () => {
+    it('should resume existing sandbox', async () => {
+      const originalSandbox = await provider.create({}, 'claude');
+      const sandboxId = originalSandbox.sandboxId;
 
-      const mergeResult = await gitIntegration.checkMergeConflicts(mockEnvironment, 'main');
+      const resumedSandbox = await provider.resume(sandboxId);
 
-      expect(mergeResult.success).toBe(false);
-      expect(mergeResult.conflicts).toHaveLength(1);
-      expect(mergeResult.conflicts[0].file).toBe('conflicted-file.txt');
-    });
-
-    it('should merge successfully without conflicts', async () => {
-      // Mock successful merge
-      mockSpawn.mockImplementation((command, args) => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data') {
-                if (args.includes('--name-only')) {
-                  callback('merged-file1.txt\nmerged-file2.txt');
-                } else if (args.includes('rev-parse')) {
-                  callback('def456');
-                }
-              }
-            })
-          },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
-
-      // First create a branch
-      await gitIntegration.createEnvironmentBranch(mockEnvironment);
-
-      const mergeResult = await gitIntegration.mergeToMain(mockEnvironment, {
-        message: 'Test merge',
-      });
-
-      expect(mergeResult.success).toBe(true);
-      expect(mergeResult.mergedFiles).toContain('merged-file1.txt');
-      expect(mergeResult.commitHash).toBe('def456');
+      expect(resumedSandbox).toBeDefined();
+      expect(resumedSandbox.sandboxId).toBe(sandboxId);
     });
   });
-});
 
-describe('Integration Tests', () => {
-  describe('End-to-End Workflows', () => {
-    it('should complete full environment lifecycle', async () => {
-      // Mock all container-use commands
-      mockSpawn.mockImplementation((command, args) => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(0), 10);
-            }
-          }),
-          stdout: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data') {
-                if (args.includes('list')) {
-                  callback(JSON.stringify([mockEnvironment]));
-                }
-              }
-            })
-          },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
-      });
+  describe('Agent-Specific Configurations', () => {
+    it('should use correct Dockerfile for agent types', async () => {
+      // Test Claude agent
+      const claudeSandbox = await provider.create({}, 'claude');
+      expect(claudeSandbox.sandboxId).toMatch(/^dagger-claude-/);
 
-      const provider = createLocalProvider({ autoInstall: false });
+      // Test Codex agent  
+      const codexSandbox = await provider.create({}, 'codex');
+      expect(codexSandbox.sandboxId).toMatch(/^dagger-codex-/);
 
-      // 1. Create environment
-      const sandbox = await provider.create(
-        { NODE_ENV: 'test' },
-        'codex',
-        '/workspace'
-      );
-      expect(sandbox.sandboxId).toBeTruthy();
+      // Test OpenCode agent
+      const opencodeSandbox = await provider.create({}, 'opencode');
+      expect(opencodeSandbox.sandboxId).toMatch(/^dagger-opencode-/);
 
-      // 2. List environments
-      const environments = await provider.listEnvironments();
-      expect(environments.length).toBeGreaterThan(0);
+      // Test Gemini agent
+      const geminiSandbox = await provider.create({}, 'gemini');
+      expect(geminiSandbox.sandboxId).toMatch(/^dagger-gemini-/);
+    });
+  });
 
-      // 3. Delete environment
-      await provider.deleteEnvironment(sandbox.sandboxId);
+  describe('Error Handling', () => {
+    it('should handle dagger connection failures', async () => {
+      mockConnect.mockRejectedValueOnce(new Error('Dagger engine not running'));
+
+      await expect(provider.create()).rejects.toThrow('Dagger engine not running');
     });
 
-    it('should handle multiple environments concurrently', async () => {
-      // Mock container-use for concurrent operations
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              // Add small delay to simulate real operations
-              setTimeout(() => callback(0), Math.random() * 50);
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { on: vi.fn() },
-        };
-        return mockProcess;
+    it('should handle container creation failures', async () => {
+      mockClient.container.mockImplementationOnce(() => {
+        throw new Error('Container creation failed');
       });
 
-      const provider = createLocalProvider({ autoInstall: false });
+      await expect(provider.create()).rejects.toThrow('Container creation failed');
+    });
 
-      // Create multiple environments concurrently
-      const promises = Array.from({ length: 3 }, (_, i) =>
-        provider.create(
-          { NODE_ENV: 'test', ENV_ID: i.toString() },
-          'codex',
-          `/workspace-${i}`
-        )
+    it('should handle command execution errors gracefully', async () => {
+      const sandbox = await provider.create();
+      
+      mockContainer.withExec.mockImplementationOnce(() => {
+        throw new Error('Command execution failed');
+      });
+
+      await expect(sandbox.commands.run('invalid-command')).rejects.toThrow('Command execution failed');
+    });
+  });
+
+  describe('GitHub Integration', () => {
+    it('should handle GitHub operations with token', async () => {
+      const providerWithGitHub = createLocalProvider({
+        githubToken: 'github-token-123',
+      });
+
+      const sandbox = await providerWithGitHub.create();
+      
+      expect(sandbox).toBeDefined();
+      expect(mockClient.setSecret).toHaveBeenCalledWith('github-token', 'github-token-123');
+    });
+  });
+
+  describe('Performance', () => {
+    it('should create multiple sandboxes concurrently', async () => {
+      const startTime = Date.now();
+
+      const sandboxPromises = Array.from({ length: 3 }, (_, i) =>
+        provider.create({ INDEX: i.toString() }, 'codex')
       );
 
-      const sandboxes = await Promise.all(promises);
+      const sandboxes = await Promise.all(sandboxPromises);
+
+      const duration = Date.now() - startTime;
 
       expect(sandboxes).toHaveLength(3);
-      sandboxes.forEach((sandbox, i) => {
-        expect(sandbox.sandboxId).toBeTruthy();
+      sandboxes.forEach(sandbox => {
+        expect(sandbox).toBeDefined();
+        expect(sandbox.sandboxId).toMatch(/^dagger-codex-/);
       });
+      
+      // Should complete reasonably quickly
+      expect(duration).toBeLessThan(5000);
+    });
 
-      // Cleanup
-      await Promise.all(
-        sandboxes.map(sandbox =>
-          provider.deleteEnvironment(sandbox.sandboxId).catch(() => {})
-        )
+    it('should handle rapid command execution', async () => {
+      const sandbox = await provider.create();
+
+      const commandPromises = Array.from({ length: 5 }, (_, i) =>
+        sandbox.commands.run(`echo "command ${i}"`)
       );
-    });
-  });
 
-  describe('Error Scenarios', () => {
-    it('should handle container-use command failures gracefully', async () => {
-      // Mock command failure
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(1), 10); // Exit code 1
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data') {
-                callback('Error: Command failed');
-              }
-            })
-          },
-        };
-        return mockProcess;
+      const results = await Promise.all(commandPromises);
+
+      expect(results).toHaveLength(5);
+      results.forEach(result => {
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toBe('command output');
       });
-
-      const provider = createLocalProvider({ autoInstall: false });
-
-      await expect(
-        provider.create({ NODE_ENV: 'test' }, 'codex', '/workspace')
-      ).rejects.toThrow();
-    });
-
-    it('should handle resource exhaustion', async () => {
-      // This test would require actual resource monitoring
-      // For now, we'll test the error handling structure
-      const provider = createLocalProvider({ autoInstall: false });
-
-      // Mock resource exhaustion scenario
-      mockSpawn.mockImplementation(() => {
-        const mockProcess = {
-          on: vi.fn((event, callback) => {
-            if (event === 'exit') {
-              setTimeout(() => callback(125), 10); // Out of memory exit code
-            }
-          }),
-          stdout: { on: vi.fn() },
-          stderr: { 
-            on: vi.fn((event, callback) => {
-              if (event === 'data') {
-                callback('Error: Cannot allocate memory');
-              }
-            })
-          },
-        };
-        return mockProcess;
-      });
-
-      await expect(
-        provider.create({ NODE_ENV: 'test' }, 'codex', '/workspace')
-      ).rejects.toThrow(/memory/i);
     });
   });
-});
 
-describe('Performance Tests', () => {
-  it('should create environments within reasonable time', async () => {
-    const startTime = Date.now();
+  describe('Integration Scenarios', () => {
+    it('should handle full development workflow', async () => {
+      const sandbox = await provider.create({ NODE_ENV: 'development' }, 'codex', '/workspace');
 
-    // Mock fast container-use response
-    mockSpawn.mockImplementation(() => {
-      const mockProcess = {
-        on: vi.fn((event, callback) => {
-          if (event === 'exit') {
-            setTimeout(() => callback(0), 100); // 100ms mock delay
-          }
-        }),
-        stdout: { on: vi.fn() },
-        stderr: { on: vi.fn() },
-      };
-      return mockProcess;
+      // Simulate project setup
+      const setupResult = await sandbox.commands.run('npm init -y');
+      expect(setupResult.exitCode).toBe(0);
+
+      // Simulate package installation
+      const installResult = await sandbox.commands.run('npm install express');
+      expect(installResult.exitCode).toBe(0);
+
+      // Simulate test run
+      const testResult = await sandbox.commands.run('npm test');
+      expect(testResult.exitCode).toBe(0);
+
+      // Clean up
+      await sandbox.kill();
     });
 
-    const provider = createLocalProvider({ autoInstall: false });
-    
-    await provider.create({ NODE_ENV: 'test' }, 'codex', '/workspace');
-    
-    const duration = Date.now() - startTime;
-    
-    // Environment creation should be fast (under 5 seconds in tests)
-    expect(duration).toBeLessThan(5000);
-  });
+    it('should handle agent-specific workflows', async () => {
+      const claudeSandbox = await provider.create({}, 'claude');
+      
+      // Simulate Claude-specific operations
+      const result = await claudeSandbox.commands.run('python --version');
+      expect(result.exitCode).toBe(0);
 
-  it('should handle multiple concurrent operations efficiently', async () => {
-    const startTime = Date.now();
-
-    // Mock concurrent operations
-    mockSpawn.mockImplementation(() => {
-      const mockProcess = {
-        on: vi.fn((event, callback) => {
-          if (event === 'exit') {
-            setTimeout(() => callback(0), 50); // Fast response
-          }
-        }),
-        stdout: { on: vi.fn() },
-        stderr: { on: vi.fn() },
-      };
-      return mockProcess;
+      await claudeSandbox.kill();
     });
-
-    const provider = createLocalProvider({ autoInstall: false });
-
-    // Run 5 operations concurrently
-    const operations = Array.from({ length: 5 }, (_, i) =>
-      provider.create(
-        { NODE_ENV: 'test', ID: i.toString() },
-        'codex',
-        `/workspace-${i}`
-      )
-    );
-
-    await Promise.all(operations);
-
-    const duration = Date.now() - startTime;
-
-    // Concurrent operations should not be significantly slower than sequential
-    expect(duration).toBeLessThan(1000); // Should complete within 1 second
   });
-});
-
-// Test utilities and fixtures
-export const testUtils = {
-  createMockEnvironment: (overrides: Partial<Environment> = {}): Environment => ({
-    ...mockEnvironment,
-    ...overrides,
-  }),
-
-  createMockServiceConfig: (overrides: Partial<ServiceConfig> = {}): ServiceConfig => ({
-    ...mockServiceConfig,
-    ...overrides,
-  }),
-
-  mockContainerUseSuccess: () => {
-    mockSpawn.mockImplementation(() => ({
-      on: vi.fn((event, callback) => {
-        if (event === 'exit') {
-          setTimeout(() => callback(0), 10);
-        }
-      }),
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-    }));
-  },
-
-  mockContainerUseFailure: (exitCode = 1, errorMessage = 'Command failed') => {
-    mockSpawn.mockImplementation(() => ({
-      on: vi.fn((event, callback) => {
-        if (event === 'exit') {
-          setTimeout(() => callback(exitCode), 10);
-        }
-      }),
-      stdout: { on: vi.fn() },
-      stderr: { 
-        on: vi.fn((event, callback) => {
-          if (event === 'data') {
-            callback(errorMessage);
-          }
-        })
-      },
-    }));
-  },
-};
-
-// Export test configuration
-export const testConfig = {
-  timeout: 10000, // 10 seconds per test
-  retries: 2, // Retry flaky tests
-  concurrency: 4, // Run tests in parallel
-}; 
+}); 

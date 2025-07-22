@@ -1,308 +1,163 @@
 /**
- * Local Sandbox Provider for Agent Integration
+ * Local Sandbox Provider for Agent Integration (Dagger-based)
  * 
- * Provides a specialized sandbox provider that integrates local Container Use
- * environments with Vibekit agents, including MCP server management.
+ * Provides a specialized sandbox provider that integrates dagger-based
+ * local sandboxes with Vibekit agents, including simplified MCP integration.
  */
 
 import { SandboxProvider, SandboxInstance, SandboxCommands, SandboxExecutionResult, SandboxCommandOptions } from '../types';
-import { LocalSandboxProvider, createLocalProvider, Environment } from '@vibekit/local';
+import { LocalDaggerSandboxProvider, createLocalProvider, type LocalDaggerConfig, type AgentType } from '@vibekit/local';
 import { 
   initializeMCPForAgent, 
-  cleanupMCPForEnvironment, 
+  cleanupMCPForSandbox, 
   MCPServerInstance,
-  ContainerUseMCPConfigurator 
 } from './local-mcp';
 
-export interface LocalAgentSandboxConfig {
-  autoInstall?: boolean;
+export interface LocalAgentSandboxConfig extends LocalDaggerConfig {
   workingDirectory?: string;
   enableMCP?: boolean;
   mcpServerType?: 'stdio' | 'transport';
 }
 
 /**
- * Local sandbox instance with MCP integration
+ * Local sandbox instance with simplified MCP integration
  */
 export class LocalAgentSandboxInstance implements SandboxInstance {
   public sandboxId: string;
   public commands: SandboxCommands;
-  private environment: Environment;
-  private localProvider: LocalSandboxProvider;
   private mcpServer?: MCPServerInstance;
+  private baseSandbox: SandboxInstance;
 
   constructor(
-    environment: Environment, 
-    localProvider: LocalSandboxProvider,
-    mcpServer?: MCPServerInstance
+    baseSandbox: SandboxInstance,
+    private config: LocalAgentSandboxConfig,
+    private agentType?: AgentType
   ) {
-    this.environment = environment;
-    this.localProvider = localProvider;
-    this.mcpServer = mcpServer;
-    this.sandboxId = environment.name;
-    
-    // Create commands interface
-    this.commands = {
-      run: async (command: string, options?: SandboxCommandOptions): Promise<SandboxExecutionResult> => {
-        try {
-          // Use the local provider's execution capabilities
-          const result = await this.executeCommand(command, options);
-          return result;
-        } catch (error) {
-          return {
-            exitCode: 1,
-            stdout: '',
-            stderr: error instanceof Error ? error.message : String(error),
-          };
-        }
-      }
-    };
+    this.baseSandbox = baseSandbox;
+    this.sandboxId = baseSandbox.sandboxId;
+    this.commands = baseSandbox.commands;
   }
 
-  private async executeCommand(command: string, options?: SandboxCommandOptions): Promise<SandboxExecutionResult> {
-    // Implementation would depend on how LocalSandboxProvider executes commands
-    // For now, we'll create a basic implementation
-    const { spawn } = await import('child_process');
-    
-    return new Promise((resolve) => {
-      const process = spawn('container-use', ['terminal', this.environment.name, '--', 'bash', '-c', command], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      let stdout = '';
-      let stderr = '';
-
-      if (process.stdout) {
-        process.stdout.on('data', (data) => {
-          const output = data.toString();
-          stdout += output;
-          if (options?.onStdout) {
-            options.onStdout(output);
-          }
-        });
+  async initializeMCP(): Promise<void> {
+    if (this.config.enableMCP) {
+      try {
+        const server = await initializeMCPForAgent(this.baseSandbox, this.agentType);
+        this.mcpServer = server || undefined;
+      } catch (error) {
+        console.warn(`Failed to initialize MCP for sandbox ${this.sandboxId}: ${error}`);
       }
-
-      if (process.stderr) {
-        process.stderr.on('data', (data) => {
-          const output = data.toString();
-          stderr += output;
-          if (options?.onStderr) {
-            options.onStderr(output);
-          }
-        });
-      }
-
-      const timeout = options?.timeoutMs || 30000;
-      const timer = setTimeout(() => {
-        process.kill('SIGTERM');
-        resolve({
-          exitCode: 124, // Timeout exit code
-          stdout,
-          stderr: stderr + '\nCommand timed out',
-        });
-      }, timeout);
-
-      process.on('exit', (code) => {
-        clearTimeout(timer);
-        resolve({
-          exitCode: code || 0,
-          stdout,
-          stderr,
-        });
-      });
-
-      process.on('error', (error) => {
-        clearTimeout(timer);
-        resolve({
-          exitCode: 1,
-          stdout,
-          stderr: stderr + '\n' + error.message,
-        });
-      });
-    });
+    }
   }
 
   async kill(): Promise<void> {
-    // Clean up MCP server
     if (this.mcpServer) {
-      await cleanupMCPForEnvironment(this.environment);
+      await this.mcpServer.stop();
     }
-    
-    // Delete the environment
-    await this.localProvider.deleteEnvironment(this.environment.name);
+    await this.baseSandbox.kill();
   }
 
   async pause(): Promise<void> {
-    // Container Use doesn't have pause/resume, so we'll implement this as stop/start
-    // This is a placeholder - actual implementation would depend on Container Use capabilities
-    console.log(`Pausing environment ${this.environment.name} (placeholder)`);
+    await this.baseSandbox.pause();
   }
 
-  async resume(): Promise<void> {
-    // Container Use doesn't have pause/resume, so we'll implement this as stop/start
-    // This is a placeholder - actual implementation would depend on Container Use capabilities
-    console.log(`Resuming environment ${this.environment.name} (placeholder)`);
+  async getHost(port: number): Promise<string> {
+    return this.baseSandbox.getHost(port);
   }
 
-  getHost(port: number): Promise<string> {
-    return Promise.resolve('localhost'); // Local environments run on localhost
-  }
-
-  /**
-   * Get MCP server URL if available
-   */
-  getMCPServerURL(): string | undefined {
-    return this.mcpServer?.serverUrl;
-  }
-
-  /**
-   * Check if MCP server is running
-   */
-  isMCPEnabled(): boolean {
-    return this.mcpServer?.isRunning || false;
+  getMCPServer(): MCPServerInstance | undefined {
+    return this.mcpServer;
   }
 }
 
 /**
- * Local sandbox provider for agents with MCP integration
+ * Local sandbox provider with agent-specific configuration
  */
 export class LocalAgentSandboxProvider implements SandboxProvider {
-  private localProvider: LocalSandboxProvider;
-  private config: LocalAgentSandboxConfig;
+  private baseProvider: LocalDaggerSandboxProvider;
 
-  constructor(config: LocalAgentSandboxConfig = {}) {
-    this.config = config;
-    this.localProvider = createLocalProvider({
-      autoInstall: config.autoInstall,
-    });
+  constructor(private config: LocalAgentSandboxConfig = {}) {
+    this.baseProvider = createLocalProvider(config);
   }
 
   async create(
-    envVars: Record<string, string>,
-    agentType: 'codex' | 'claude' | 'opencode' | 'gemini',
+    envs?: Record<string, string>,
+    agentType?: AgentType,
     workingDirectory?: string
-  ): Promise<SandboxInstance> {
-    // Create local environment
-    const sandbox = await this.localProvider.create(envVars, agentType, workingDirectory);
-    
-    // Find the environment that was created
-    const environments = await this.localProvider.listEnvironments();
-    const environment = environments.find(env => env.name === sandbox.sandboxId);
-    
-    if (!environment) {
-      throw new Error(`Failed to find created environment: ${sandbox.sandboxId}`);
-    }
+  ): Promise<LocalAgentSandboxInstance> {
+    const baseSandbox = await this.baseProvider.create(
+      envs, 
+      agentType, 
+      workingDirectory || this.config.workingDirectory
+    );
 
-    let mcpServer: MCPServerInstance | undefined;
+    const agentSandbox = new LocalAgentSandboxInstance(
+      baseSandbox,
+      this.config,
+      agentType
+    );
 
-    // Initialize MCP server if enabled
-    if (this.config.enableMCP) {
-      try {
-        mcpServer = await initializeMCPForAgent(agentType, environment);
-        console.log(`MCP server started for agent ${agentType} in environment ${environment.name}`);
-      } catch (error) {
-        console.warn(`Failed to start MCP server for ${agentType}: ${error}`);
-        // Continue without MCP - it's optional
-      }
-    }
+    // Initialize MCP if enabled
+    await agentSandbox.initializeMCP();
 
-    return new LocalAgentSandboxInstance(environment, this.localProvider, mcpServer);
+    return agentSandbox;
   }
 
-  async resume(sandboxId: string): Promise<SandboxInstance> {
-    // Resume existing environment
-    const sandbox = await this.localProvider.resume(sandboxId);
-    
-    // Find the environment
-    const environments = await this.localProvider.listEnvironments();
-    const environment = environments.find(env => env.name === sandboxId);
-    
-    if (!environment) {
-      throw new Error(`Failed to find environment: ${sandboxId}`);
-    }
+  async resume(sandboxId: string): Promise<LocalAgentSandboxInstance> {
+    const baseSandbox = await this.baseProvider.resume(sandboxId);
 
-    let mcpServer: MCPServerInstance | undefined;
+    const agentSandbox = new LocalAgentSandboxInstance(
+      baseSandbox,
+      this.config
+    );
 
-    // Check if MCP server is already running for this environment
-    if (this.config.enableMCP) {
-      try {
-        const { mcpServerManager } = await import('./local-mcp');
-        mcpServer = mcpServerManager.getMCPServer(environment);
-        
-        if (!mcpServer || !mcpServer.isRunning) {
-          // Restart MCP server if needed
-          const agentType = environment.environment?.VIBEKIT_AGENT_TYPE || 'codex';
-          mcpServer = await initializeMCPForAgent(agentType as any, environment);
-        }
-      } catch (error) {
-        console.warn(`Failed to resume MCP server: ${error}`);
-      }
-    }
-
-    return new LocalAgentSandboxInstance(environment, this.localProvider, mcpServer);
-  }
-
-  /**
-   * List all local environments
-   */
-  async listEnvironments(): Promise<Environment[]> {
-    return await this.localProvider.listEnvironments();
-  }
-
-  /**
-   * Delete an environment
-   */
-  async deleteEnvironment(sandboxId: string): Promise<void> {
-    await this.localProvider.deleteEnvironment(sandboxId);
-  }
-
-  /**
-   * Get environment by ID
-   */
-  async getEnvironment(sandboxId: string): Promise<Environment | undefined> {
-    const environments = await this.listEnvironments();
-    return environments.find(env => env.name === sandboxId);
+    return agentSandbox;
   }
 }
 
 /**
- * Create local agent sandbox provider
+ * Create a local agent sandbox provider with configuration
  */
-export function createLocalAgentSandboxProvider(config?: LocalAgentSandboxConfig): LocalAgentSandboxProvider {
-  return new LocalAgentSandboxProvider({
+export function createLocalAgentProvider(config: LocalAgentSandboxConfig = {}): LocalAgentSandboxProvider {
+  return new LocalAgentSandboxProvider(config);
+}
+
+/**
+ * Agent-specific provider configurations
+ */
+export const AgentProviderConfigs = {
+  claude: {
     enableMCP: true,
-    autoInstall: true,
-    ...config,
-  });
-}
+    mcpServerType: 'stdio' as const,
+    workingDirectory: '/workspace',
+  },
+  
+  codex: {
+    enableMCP: true,
+    mcpServerType: 'stdio' as const,
+    workingDirectory: '/workspace',
+  },
+  
+  opencode: {
+    enableMCP: true,
+    mcpServerType: 'stdio' as const,
+    workingDirectory: '/workspace',
+  },
+  
+  gemini: {
+    enableMCP: true,
+    mcpServerType: 'stdio' as const,
+    workingDirectory: '/workspace',
+  },
+};
 
 /**
- * Agent configuration helpers
+ * Create agent-specific provider
  */
-export interface AgentLocalConfig {
-  agentType: 'codex' | 'claude' | 'opencode' | 'gemini';
-  environment?: Environment;
-  enableMCP?: boolean;
-  workingDirectory?: string;
-  secrets?: Record<string, string>;
-}
-
-/**
- * Create agent configuration with local MCP support
- */
-export function createAgentLocalConfig(config: AgentLocalConfig) {
-  return {
-    sandboxProvider: createLocalAgentSandboxProvider({
-      enableMCP: config.enableMCP,
-      workingDirectory: config.workingDirectory,
-    }),
-    localMCP: config.enableMCP ? {
-      enabled: true,
-      environment: config.environment,
-      serverType: 'stdio' as const,
-      autoStart: true,
-    } : undefined,
-    secrets: config.secrets,
-    workingDirectory: config.workingDirectory,
-  };
+export function createAgentProvider(
+  agentType: AgentType,
+  overrides: Partial<LocalAgentSandboxConfig> = {}
+): LocalAgentSandboxProvider {
+  const defaultConfig = AgentProviderConfigs[agentType] || AgentProviderConfigs.codex;
+  const config = { ...defaultConfig, ...overrides };
+  return createLocalAgentProvider(config);
 } 

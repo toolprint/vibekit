@@ -80,32 +80,32 @@ export async function installLocal(config: InstallConfig, selectedTemplates?: st
       spinner.warn('Dagger engine test skipped (may start on first use)');
       console.log(chalk.yellow('\n⚠️  Dagger engine will start automatically on first use'));
     }
-    
+      
     spinner.succeed('Local provider with Dagger configured successfully');
-    
-    console.log(chalk.green('\n✅ Local provider is ready!'));
-    console.log(chalk.blue('\n📋 What\'s available:'));
-    console.log(`  • Create sandboxes: ${chalk.cyan('vibekit local create')}`);
-    console.log(`  • List environments: ${chalk.cyan('vibekit local list')}`);
+      
+      console.log(chalk.green('\n✅ Local provider is ready!'));
+      console.log(chalk.blue('\n📋 What\'s available:'));
+      console.log(`  • Create sandboxes: ${chalk.cyan('vibekit local create')}`);
+      console.log(`  • List environments: ${chalk.cyan('vibekit local list')}`);
     console.log(`  • Watch logs: ${chalk.cyan('vibekit local watch <n>')}`);
     console.log(`  • Access terminal: ${chalk.cyan('vibekit local terminal <n>')}`);
     console.log(`  • Clean up: ${chalk.cyan('vibekit local delete <n>')}`);
-    
-    console.log(chalk.yellow('\n💡 Quick start:'));
-    console.log(chalk.cyan('  vibekit local create --agent claude --name my-sandbox'));
-    console.log(chalk.cyan('  vibekit local watch my-sandbox'));
-    
-    if (selectedTemplates && selectedTemplates.length > 0) {
-      console.log(chalk.blue(`\n🎯 Agent templates available: ${selectedTemplates.join(', ')}`));
-    }
+      
+      console.log(chalk.yellow('\n💡 Quick start:'));
+      console.log(chalk.cyan('  vibekit local create --agent claude --name my-sandbox'));
+      console.log(chalk.cyan('  vibekit local watch my-sandbox'));
+      
+      if (selectedTemplates && selectedTemplates.length > 0) {
+        console.log(chalk.blue(`\n🎯 Agent templates available: ${selectedTemplates.join(', ')}`));
+      }
     
     console.log(chalk.blue('\n🔧 Dagger Benefits:'));
     console.log(chalk.gray('  • Isolated containerized environments'));
     console.log(chalk.gray('  • Built-in git operations and PR creation'));
     console.log(chalk.gray('  • Cross-platform compatibility'));
     console.log(chalk.gray('  • Programmatic pipeline control'));
-    
-    return true;
+      
+      return true;
     
   } catch (error) {
     spinner.fail('Local provider setup failed');
@@ -129,7 +129,7 @@ export async function isDaggerCliInstalled(): Promise<boolean> {
   } catch (error) {
     return false;
   }
-}
+} 
 
 /**
  * Install Dagger CLI based on the operating system

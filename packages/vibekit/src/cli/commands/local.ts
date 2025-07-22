@@ -1,139 +1,49 @@
 /**
- * Local Sandbox CLI Commands
+ * Local Sandbox CLI Commands (Dagger-based)
  * 
- * Implements all local sandbox management commands including create, list,
- * watch, terminal, delete, and configuration management.
+ * Simplified commands for managing dagger-based sandbox instances.
  */
 
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { 
-  LocalSandboxProvider, 
+  LocalDaggerSandboxProvider, 
   createLocalProvider,
-  EnvironmentSelector,
-  EnvironmentManager,
-  ContainerUseWrapper,
-  type LocalProviderConfig,
-  type Environment,
-  type SelectionResult,
+  type LocalDaggerConfig,
+  type AgentType,
 } from '@vibekit/local';
-import {
-  selectEnvironmentPrompt,
-  multiSelectEnvironmentPrompt,
-  confirmPrompt,
-  textInputPrompt,
-  formatEnvironmentTable,
-  ProgressIndicator,
-  displayTips,
-} from '../utils/interactive';
-import { installCompletion } from '../utils/completion';
-import {
-  watchEnvironmentLogs,
-  watchMultipleEnvironments,
-  createInteractiveViewer,
-} from '../utils/streaming';
 
-let localProvider: LocalSandboxProvider | null = null;
-let environmentSelector: EnvironmentSelector | null = null;
+let localProvider: LocalDaggerSandboxProvider | null = null;
 
 /**
  * Get or create the local provider instance
  */
-function getLocalProvider(): LocalSandboxProvider {
+function getLocalProvider(): LocalDaggerSandboxProvider {
   if (!localProvider) {
-    localProvider = createLocalProvider({
-      autoInstall: true,
-    });
+    localProvider = createLocalProvider({});
   }
   return localProvider;
 }
 
 /**
- * Get or create the environment selector
- */
-function getEnvironmentSelector(): EnvironmentSelector {
-  if (!environmentSelector) {
-    const wrapper = new ContainerUseWrapper();
-    const manager = new EnvironmentManager(wrapper);
-    environmentSelector = new EnvironmentSelector(manager);
-  }
-  return environmentSelector;
-}
-
-/**
- * Create a new local sandbox environment
+ * Create a new local sandbox instance
  */
 export async function createCommand(options: {
-  name?: string;
   agent?: string;
-  baseImage?: string;
   workingDirectory?: string;
   env?: string;
-  interactive?: boolean;
 }) {
   try {
+    const spinner = ora('Creating sandbox instance...').start();
+    
     const provider = getLocalProvider();
     
-    // Interactive mode for enhanced UX
-    if (options.interactive) {
-      console.log(chalk.blue('🚀 Interactive Sandbox Creation\n'));
-      
-      // Prompt for missing options
-      if (!options.name) {
-        options.name = await textInputPrompt(
-          'Environment name (leave empty for auto-generated):'
-        ) || undefined;
-      }
-      
-      if (!options.agent) {
-        const agentChoices = ['cursor', 'claude', 'codex', 'gemini'];
-        const result = await selectEnvironmentPrompt(
-          agentChoices.map(agent => ({
-            name: agent,
-            status: 'stopped' as const,
-            environment: { VIBEKIT_AGENT_TYPE: agent },
-            branch: 'main',
-            baseImage: 'ubuntu:24.04',
-            createdAt: new Date().toISOString(),
-            workingDirectory: '/workspace',
-          })),
-          'Select agent type:'
-        );
-        options.agent = result || 'cursor';
-      }
-      
-      if (!options.baseImage) {
-        const imageChoices = ['ubuntu:24.04', 'node:20', 'python:3.11', 'alpine:latest'];
-        const result = await selectEnvironmentPrompt(
-          imageChoices.map(image => ({
-            name: image,
-            status: 'stopped' as const,
-            environment: {},
-            branch: 'main',
-            baseImage: image,
-            createdAt: new Date().toISOString(),
-            workingDirectory: '/workspace',
-          })),
-          'Select base image:'
-        );
-        options.baseImage = result || 'ubuntu:24.04';
-      }
-    }
-
-    const progress = new ProgressIndicator(4);
-    progress.addStep('Validating configuration');
-    progress.addStep('Setting up environment');
-    progress.addStep('Starting container');
-    progress.addStep('Finalizing setup');
-    
-    progress.start('Creating local sandbox environment...');
-    
     // Parse environment variables if provided
-    const envVars: Record<string, string> = {};
+    let envVars: Record<string, string> = {};
     if (options.env) {
-      const pairs = options.env.split(',');
-      for (const pair of pairs) {
+      const envPairs = options.env.split(',');
+      for (const pair of envPairs) {
         const [key, value] = pair.split('=');
         if (key && value) {
           envVars[key.trim()] = value.trim();
@@ -141,586 +51,133 @@ export async function createCommand(options: {
       }
     }
 
-    progress.nextStep('Setting up environment configuration');
+    const agentType = options.agent as AgentType || undefined;
+    const workingDirectory = options.workingDirectory || '/workspace';
 
-    // Create the sandbox
-    const sandbox = await provider.create(
-      envVars,
-      options.agent as any,
-      options.workingDirectory
-    );
-
-    progress.nextStep('Container started successfully');
-    progress.succeed(`Local sandbox created: ${chalk.green(sandbox.sandboxId)}`);
+    const sandbox = await provider.create(envVars, agentType, workingDirectory);
     
-    console.log(chalk.blue('\n📋 Sandbox Details:'));
-    console.log(`  ID: ${sandbox.sandboxId}`);
-    console.log(`  Agent: ${options.agent || 'default'}`);
-    console.log(`  Base Image: ${options.baseImage || 'ubuntu:24.04'}`);
-    console.log(`  Working Directory: ${options.workingDirectory || '/workspace'}`);
+    spinner.succeed(`Sandbox created with ID: ${sandbox.sandboxId}`);
     
-    if (Object.keys(envVars).length > 0) {
-      console.log(`  Environment Variables: ${Object.keys(envVars).join(', ')}`);
+    console.log(chalk.green('\n✅ Sandbox instance created successfully!'));
+    console.log(chalk.cyan(`📦 Sandbox ID: ${sandbox.sandboxId}`));
+    if (agentType) {
+      console.log(chalk.cyan(`🤖 Agent Type: ${agentType}`));
     }
-
-    displayTips([
-      `Watch logs: vibekit local watch ${sandbox.sandboxId}`,
-      `Open terminal: vibekit local terminal ${sandbox.sandboxId}`,
-      'List all environments: vibekit local list',
-    ]);
-
+    console.log(chalk.cyan(`📁 Working Directory: ${workingDirectory}`));
   } catch (error) {
-    console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+    console.error(chalk.red(`\n❌ Failed to create sandbox: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
   }
 }
 
 /**
- * List local sandbox environments
+ * Run a command in a sandbox (for testing/demo purposes)
  */
-export async function listCommand(options: {
-  status?: string;
+export async function runCommand(options: {
+  sandbox?: string;
+  command?: string;
   agent?: string;
-  branch?: string;
-  json?: boolean;
 }) {
-  const progress = new ProgressIndicator(2);
-  progress.addStep('Loading environments');
-  progress.addStep('Applying filters');
-  progress.start('Loading local sandboxes...');
-  
   try {
-    const provider = getLocalProvider();
-    const environments = await provider.listEnvironments();
-    
-    progress.nextStep('Applying filters and formatting');
-
-    // Apply filters
-    let filtered = environments;
-    
-    if (options.status) {
-      filtered = filtered.filter(env => env.status === options.status);
-    }
-    
-    if (options.agent) {
-      filtered = filtered.filter(env => {
-        const agentType = env.environment?.VIBEKIT_AGENT_TYPE || env.environment?.AGENT_TYPE;
-        return agentType === options.agent;
-      });
-    }
-    
-    if (options.branch) {
-      filtered = filtered.filter(env => env.branch === options.branch);
-    }
-
-    progress.succeed(`Found ${filtered.length} local sandbox(es)`);
-
-    // Display results
-    if (options.json) {
-      console.log(JSON.stringify(filtered, null, 2));
-      return;
-    }
-
-    formatEnvironmentTable(filtered);
-
-    if (filtered.length !== environments.length) {
-      console.log(chalk.gray(`Showing ${filtered.length} of ${environments.length} total environments`));
-    }
-
-    if (filtered.length === 0) {
-      displayTips([
-        'Create environment: vibekit local create',
-        'Interactive creation: vibekit local create --interactive',
-      ]);
-    } else {
-      displayTips([
-        'Watch environment: vibekit local watch <name>',
-        'Open terminal: vibekit local terminal <name>',
-        'Delete environment: vibekit local delete <name>',
-      ]);
-    }
-
-  } catch (error) {
-    console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
-    process.exit(1);
-  }
-}
-
-/**
- * Watch logs from a local sandbox environment
- */
-export async function watchCommand(
-  environmentName?: string,
-  options: {
-    all?: boolean;
-    follow?: boolean;
-    interactive?: boolean;
-    level?: string;
-    tail?: number;
-  } = {}
-) {
-  try {
-    const provider = getLocalProvider();
-    let environments: Environment[] = [];
-
-    if (options.all) {
-      // Watch all running environments
-      environments = await provider.listEnvironments();
-      environments = environments.filter(env => env.status === 'running');
-      
-      if (environments.length === 0) {
-        console.log(chalk.yellow('No running environments to watch'));
-        displayTips(['Start environment: vibekit local create']);
-        return;
-      }
-      
-      console.log(chalk.blue(`🔍 Watching ${environments.length} environment(s)...`));
-      
-      if (options.interactive) {
-        // Interactive multi-environment viewer
-        await createInteractiveViewer(environments, {
-          follow: options.follow,
-          prefix: true,
-          colors: true,
-          filter: options.level ? { level: [options.level] } : undefined,
-          tail: options.tail,
-        });
-      } else {
-        // Simple multi-environment watching
-        const stream = await watchMultipleEnvironments(environments, {
-          follow: options.follow,
-          prefix: true,
-          colors: true,
-          filter: options.level ? { level: [options.level] } : undefined,
-          tail: options.tail,
-        });
-
-        // Handle Ctrl+C
-        process.on('SIGINT', () => {
-          stream.stop();
-          console.log(chalk.gray('\nStopped watching'));
-          process.exit(0);
-        });
-      }
-      
-    } else if (environmentName) {
-      // Watch specific environment by name
-      const allEnvs = await provider.listEnvironments();
-      const env = allEnvs.find(e => e.name === environmentName);
-      
-      if (!env) {
-        console.error(chalk.red(`Environment '${environmentName}' not found`));
-        console.log(chalk.gray('Available environments:'));
-        formatEnvironmentTable(allEnvs);
-        process.exit(1);
-      }
-      
-      environments = [env];
-      
-    } else {
-      // No environment specified - use interactive selection
-      const allEnvs = await provider.listEnvironments();
-      
-      if (allEnvs.length === 0) {
-        console.log(chalk.yellow('No environments available to watch'));
-        displayTips(['Create environment: vibekit local create']);
-        return;
-      }
-
-      if (allEnvs.length === 1) {
-        environments = allEnvs;
-      } else {
-        const selectedName = await selectEnvironmentPrompt(
-          allEnvs,
-          'Select environment to watch:'
-        );
-        
-        if (!selectedName) {
-          console.log(chalk.gray('Watch cancelled'));
-          return;
-        }
-        
-        const selectedEnv = allEnvs.find(e => e.name === selectedName);
-        if (selectedEnv) {
-          environments = [selectedEnv];
-        }
-      }
-    }
-
-    // Watch the selected environment(s)
-    if (environments.length === 1) {
-      const env = environments[0];
-      console.log(chalk.blue(`🔍 Watching environment: ${chalk.bold(env.name)}`));
-      console.log(chalk.gray('Press Ctrl+C to stop watching\n'));
-
-      // Single environment watching
-      const stream = await watchEnvironmentLogs(env, {
-        follow: options.follow,
-        filter: options.level ? { level: [options.level] } : undefined,
-        tail: options.tail,
-      });
-
-      // Handle Ctrl+C
-      process.on('SIGINT', () => {
-        stream.stop();
-        console.log(chalk.gray('\nStopped watching'));
-        process.exit(0);
-      });
-    }
-
-  } catch (error) {
-    console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
-    process.exit(1);
-  }
-}
-
-/**
- * Open terminal in a local sandbox environment
- */
-export async function terminalCommand(environmentName?: string) {
-  try {
-    const provider = getLocalProvider();
-    let environment: Environment;
-
-    if (environmentName) {
-      const progress = new ProgressIndicator(1);
-      progress.start('Finding environment...');
-      
-      const environments = await provider.listEnvironments();
-      const env = environments.find(e => e.name === environmentName);
-      
-      if (!env) {
-        progress.fail(`Environment '${environmentName}' not found`);
-        console.log(chalk.gray('Available environments:'));
-        formatEnvironmentTable(environments);
-        process.exit(1);
-      }
-      
-      progress.succeed(`Environment found: ${env.name}`);
-      environment = env;
-    } else {
-      const environments = await provider.listEnvironments();
-      
-      if (environments.length === 0) {
-        console.log(chalk.yellow('No environments available'));
-        displayTips(['Create environment: vibekit local create']);
-        return;
-      }
-
-      if (environments.length === 1) {
-        environment = environments[0];
-      } else {
-        // Interactive selection
-        const selectedName = await selectEnvironmentPrompt(
-          environments,
-          'Select environment for terminal access:'
-        );
-        
-        if (!selectedName) {
-          console.log(chalk.gray('Terminal access cancelled'));
-          return;
-        }
-        
-        environment = environments.find(e => e.name === selectedName)!;
-      }
-    }
-
-    // Ensure environment is running
-    if (environment.status !== 'running') {
-      const shouldStart = await confirmPrompt(
-        `Environment '${environment.name}' is ${environment.status}. Start it?`,
-        true
-      );
-      
-      if (!shouldStart) {
-        console.log(chalk.gray('Terminal access cancelled'));
-        return;
-      }
-      
-      const progress = new ProgressIndicator(1);
-      progress.start('Starting environment...');
-      
-      // TODO: Implement environment start
-      console.log(chalk.yellow('Environment start not yet implemented'));
-      progress.fail('Cannot start environment');
-      return;
-    }
-
-    console.log(chalk.blue(`Opening terminal for: ${chalk.bold(environment.name)}`));
-    
-    // TODO: Implement actual terminal opening
-    console.log(chalk.yellow('Terminal access not yet implemented'));
-    console.log(chalk.gray(`Would open terminal for: ${environment.name}`));
-    
-    displayTips([
-      'Watch logs: vibekit local watch ' + environment.name,
-      'Check status: vibekit local list',
-    ]);
-
-  } catch (error) {
-    console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
-    process.exit(1);
-  }
-}
-
-/**
- * Delete a local sandbox environment
- */
-export async function deleteCommand(
-  environmentName?: string,
-  options: {
-    force?: boolean;
-    all?: boolean;
-    interactive?: boolean;
-  } = {}
-) {
-  try {
-    const provider = getLocalProvider();
-    
-    if (options.all) {
-      // Delete all environments
-      const environments = await provider.listEnvironments();
-      
-      if (environments.length === 0) {
-        console.log(chalk.yellow('No environments to delete'));
-        return;
-      }
-      
-      if (!options.force) {
-        console.log(chalk.red(`This will delete ${environments.length} environment(s):`));
-        formatEnvironmentTable(environments);
-        
-        const confirmed = await confirmPrompt(
-          `Are you sure you want to delete all ${environments.length} environment(s)?`,
-          false
-        );
-        
-        if (!confirmed) {
-          console.log(chalk.gray('Deletion cancelled'));
-          return;
-        }
-      }
-      
-      const progress = new ProgressIndicator(environments.length);
-      progress.start('Deleting environments...');
-      
-      let deleted = 0;
-      for (const env of environments) {
-        try {
-          progress.nextStep(`Deleting ${env.name}...`);
-          await provider.deleteEnvironment(env.name);
-          deleted++;
-        } catch (error) {
-          console.warn(`Failed to delete ${env.name}: ${error}`);
-        }
-      }
-      
-      progress.succeed(`Deleted ${deleted} of ${environments.length} environment(s)`);
-      return;
-    }
-
-    let targetEnvironment: Environment | null = null;
-
-    if (!environmentName) {
-      if (options.interactive) {
-        // Interactive selection for deletion
-        const environments = await provider.listEnvironments();
-        
-        if (environments.length === 0) {
-          console.log(chalk.yellow('No environments to delete'));
-          return;
-        }
-        
-        const selectedNames = await multiSelectEnvironmentPrompt(
-          environments,
-          'Select environment(s) to delete:'
-        );
-        
-        if (selectedNames.length === 0) {
-          console.log(chalk.gray('Deletion cancelled'));
-          return;
-        }
-        
-        // Confirm deletion
-        console.log(chalk.red(`This will delete ${selectedNames.length} environment(s):`));
-        selectedNames.forEach(name => console.log(`  • ${name}`));
-        
-        const confirmed = await confirmPrompt(
-          'Are you sure you want to delete these environment(s)?',
-          false
-        );
-        
-        if (!confirmed) {
-          console.log(chalk.gray('Deletion cancelled'));
-          return;
-        }
-        
-        // Delete selected environments
-        const progress = new ProgressIndicator(selectedNames.length);
-        progress.start('Deleting environments...');
-        
-        let deleted = 0;
-        for (const name of selectedNames) {
-          try {
-            progress.nextStep(`Deleting ${name}...`);
-            await provider.deleteEnvironment(name);
-            deleted++;
-          } catch (error) {
-            console.warn(`Failed to delete ${name}: ${error}`);
-          }
-        }
-        
-        progress.succeed(`Deleted ${deleted} of ${selectedNames.length} environment(s)`);
-        return;
-        
-      } else {
-        console.error(chalk.red('Environment name is required'));
-        console.log(chalk.gray('Usage: vibekit local delete <environment-name>'));
-        console.log(chalk.gray('   or: vibekit local delete --interactive'));
-        process.exit(1);
-      }
-    }
-
-    // Single environment deletion
-    const environments = await provider.listEnvironments();
-    targetEnvironment = environments.find(e => e.name === environmentName) || null;
-    
-    if (!targetEnvironment) {
-      console.error(chalk.red(`Environment '${environmentName}' not found`));
-      console.log(chalk.gray('Available environments:'));
-      formatEnvironmentTable(environments);
+    if (!options.command) {
+      console.error(chalk.red('❌ Command is required'));
       process.exit(1);
     }
+
+    const spinner = ora('Running command in sandbox...').start();
     
-    // Confirm deletion unless forced
-    if (!options.force) {
-      const confirmed = await confirmPrompt(
-        `Delete environment '${environmentName}'?`,
-        false
-      );
-      
-      if (!confirmed) {
-        console.log(chalk.gray('Deletion cancelled'));
-        return;
-      }
+    const provider = getLocalProvider();
+    
+    // For demo purposes, create a new sandbox if none specified
+    let sandbox;
+    if (options.sandbox) {
+      sandbox = await provider.resume(options.sandbox);
+      spinner.text = `Running command in sandbox ${options.sandbox}...`;
+    } else {
+      const agentType = options.agent as AgentType || undefined;
+      sandbox = await provider.create({}, agentType);
+      spinner.text = `Running command in new sandbox ${sandbox.sandboxId}...`;
     }
 
-    const progress = new ProgressIndicator(1);
-    progress.start(`Deleting environment: ${environmentName}...`);
+    const result = await sandbox.commands.run(options.command);
     
-    await provider.deleteEnvironment(environmentName);
+    spinner.succeed('Command completed');
     
-    progress.succeed(`Environment deleted: ${chalk.green(environmentName)}`);
-
+    console.log(chalk.green('\n✅ Command executed successfully!'));
+    console.log(chalk.cyan(`📦 Sandbox ID: ${sandbox.sandboxId}`));
+    console.log(chalk.cyan(`🔢 Exit Code: ${result.exitCode}`));
+    
+    if (result.stdout) {
+      console.log(chalk.blue('\n📤 STDOUT:'));
+      console.log(result.stdout);
+    }
+    
+    if (result.stderr) {
+      console.log(chalk.yellow('\n📤 STDERR:'));
+      console.log(result.stderr);
+    }
+    
   } catch (error) {
-    console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+    console.error(chalk.red(`\n❌ Failed to run command: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
   }
 }
 
 /**
- * Service management commands (TODO: Complete service integration)
+ * Display help and tips for using the local provider
  */
-
-/**
- * Install shell completion
- */
-export async function completionCommand(options: {
-  shell?: string;
-}) {
-  try {
-    const progress = new ProgressIndicator(1);
-    progress.start('Installing shell completion...');
-    
-    await installCompletion(options.shell || 'auto');
-    
-    progress.succeed('Shell completion installed successfully');
-    
-    displayTips([
-      'Restart your shell or source your shell config file',
-      'Try typing: vibekit local <TAB>',
-    ]);
-    
-  } catch (error) {
-    console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
-    process.exit(1);
-  }
+export async function helpCommand() {
+  console.log(chalk.blue('\n🔧 VibeKit Local Provider (Dagger-based)\n'));
+  console.log('The local provider uses Dagger to create isolated sandbox instances.');
+  console.log('Each sandbox is ephemeral and designed for specific tasks.\n');
+  
+  console.log(chalk.green('Available Commands:'));
+  console.log('  create     Create a new sandbox instance');
+  console.log('  run        Run a command in a sandbox');
+  console.log('  help       Show this help message\n');
+  
+  console.log(chalk.green('Agent Types:'));
+  console.log('  claude     Claude-optimized environment');
+  console.log('  codex      OpenAI Codex environment');
+  console.log('  opencode   Open source model environment');
+  console.log('  gemini     Google Gemini environment\n');
+  
+  console.log(chalk.green('Examples:'));
+  console.log('  vibekit local create --agent claude');
+  console.log('  vibekit local run --command "npm install" --agent codex');
+  console.log('  vibekit local run --sandbox sandbox-id --command "ls -la"\n');
 }
 
 /**
- * Main local command setup
+ * Create the local command with all subcommands
  */
 export function createLocalCommand(): Command {
   const localCmd = new Command('local');
-  
-  localCmd
-    .description('Manage local sandbox environments using Container Use')
-    .addHelpText('after', `
-Examples:
-  vibekit local create --name my-sandbox --agent claude
-  vibekit local list --status running
-  vibekit local watch my-sandbox
-  vibekit local terminal my-sandbox
-  vibekit local delete my-sandbox
-`);
+  localCmd.description('Manage local Dagger-based sandbox instances');
 
   // Create subcommand
   localCmd
     .command('create')
-    .description('Create a new local sandbox environment')
-    .option('-n, --name <name>', 'Environment name (auto-generated if not specified)')
-    .option('-a, --agent <type>', 'Agent type (claude, codex, opencode, gemini)')
-    .option('-i, --base-image <image>', 'Base Docker image (default: ubuntu:24.04)')
-    .option('-w, --working-directory <path>', 'Working directory (default: /workspace)')
-    .option('-e, --env <vars>', 'Environment variables (comma-separated key=value pairs)')
-    .option('--interactive', 'Interactive mode with prompts for missing options')
+    .description('Create a new sandbox instance')
+    .option('--agent <type>', 'Agent type (claude, codex, opencode, gemini)')
+    .option('--working-directory <path>', 'Working directory in sandbox', '/workspace')
+    .option('--env <env>', 'Environment variables (key=value,key2=value2)')
     .action(createCommand);
 
-  // List subcommand
+  // Run subcommand
   localCmd
-    .command('list')
-    .alias('ls')
-    .description('List local sandbox environments')
-    .option('-s, --status <status>', 'Filter by status (running, stopped, error)')
-    .option('-a, --agent <type>', 'Filter by agent type')
-    .option('-b, --branch <branch>', 'Filter by Git branch')
-    .option('--json', 'Output in JSON format')
-    .action(listCommand);
+    .command('run')
+    .description('Run a command in a sandbox')
+    .option('--sandbox <id>', 'Existing sandbox ID (creates new if not specified)')
+    .option('--command <cmd>', 'Command to execute')
+    .option('--agent <type>', 'Agent type for new sandbox (claude, codex, opencode, gemini)')
+    .action(runCommand);
 
-  // Watch subcommand
+  // Help subcommand
   localCmd
-    .command('watch [environment]')
-    .description('Watch logs from a local sandbox environment')
-    .option('-a, --all', 'Watch all running environments')
-    .option('-f, --follow', 'Follow log output (default: true)')
-    .option('-i, --interactive', 'Interactive viewer with controls')
-    .option('-l, --level <level>', 'Filter by log level (info, warn, error, debug)')
-    .option('-t, --tail <n>', 'Number of recent log lines to show', parseInt)
-    .action(watchCommand);
-
-  // Terminal subcommand
-  localCmd
-    .command('terminal [environment]')
-    .alias('shell')
-    .description('Open terminal in a local sandbox environment')
-    .action(terminalCommand);
-
-  // Delete subcommand
-  localCmd
-    .command('delete [environment]')
-    .alias('rm')
-    .description('Delete a local sandbox environment')
-    .option('-f, --force', 'Force deletion without confirmation')
-    .option('-a, --all', 'Delete all environments')
-    .option('--interactive', 'Interactive mode for selecting environments to delete')
-    .action(deleteCommand);
-
-  // Completion subcommand
-  localCmd
-    .command('completion')
-    .description('Install shell completion for vibekit local commands')
-    .option('--shell <shell>', 'Target shell (bash, zsh, auto)', 'auto')
-    .action(completionCommand);
+    .command('help')
+    .description('Show detailed help and examples')
+    .action(helpCommand);
 
   return localCmd;
 } 

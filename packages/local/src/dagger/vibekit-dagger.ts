@@ -55,6 +55,7 @@ export type AgentType = "codex" | "claude" | "opencode" | "gemini";
 
 export interface LocalDaggerConfig {
   githubToken?: string;
+  preferRegistryImages?: boolean; // If true, use registry images instead of building from Dockerfiles
 }
 
 export interface GitConfig {
@@ -84,7 +85,24 @@ const getDockerfilePathFromAgentType = (agentType?: AgentType): string | undefin
   return undefined; // fallback to base image
 };
 
-// Helper to get tagged image name
+// Helper to get registry image name (updated to use public Docker Hub images)
+const getRegistryImage = (agentType?: AgentType): string => {
+  const baseRegistry = "joedanziger";
+  switch (agentType) {
+    case "claude":
+      return `${baseRegistry}/vibekit-claude:latest`;
+    case "codex":
+      return `${baseRegistry}/vibekit-codex:latest`;
+    case "gemini":
+      return `${baseRegistry}/vibekit-gemini:latest`;
+    case "opencode":
+      return `${baseRegistry}/vibekit-opencode:latest`;
+    default:
+      return "ubuntu:24.04"; // fallback for unknown agent types
+  }
+};
+
+// Helper to get tagged image name (for local builds only)
 const getImageTag = (agentType?: AgentType): string => {
   return `vibekit-${agentType || 'default'}:latest`;
 };
@@ -233,43 +251,61 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
   }
 
   private async createBaseContainer(client: Client, dockerfilePath?: string, agentType?: AgentType): Promise<Container> {
-    const imageTag = getImageTag(agentType);
     let container: Container;
 
     try {
-      // Build image once
-      console.log(`Building image: ${imageTag}`);
-      if (dockerfilePath) {
+      // Priority 1: Always try public registry image first for agent types (fastest)
+      const registryImage = getRegistryImage(agentType);
+      if (agentType && registryImage !== "ubuntu:24.04") {
+        console.log(`🚀 Trying public registry image: ${registryImage}`);
+        try {
+          container = client.container().from(registryImage);
+          console.log(`✅ Successfully loaded ${registryImage} from registry`);
+          // If we get here, registry worked - skip Dockerfile build
+        } catch (registryError) {
+          console.log(`⚠️ Registry failed, falling back to Dockerfile: ${registryError instanceof Error ? registryError.message : String(registryError)}`);
+          throw registryError; // This will trigger the catch block below
+        }
+      } else if (dockerfilePath) {
+        // Priority 2: Build from Dockerfile (slower fallback)
+        console.log(`🏗️ Building from Dockerfile: ${dockerfilePath}`);
         const context = client.host().directory(".");
         container = client
           .container()
           .build(context, { dockerfile: dockerfilePath });
         
+        const imageTag = getImageTag(agentType);
         // Export to local Docker daemon for future use
         try {
           await container.export(imageTag);
-          console.log(`Image ${imageTag} built and exported to local Docker`);
+          console.log(`✅ Image ${imageTag} built and exported to local Docker`);
         } catch (exportError) {
           console.log(`Note: Could not export ${imageTag} to local Docker: ${exportError instanceof Error ? exportError.message : String(exportError)}`);
         }
       } else {
-        // Use fallback base image
-        container = client
-          .container()
-          .from(this.image);
+        // Priority 3: Use fallback base image
+        console.log(`🔄 Using fallback base image: ${this.image}`);
+        container = client.container().from(this.image);
       }
     } catch (error) {
-      console.error(`Error building image: ${error instanceof Error ? error.message : String(error)}`);
-      // Fallback to base image
+      console.error(`❌ Error with primary image strategy: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // Fallback chain: try Dockerfile -> base image
       if (dockerfilePath) {
-        const context = client.host().directory(".");
-        container = client
-          .container()
-          .build(context, { dockerfile: dockerfilePath });
+        try {
+          console.log(`🔄 Falling back to Dockerfile build: ${dockerfilePath}`);
+          const context = client.host().directory(".");
+          container = client
+            .container()
+            .build(context, { dockerfile: dockerfilePath });
+        } catch (dockerfileError) {
+          console.error(`❌ Dockerfile build failed: ${dockerfileError instanceof Error ? dockerfileError.message : String(dockerfileError)}`);
+          console.log(`🔄 Using final fallback: ${this.image}`);
+          container = client.container().from(this.image);
+        }
       } else {
-        container = client
-          .container()
-          .from(this.image);
+        console.log(`🔄 Using fallback base image: ${this.image}`);
+        container = client.container().from(this.image);
       }
     }
 
@@ -529,10 +565,12 @@ export class LocalDaggerSandboxProvider implements SandboxProvider {
     const sandboxId = `dagger-${agentType || 'default'}-${Date.now().toString(36)}`;
     const workDir = workingDirectory || "/vibe0";
     
-    // Get Dockerfile path for the agent type
-    const dockerfilePath = getDockerfilePathFromAgentType(agentType);
+    // Get Dockerfile path for the agent type (only if not preferring registry images)
+    const dockerfilePath = this.config.preferRegistryImages 
+      ? undefined 
+      : getDockerfilePathFromAgentType(agentType);
     
-    // Create sandbox instance with Dockerfile if available, otherwise use base image
+    // Create sandbox instance with Dockerfile if available and not preferring registry, otherwise use registry/base image
     const instance = new LocalDaggerSandboxInstance(
       sandboxId,
       "ubuntu:24.04", // fallback image
@@ -558,32 +596,48 @@ export function createLocalProvider(config: LocalDaggerConfig = {}): LocalDagger
 }
 
 /**
- * Pre-build all agent images for faster startup times
- * This function should be called during setup to cache images locally
+ * Pre-cache all agent images for faster startup times
+ * This function pulls public registry images to local cache and/or builds from Dockerfiles as fallback
  */
-export async function prebuildAgentImages(): Promise<{ success: boolean; results: Array<{ agentType: AgentType; success: boolean; error?: string }> }> {
+export async function prebuildAgentImages(): Promise<{ success: boolean; results: Array<{ agentType: AgentType; success: boolean; error?: string; source: 'registry' | 'dockerfile' | 'cached' }> }> {
   const agentTypes: AgentType[] = ["claude", "codex", "opencode", "gemini"];
-  const results: Array<{ agentType: AgentType; success: boolean; error?: string }> = [];
+  const results: Array<{ agentType: AgentType; success: boolean; error?: string; source: 'registry' | 'dockerfile' | 'cached' }> = [];
   
-  console.log("🏗️ Pre-building agent images for faster future startup...");
+  console.log("🚀 Pre-caching agent images for faster future startup...");
+  console.log("📋 Priority: Registry images → Dockerfile builds → Skip");
   
   for (const agentType of agentTypes) {
+    const registryImage = getRegistryImage(agentType);
     const imageTag = getImageTag(agentType);
     const dockerfilePath = getDockerfilePathFromAgentType(agentType);
     
     try {
-      console.log(`⏳ Checking/building ${imageTag}...`);
+      console.log(`⏳ Processing ${agentType} agent...`);
       
-      // Check if image already exists
-      const { stdout } = await execAsync(`docker images -q ${imageTag}`);
+      // Check if registry image is already cached locally
+      const { stdout } = await execAsync(`docker images -q ${registryImage}`);
       if (stdout.trim()) {
-        console.log(`✅ ${imageTag} already exists locally`);
-        results.push({ agentType, success: true });
+        console.log(`✅ ${registryImage} already cached locally`);
+        results.push({ agentType, success: true, source: 'cached' });
         continue;
       }
       
-      // Build image using Dagger and cache it
+      // Try to pull from public registry first (fastest)
+      if (registryImage !== "ubuntu:24.04") {
+        try {
+          console.log(`📥 Pulling ${registryImage} from registry...`);
+          await execAsync(`docker pull ${registryImage}`);
+          console.log(`✅ ${registryImage} pulled successfully from registry`);
+          results.push({ agentType, success: true, source: 'registry' });
+          continue;
+        } catch (pullError) {
+          console.log(`⚠️ Failed to pull ${registryImage}, trying Dockerfile build...`);
+        }
+      }
+      
+      // Fallback: Build from Dockerfile using Dagger
       if (dockerfilePath) {
+        console.log(`🏗️ Building ${imageTag} from Dockerfile...`);
         await connect(async (client) => {
           const context = client.host().directory(".");
           const container = client
@@ -595,20 +649,25 @@ export async function prebuildAgentImages(): Promise<{ success: boolean; results
         });
         
         console.log(`✅ ${imageTag} built and cached successfully`);
-        results.push({ agentType, success: true });
+        results.push({ agentType, success: true, source: 'dockerfile' });
       } else {
-        console.log(`⚠️ No Dockerfile found for ${agentType}, skipping`);
-        results.push({ agentType, success: false, error: "No Dockerfile found" });
+        console.log(`⚠️ No registry image or Dockerfile found for ${agentType}, skipping`);
+        results.push({ agentType, success: false, error: "No image source available", source: 'dockerfile' });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`❌ Failed to build ${imageTag}: ${errorMessage}`);
-      results.push({ agentType, success: false, error: errorMessage });
+      console.error(`❌ Failed to cache image for ${agentType}: ${errorMessage}`);
+      results.push({ agentType, success: false, error: errorMessage, source: 'dockerfile' });
     }
   }
   
   const successCount = results.filter(r => r.success).length;
-  console.log(`🎯 Pre-build complete: ${successCount}/${agentTypes.length} images ready`);
+  const registryCount = results.filter(r => r.success && r.source === 'registry').length;
+  const dockerfileCount = results.filter(r => r.success && r.source === 'dockerfile').length;
+  const cachedCount = results.filter(r => r.success && r.source === 'cached').length;
+  
+  console.log(`🎯 Pre-cache complete: ${successCount}/${agentTypes.length} images ready`);
+  console.log(`📊 Sources: ${registryCount} registry, ${dockerfileCount} dockerfile, ${cachedCount} cached`);
   
   return {
     success: successCount > 0,

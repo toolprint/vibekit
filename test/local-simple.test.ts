@@ -25,7 +25,7 @@ describe('Dagger-based Local Sandbox Provider', () => {
 
     it('should accept configuration options', () => {
       const config = {
-        githubToken: 'test-token'
+        // Configuration options for the local provider
       };
       
       const provider = createLocalProvider(config);
@@ -86,7 +86,7 @@ describe('Dagger-based Local Sandbox Provider', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('hello world');
       expect(typeof result.stderr).toBe('string');
-    });
+    }, 10000); // Add timeout for Docker builds
 
     it('should handle command execution with options', async () => {
       const provider = createLocalProvider({});
@@ -106,7 +106,18 @@ describe('Dagger-based Local Sandbox Provider', () => {
       // Callbacks should be defined (though may not be called in this implementation)
       expect(onStdoutSpy).toBeDefined();
       expect(onStderrSpy).toBeDefined();
-    });
+    }, 10000); // Add timeout for Docker builds
+
+    it('should handle background command execution', async () => {
+      const provider = createLocalProvider({});
+      const sandbox = await provider.create();
+
+      const result = await sandbox.commands.run('sleep 1', { background: true });
+
+      expect(result).toBeDefined();
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('Background process started');
+    }, 10000); // Add timeout for Docker builds
   });
 
   describe('Sandbox Lifecycle', () => {
@@ -146,6 +157,14 @@ describe('Dagger-based Local Sandbox Provider', () => {
         expect(sandbox.sandboxId).toMatch(new RegExp(`^dagger-${agentType}-`));
       });
     });
+
+    it('should handle default agent type when none specified', async () => {
+      const provider = createLocalProvider({});
+      const sandbox = await provider.create();
+
+      expect(sandbox).toBeDefined();
+      expect(sandbox.sandboxId).toMatch(/^dagger-default-/);
+    });
   });
 
   describe('Error Handling', () => {
@@ -158,20 +177,49 @@ describe('Dagger-based Local Sandbox Provider', () => {
       expect(result).toBeDefined();
       expect(result.exitCode).not.toBe(0); // Should be non-zero for failed command
       expect(typeof result.stderr).toBe('string');
-    });
+    }, 10000); // Add timeout for Docker builds
+
+    it('should handle exit code parsing from error messages', async () => {
+      const provider = createLocalProvider({});
+      const sandbox = await provider.create();
+
+      const result = await sandbox.commands.run('exit 42');
+
+      expect(result).toBeDefined();
+      expect(result.exitCode).not.toBe(0);
+      expect(typeof result.stderr).toBe('string');
+    }, 10000); // Add timeout for Docker builds
   });
 
-  describe('GitHub Integration', () => {
-    it('should handle GitHub token configuration', async () => {
-      const provider = createLocalProvider({
-        githubToken: 'github-token-123',
-      });
+  describe('Environment Variable Handling', () => {
+    it('should pass environment variables to container', async () => {
+      const provider = createLocalProvider({});
+      const envVars = {
+        TEST_VAR: 'test-value',
+        NODE_ENV: 'development',
+      };
 
-      const sandbox = await provider.create();
-      
-      expect(sandbox).toBeDefined();
-      expect(sandbox.sandboxId).toMatch(/^dagger-/);
-    });
+      const sandbox = await provider.create(envVars);
+      const result = await sandbox.commands.run('echo $TEST_VAR');
+
+      expect(result).toBeDefined();
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('test-value');
+    }, 15000); // Add timeout for Docker builds
+
+    it('should handle special characters in environment variables', async () => {
+      const provider = createLocalProvider({});
+      const envVars = {
+        SPECIAL_VAR: 'value with spaces and symbols!@#',
+      };
+
+      const sandbox = await provider.create(envVars);
+      const result = await sandbox.commands.run('echo "$SPECIAL_VAR"');
+
+      expect(result).toBeDefined();
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('value with spaces and symbols');
+    }, 15000); // Add timeout for Docker builds
   });
 
   describe('Performance', () => {
@@ -239,8 +287,30 @@ describe('Dagger-based Local Sandbox Provider', () => {
       expect(echoResult.exitCode).toBe(0);
       expect(echoResult.stdout).toContain('Hello from dagger');
 
+      // Test file operations
+      const fileResult = await sandbox.commands.run('touch /vibe0/test.txt && ls /vibe0/test.txt');
+      expect(fileResult.exitCode).toBe(0);
+      expect(fileResult.stdout).toContain('test.txt');
+
       // Clean up
       await sandbox.kill();
     }, 15000); // 15 second timeout for simplified integration test
+
+    it('should maintain workspace persistence', async () => {
+      const provider = createLocalProvider({});
+      const sandbox = await provider.create();
+
+      // Create content
+      const createResult = await sandbox.commands.run('echo "persistent content" > /vibe0/persist.txt');
+      expect(createResult.exitCode).toBe(0);
+
+      // Verify content in next command
+      const readResult = await sandbox.commands.run('cat /vibe0/persist.txt');
+      expect(readResult.exitCode).toBe(0);
+      expect(readResult.stdout).toContain('persistent content');
+
+      // Clean up
+      await sandbox.kill();
+    }, 15000); // 15 second timeout for persistence test
   });
 }); 

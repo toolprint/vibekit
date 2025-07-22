@@ -31,7 +31,7 @@ describe('Dagger Local Sandbox Provider', () => {
 
     it('should create provider with custom config', () => {
       const config: LocalDaggerConfig = {
-        githubToken: 'test-token-123',
+        // Configuration options for the local provider
       };
       
       const customProvider = createLocalProvider(config);
@@ -79,18 +79,6 @@ describe('Dagger Local Sandbox Provider', () => {
       expect(sandbox).toBeDefined();
       expect(sandbox.sandboxId).toMatch(/^dagger-codex-/);
     });
-
-    it('should handle GitHub token configuration', async () => {
-      const configWithToken: LocalDaggerConfig = {
-        githubToken: 'github-token-123',
-      };
-      
-      const providerWithToken = createLocalProvider(configWithToken);
-      const sandbox = await providerWithToken.create();
-
-      expect(sandbox).toBeDefined();
-      expect(sandbox.sandboxId).toMatch(/^dagger-/);
-    });
   });
 
   describe('Command Execution', () => {
@@ -137,6 +125,16 @@ describe('Dagger Local Sandbox Provider', () => {
       
       expect(result).toBeDefined();
       expect(result.exitCode).toBe(0);
+    });
+
+    it('should handle background command execution', async () => {
+      const sandbox = await provider.create();
+      
+      const result = await sandbox.commands.run('sleep 1', { background: true });
+      
+      expect(result).toBeDefined();
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('Background process started');
     });
   });
 
@@ -192,6 +190,11 @@ describe('Dagger Local Sandbox Provider', () => {
       const geminiSandbox = await provider.create({}, 'gemini');
       expect(geminiSandbox.sandboxId).toMatch(/^dagger-gemini-/);
     });
+
+    it('should handle default agent type when none specified', async () => {
+      const sandbox = await provider.create();
+      expect(sandbox.sandboxId).toMatch(/^dagger-default-/);
+    });
   });
 
   describe('Error Handling', () => {
@@ -204,19 +207,40 @@ describe('Dagger Local Sandbox Provider', () => {
       expect(result.exitCode).not.toBe(0);
       expect(typeof result.stderr).toBe('string');
     });
+
+    it('should handle malformed commands', async () => {
+      const sandbox = await provider.create();
+      
+      const result = await sandbox.commands.run('echo "missing quote');
+      
+      expect(result).toBeDefined();
+      expect(typeof result.exitCode).toBe('number');
+      expect(typeof result.stderr).toBe('string');
+    });
   });
 
-  describe('GitHub Integration', () => {
-    it('should handle GitHub operations with token', async () => {
-      const providerWithGitHub = createLocalProvider({
-        githubToken: 'github-token-123',
-      });
+  describe('Environment Variable Handling', () => {
+    it('should pass environment variables to sandbox', async () => {
+      const envVars = {
+        TEST_VAR: 'test-value',
+        ANOTHER_VAR: 'another-value',
+      };
 
-      const sandbox = await providerWithGitHub.create();
-      
-      expect(sandbox).toBeDefined();
-      expect(sandbox.sandboxId).toMatch(/^dagger-/);
-    });
+      const sandbox = await provider.create(envVars);
+      const result = await sandbox.commands.run('echo $TEST_VAR');
+
+      expect(result).toBeDefined();
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('test-value');
+    }, 15000); // Increased timeout for Docker builds
+
+    it('should handle empty environment variables', async () => {
+      const sandbox = await provider.create({});
+      const result = await sandbox.commands.run('env | wc -l');
+
+      expect(result).toBeDefined();
+      expect(result.exitCode).toBe(0);
+    }, 10000); // Increased timeout
   });
 
   describe('Performance', () => {
@@ -267,9 +291,17 @@ describe('Dagger Local Sandbox Provider', () => {
       expect(echoResult.exitCode).toBe(0);
       expect(echoResult.stdout).toContain('Hello from dagger sandbox');
 
+      // Test directory operations in working directory
+      const mkdirResult = await sandbox.commands.run('mkdir -p /vibe0/test-dir');
+      expect(mkdirResult.exitCode).toBe(0);
+
+      // Test file operations in working directory
+      const touchResult = await sandbox.commands.run('touch /vibe0/test-dir/test-file.txt');
+      expect(touchResult.exitCode).toBe(0);
+
       // Clean up
       await sandbox.kill();
-    }, 15000); // 15 second timeout for simplified integration test
+    }, 20000); // Increased timeout for Docker builds
 
     it('should handle agent-specific workflows', async () => {
       const claudeSandbox = await provider.create({}, 'claude');
@@ -280,6 +312,21 @@ describe('Dagger Local Sandbox Provider', () => {
       expect(result.stdout).toContain('Claude agent test');
 
       await claudeSandbox.kill();
-    }, 15000); // 15 second timeout for agent workflow test
+    }, 25000); // Increased timeout for Docker builds of Claude image
+
+    it('should maintain workspace state across commands', async () => {
+      const sandbox = await provider.create();
+
+      // Create a file
+      const createResult = await sandbox.commands.run('echo "persistent data" > /vibe0/test.txt');
+      expect(createResult.exitCode).toBe(0);
+
+      // Verify file exists in subsequent command
+      const readResult = await sandbox.commands.run('cat /vibe0/test.txt');
+      expect(readResult.exitCode).toBe(0);
+      expect(readResult.stdout).toContain('persistent data');
+
+      await sandbox.kill();
+    }, 15000); // 15 second timeout for persistence test
   });
 }); 

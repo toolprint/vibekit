@@ -1,6 +1,6 @@
 # @vibekit/local
 
-Local sandbox provider for Vibekit using [Container Use](https://github.com/dagger/container-use).
+Local sandbox provider for Vibekit using [Dagger](https://dagger.io).
 
 ## Overview
 
@@ -11,7 +11,6 @@ The `@vibekit/local` package enables Vibekit to run AI coding agents in isolated
 ### Required Dependencies
 - **Docker**: Container runtime for isolation
 - **Dagger**: Container orchestration engine
-- **Container Use**: CLI tool for agent environments
 
 ### Supported Platforms
 - macOS (recommended)
@@ -43,70 +42,70 @@ If automatic installation fails, you can install dependencies manually:
 # Install Docker (platform-specific)
 # See: https://docs.docker.com/get-docker/
 
-# Install Container Use
-curl -fsSL https://raw.githubusercontent.com/dagger/container-use/main/install.sh | bash
+# Install Dagger
+curl -fsSL https://dagger.io/install.sh | bash
 
 # Verify installation
-container-use --version
+dagger version
 ```
 
 ## Usage
 
-### Basic Commands
+### Basic API Usage
 
-```bash
-# Create a new local sandbox
-vibekit local create --name my-sandbox
+```typescript
+import { createLocalProvider } from '@vibekit/local';
 
-# List all local sandboxes
-vibekit local list
+// Create a local provider
+const provider = createLocalProvider();
 
-# Watch sandbox activity in real-time
-vibekit local watch my-sandbox
+// Create a sandbox instance
+const sandbox = await provider.create(
+  { NODE_ENV: 'development' }, // environment variables
+  'claude',                    // agent type
+  '/workspace'                 // working directory
+);
 
-# Open terminal in sandbox
-vibekit local terminal my-sandbox
+// Execute commands
+const result = await sandbox.commands.run('npm install');
+console.log(result.stdout);
 
-# Delete a sandbox
-vibekit local delete my-sandbox
-```
-
-### Multi-Environment Workflows
-
-```bash
-# Create multiple sandboxes for parallel work
-vibekit local create --name frontend-work
-vibekit local create --name backend-api
-
-# Watch multiple environments
-vibekit local watch --all
-
-# Switch between environments
-vibekit local checkout frontend-work
+// Clean up
+await sandbox.kill();
 ```
 
 ### Configuration
 
-```bash
-# Set default base image
-vibekit local config base-image python:3.11
+```typescript
+import { createLocalProvider, LocalDaggerConfig } from '@vibekit/local';
 
-# Configure resource limits
-vibekit local config resources --memory 2g --cpu 1
+const config: LocalDaggerConfig = {
+  // Configuration options for the local provider
+};
 
-# View current configuration
-vibekit local config show
+const provider = createLocalProvider(config);
 ```
 
 ## Architecture
 
 The local provider consists of several key components:
 
-- **Container Use Wrapper**: Low-level CLI interaction
+- **Dagger Integration**: Low-level container orchestration
 - **Environment Manager**: Lifecycle and state management
-- **Git Integration**: Branch-based isolation
-- **Agent Configuration**: MCP server setup
+- **Container Persistence**: Workspace state across commands
+- **Agent Configuration**: Support for multiple agent types
 - **Resource Management**: Docker container orchestration
+
+## Agent Support
+
+The local provider supports all Vibekit agent types:
+
+- **Claude**: Uses `assets/dockerfiles/Dockerfile.claude`
+- **Codex**: Uses `assets/dockerfiles/Dockerfile.codex`
+- **OpenCode**: Uses `assets/dockerfiles/Dockerfile.opencode`
+- **Gemini**: Uses `assets/dockerfiles/Dockerfile.gemini`
+
+Each agent type can have its own optimized container image for better performance.
 
 ## Security Considerations
 
@@ -116,6 +115,27 @@ Local sandboxes run in Docker containers with the following isolation:
 - **Network**: Containers run in isolated Docker networks
 - **Process**: Complete process isolation from host system
 - **Resources**: Configurable CPU and memory limits
+
+## Interface Compatibility
+
+This package implements the same `SandboxProvider` interface as other Vibekit providers:
+
+```typescript
+interface SandboxProvider {
+  create(envs?, agentType?, workingDirectory?): Promise<SandboxInstance>;
+  resume(sandboxId: string): Promise<SandboxInstance>;
+}
+
+interface SandboxInstance {
+  sandboxId: string;
+  commands: SandboxCommands;
+  kill(): Promise<void>;
+  pause(): Promise<void>;
+  getHost(port: number): Promise<string>;
+}
+```
+
+This ensures you can swap between local and cloud providers seamlessly.
 
 ## Troubleshooting
 
@@ -130,13 +150,13 @@ docker ps
 # Or start Docker daemon (Linux)
 ```
 
-**Container Use not found:**
+**Dagger not found:**
 ```bash
-# Reinstall Container Use
-curl -fsSL https://raw.githubusercontent.com/dagger/container-use/main/install.sh | bash
+# Reinstall Dagger
+curl -fsSL https://dagger.io/install.sh | bash
 
 # Check PATH
-which container-use
+which dagger
 ```
 
 **Permission errors:**
@@ -152,7 +172,7 @@ Enable verbose logging for troubleshooting:
 
 ```bash
 export VIBEKIT_LOG_LEVEL=debug
-vibekit local create --name debug-sandbox
+# Your Vibekit commands here
 ```
 
 ## Contributing

@@ -1,32 +1,20 @@
 # @vibekit/local
 
-Local sandbox provider for VibeKit using [Dagger](https://dagger.io/).
+Local sandbox provider for Vibekit using [Container Use](https://github.com/dagger/container-use).
 
 ## Overview
 
-The `@vibekit/local` package enables VibeKit to run AI coding agents in isolated, containerized environments on your local machine. This provides a **fully compatible alternative** to cloud-based sandboxes (E2B, Northflank, Daytona), offering faster iteration, offline development, and cost savings.
-
-**🔄 Drop-in Replacement**: Our local provider implements the exact same interfaces as cloud providers, making it completely swappable in any VibeKit application.
-
-## Key Features
-
-- ✅ **Perfect Interface Compatibility**: Same APIs as E2B, Northflank, and Daytona
-- ✅ **Complete Git Workflow Support**: Clone, branch, commit, push, and create Pull Requests  
-- ✅ **Agent-Specific Docker Images**: Pre-built containers with Claude, Codex, OpenCode, and Gemini tools
-- ✅ **Persistent Workspace State**: Filesystem changes persist across command executions
-- ✅ **GitHub Integration**: Full authentication and PR creation via GitHub API
-- ✅ **Dockerfile-Based Builds**: Dynamic container creation from agent-specific Dockerfiles
-- ✅ **Shell Command Support**: Complete shell functionality including pipes and redirects
+The `@vibekit/local` package enables Vibekit to run AI coding agents in isolated, containerized environments on your local machine. This provides an alternative to cloud-based sandboxes, offering faster iteration, offline development, and cost savings.
 
 ## System Requirements
 
 ### Required Dependencies
-- **Docker**: Container runtime for isolation  
-- **Dagger**: Container orchestration engine (auto-installed)
-- **Node.js 18+**: Runtime environment
+- **Docker**: Container runtime for isolation
+- **Dagger**: Container orchestration engine
+- **Container Use**: CLI tool for agent environments
 
 ### Supported Platforms
-- macOS (recommended for Apple Silicon support)
+- macOS (recommended)
 - Linux
 - Windows (WSL2)
 
@@ -37,167 +25,97 @@ The `@vibekit/local` package enables VibeKit to run AI coding agents in isolated
 
 ## Installation
 
-The local provider is automatically available when you install VibeKit:
+The local provider is automatically available when you install Vibekit. System dependencies are installed automatically when you first use the local provider:
 
 ```bash
-npm install @vibekit/local
+# Initialize with local provider
+vibekit init --provider local
+
+# Or add to existing project
+vibekit local setup
+```
+
+### Manual Dependency Installation
+
+If automatic installation fails, you can install dependencies manually:
+
+```bash
+# Install Docker (platform-specific)
+# See: https://docs.docker.com/get-docker/
+
+# Install Container Use
+curl -fsSL https://raw.githubusercontent.com/dagger/container-use/main/install.sh | bash
+
+# Verify installation
+container-use --version
 ```
 
 ## Usage
 
-### Drop-in Replacement Example
-
-Replace any cloud provider with the local provider:
-
-```typescript
-import { VibeKit } from "@vibekit/sdk";
-import { createLocalProvider } from "@vibekit/local";
-
-// Create the local provider (replaces E2B/Northflank/Daytona)
-const localProvider = createLocalProvider({
-  githubToken: process.env.GITHUB_TOKEN, // for git operations
-});
-
-// Use exactly like any other provider
-const vibeKit = new VibeKit()
-  .withAgent({
-    type: "claude",
-    provider: "anthropic",
-    apiKey: process.env.CLAUDE_API_KEY!,
-    model: "claude-3-5-sonnet-20241022",
-  })
-  .withSandbox(localProvider) // 🔄 Perfectly swappable!
-  .withWorkingDirectory("/vibe0") // Standard working directory
-  .withSecrets({
-    NODE_ENV: "development",
-  });
-
-// Generate code with full git workflow
-const response = await vibeKit.generateCode("Create a simple React component");
-console.log(response);
-```
-
-### Complete Git Workflow
-
-The local provider supports the entire git workflow:
-
-```typescript
-const localProvider = createLocalProvider({
-  githubToken: process.env.GITHUB_TOKEN // Required for private repos and push operations
-});
-
-const sandbox = await localProvider.create({}, 'claude', '/vibe0');
-
-// Execute complete workflow: clone → modify → commit → push → PR
-const workflowResult = await sandbox.executeWorkflow(
-  {
-    repoUrl: 'https://github.com/your-org/your-repo',
-    branch: 'main',
-    commitMessage: 'AI-generated improvements'
-  },
-  'npm run build && npm test', // Agent command
-  {
-    title: 'AI Code Generation',
-    body: 'This PR contains AI-generated code improvements',
-    headBranch: `feature/ai-${Date.now()}`,
-    baseBranch: 'main'
-  }
-);
-
-console.log(`PR created: ${workflowResult.prUrl}`);
-```
-
-### Agent Type Support
-
-All VibeKit agent types are supported with pre-configured Docker images:
-
-```typescript
-// Each agent type gets its own optimized container
-const claudeProvider = createLocalProvider({}).create({}, 'claude');    // Dockerfile.claude
-const codexProvider = createLocalProvider({}).create({}, 'codex');      // Dockerfile.codex  
-const opencodeProvider = createLocalProvider({}).create({}, 'opencode'); // Dockerfile.opencode
-const geminiProvider = createLocalProvider({}).create({}, 'gemini');     // Dockerfile.gemini
-```
-
-## Configuration
-
-### Local Provider Config
-
-```typescript
-interface LocalDaggerConfig {
-  githubToken?: string; // GitHub Personal Access Token for authenticated git operations
-}
-
-const provider = createLocalProvider({
-  githubToken: process.env.GITHUB_TOKEN // Enables private repo access and push operations
-});
-```
-
-### Environment Variables
-
-Set up your environment:
+### Basic Commands
 
 ```bash
-# Required for private repositories and push operations
-export GITHUB_TOKEN="ghp_your_github_personal_access_token"
+# Create a new local sandbox
+vibekit local create --name my-sandbox
 
-# Optional: Agent-specific API keys (if needed by your agents)
-export CLAUDE_API_KEY="your_claude_key"
-export OPENAI_API_KEY="your_openai_key"
+# List all local sandboxes
+vibekit local list
+
+# Watch sandbox activity in real-time
+vibekit local watch my-sandbox
+
+# Open terminal in sandbox
+vibekit local terminal my-sandbox
+
+# Delete a sandbox
+vibekit local delete my-sandbox
+```
+
+### Multi-Environment Workflows
+
+```bash
+# Create multiple sandboxes for parallel work
+vibekit local create --name frontend-work
+vibekit local create --name backend-api
+
+# Watch multiple environments
+vibekit local watch --all
+
+# Switch between environments
+vibekit local checkout frontend-work
+```
+
+### Configuration
+
+```bash
+# Set default base image
+vibekit local config base-image python:3.11
+
+# Configure resource limits
+vibekit local config resources --memory 2g --cpu 1
+
+# View current configuration
+vibekit local config show
 ```
 
 ## Architecture
 
-The local provider is built on **Dagger**, providing:
+The local provider consists of several key components:
 
-- **Container Orchestration**: Dagger manages Docker containers with full lifecycle control
-- **Dockerfile Integration**: Builds agent-specific containers from `assets/dockerfiles/`
-- **Workspace Persistence**: Maintains filesystem state across command executions using Dagger's Directory API
-- **Git Integration**: Complete git workflow with authentication via GitHub tokens
-- **Shell Execution**: Full shell support with pipes, redirects, and complex commands
-
-## Compatibility
-
-### Interface Parity
-
-Our local provider implements **identical interfaces** to cloud providers:
-
-| Feature | E2B | Northflank | Daytona | Local (Dagger) |
-|---------|-----|------------|---------|------------------|
-| `SandboxProvider` interface | ✅ | ✅ | ✅ | ✅ |
-| `SandboxInstance` interface | ✅ | ✅ | ✅ | ✅ |  
-| `commands.run()` method | ✅ | ✅ | ✅ | ✅ |
-| Background execution | ✅ | ✅ | ✅ | ✅ |
-| Working directory support | ✅ | ✅ | ✅ | ✅ |
-| Environment variables | ✅ | ✅ | ✅ | ✅ |
-| Agent type auto-selection | ✅ | ✅ | ✅ | ✅ |
-| Factory function pattern | ✅ | ✅ | ✅ | ✅ |
-
-### Migration Guide
-
-**Switching from any cloud provider to local is a one-line change:**
-
-```typescript
-// Before (E2B)
-import { createE2BProvider } from "@vibe-kit/e2b";
-const provider = createE2BProvider({ apiKey: "..." });
-
-// After (Local)  
-import { createLocalProvider } from "@vibe-kit/local";
-const provider = createLocalProvider({ githubToken: "..." });
-
-// Everything else stays exactly the same! 🎉
-```
+- **Container Use Wrapper**: Low-level CLI interaction
+- **Environment Manager**: Lifecycle and state management
+- **Git Integration**: Branch-based isolation
+- **Agent Configuration**: MCP server setup
+- **Resource Management**: Docker container orchestration
 
 ## Security Considerations
 
-Local sandboxes run in isolated Docker containers:
+Local sandboxes run in Docker containers with the following isolation:
 
-- **File System Isolation**: Containers cannot access host files outside `/vibe0` workspace
-- **Network Isolation**: Containers run in isolated Docker networks  
-- **Process Isolation**: Complete process isolation from host system
-- **Resource Limits**: Configurable CPU and memory limits via Docker
-- **Secret Management**: GitHub tokens passed securely via environment variables
+- **File System**: Containers cannot access host files outside mounted volumes
+- **Network**: Containers run in isolated Docker networks
+- **Process**: Complete process isolation from host system
+- **Resources**: Configurable CPU and memory limits
 
 ## Troubleshooting
 
@@ -208,68 +126,51 @@ Local sandboxes run in isolated Docker containers:
 # Check Docker status
 docker ps
 
-# Start Docker Desktop (macOS/Windows) or daemon (Linux)
+# Start Docker Desktop (macOS/Windows)
+# Or start Docker daemon (Linux)
 ```
 
-**Dagger installation:**
+**Container Use not found:**
 ```bash
-# Dagger is auto-installed, but you can install manually:
-# macOS
-brew install dagger/tap/dagger
+# Reinstall Container Use
+curl -fsSL https://raw.githubusercontent.com/dagger/container-use/main/install.sh | bash
 
-# Linux
-curl -L https://dl.dagger.io/dagger/install.sh | bash
-
-# Windows
-powershell -c "irm https://dl.dagger.io/dagger/install.ps1 | iex"
+# Check PATH
+which container-use
 ```
 
-**GitHub authentication errors:**
+**Permission errors:**
 ```bash
-# Verify your token has proper permissions:
-# - repo (for private repos)  
-# - public_repo (for public repos)
-# - workflow (if using GitHub Actions)
-
-curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user
+# Add user to docker group (Linux)
+sudo usermod -aG docker $USER
+# Then log out and back in
 ```
 
 ### Debug Mode
 
-Enable verbose logging:
+Enable verbose logging for troubleshooting:
 
 ```bash
-export DAGGER_LOG_LEVEL=debug
 export VIBEKIT_LOG_LEVEL=debug
+vibekit local create --name debug-sandbox
 ```
-
-## Performance Benefits
-
-**Local vs Cloud Comparison:**
-
-| Metric | E2B/Northflank/Daytona | Local (Dagger) |
-|--------|-------------------------|------------------|
-| Cold start time | 10-30 seconds | 2-5 seconds |
-| Network latency | 50-200ms | ~0ms |
-| Cost per hour | $0.10-$1.00 | $0.00 |
-| Offline support | ❌ | ✅ |
-| Custom images | Limited | Full control |
 
 ## Contributing
 
-See the main [VibeKit contribution guide](../../CONTRIBUTING.md).
+See the main [Vibekit contribution guide](../../CONTRIBUTING.md) for general guidelines.
 
 ### Local Development
 
 ```bash
-# Clone and setup
+# Clone the repository
 git clone https://github.com/vibekit/vibekit.git
-cd vibekit/packages/local
+cd vibekit
 
-# Install dependencies  
+# Install dependencies
 npm install
 
-# Build the package
+# Build the local package
+cd packages/local
 npm run build
 
 # Run tests

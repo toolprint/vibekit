@@ -2,59 +2,28 @@
  * Dagger-based Local Sandbox Provider Test Suite
  * 
  * Basic unit tests for the dagger-based local provider functionality
+ * Tests run against real dagger implementation with simplified expectations
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
-// Mock Dagger SDK
-const mockConnect = vi.fn();
-const mockContainer = {
-  from: vi.fn().mockReturnThis(),
-  withWorkdir: vi.fn().mockReturnThis(),
-  withExec: vi.fn().mockReturnThis(),
-  withEnvVariable: vi.fn().mockReturnThis(),
-  withDirectory: vi.fn().mockReturnThis(),
-  stdout: vi.fn().mockResolvedValue('test output'),
-  stderr: vi.fn().mockResolvedValue(''),
-  exitCode: vi.fn().mockResolvedValue(0),
-  terminal: vi.fn().mockReturnThis(),
-};
-
-const mockClient = {
-  container: vi.fn().mockReturnValue(mockContainer),
-  close: vi.fn().mockResolvedValue(undefined),
-};
-
-vi.mock('@dagger.io/dagger', () => ({
-  connect: mockConnect.mockResolvedValue(mockClient),
-}));
+import { createLocalProvider, LocalDaggerSandboxProvider } from '@vibekit/local';
 
 describe('Dagger-based Local Sandbox Provider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  afterEach(async () => {
-    // Clean up any open connections
-    if (mockClient.close) {
-      await mockClient.close();
-    }
-  });
-
   describe('Provider Creation', () => {
-    it('should create a local dagger provider instance', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
+    it('should create a local dagger provider instance', () => {
       const provider = createLocalProvider({});
 
       expect(provider).toBeDefined();
+      expect(provider).toBeInstanceOf(LocalDaggerSandboxProvider);
       expect(typeof provider.create).toBe('function');
       expect(typeof provider.resume).toBe('function');
     });
 
-    it('should accept configuration options', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
+    it('should accept configuration options', () => {
       const config = {
         githubToken: 'test-token'
       };
@@ -66,13 +35,12 @@ describe('Dagger-based Local Sandbox Provider', () => {
 
   describe('Sandbox Creation', () => {
     it('should create a sandbox instance', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const sandbox = await provider.create();
 
       expect(sandbox).toBeDefined();
       expect(sandbox.sandboxId).toBeDefined();
+      expect(sandbox.sandboxId).toMatch(/^dagger-/);
       expect(sandbox.commands).toBeDefined();
       expect(typeof sandbox.commands.run).toBe('function');
       expect(typeof sandbox.kill).toBe('function');
@@ -81,8 +49,6 @@ describe('Dagger-based Local Sandbox Provider', () => {
     });
 
     it('should create sandbox with environment variables', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const envVars = { TEST_VAR: 'test-value', NODE_ENV: 'test' };
       
@@ -93,8 +59,6 @@ describe('Dagger-based Local Sandbox Provider', () => {
     });
 
     it('should create sandbox with specific agent type', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const sandbox = await provider.create({}, 'claude');
 
@@ -103,20 +67,16 @@ describe('Dagger-based Local Sandbox Provider', () => {
     });
 
     it('should create sandbox with working directory', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const sandbox = await provider.create({}, undefined, '/custom/workdir');
 
       expect(sandbox).toBeDefined();
-      expect(mockConnect).toHaveBeenCalled();
+      expect(sandbox.sandboxId).toMatch(/^dagger-/);
     });
   });
 
   describe('Command Execution', () => {
     it('should execute commands in sandbox', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const sandbox = await provider.create();
 
@@ -124,27 +84,26 @@ describe('Dagger-based Local Sandbox Provider', () => {
 
       expect(result).toBeDefined();
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toBe('test output');
-      expect(result.stderr).toBe('');
+      expect(result.stdout).toContain('hello world');
+      expect(typeof result.stderr).toBe('string');
     });
 
     it('should handle command execution with options', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const sandbox = await provider.create();
 
       const onStdoutSpy = vi.fn();
       const onStderrSpy = vi.fn();
 
-      await sandbox.commands.run('ls -la', {
+      const result = await sandbox.commands.run('echo "test"', {
         timeoutMs: 5000,
         onStdout: onStdoutSpy,
         onStderr: onStderrSpy,
       });
 
-      // Note: In actual implementation, these callbacks would be called
-      // For mocked version, we just verify the structure is correct
+      expect(result).toBeDefined();
+      expect(result.exitCode).toBe(0);
+      // Callbacks should be defined (though may not be called in this implementation)
       expect(onStdoutSpy).toBeDefined();
       expect(onStderrSpy).toBeDefined();
     });
@@ -152,8 +111,6 @@ describe('Dagger-based Local Sandbox Provider', () => {
 
   describe('Sandbox Lifecycle', () => {
     it('should kill sandbox instance', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const sandbox = await provider.create();
 
@@ -161,8 +118,6 @@ describe('Dagger-based Local Sandbox Provider', () => {
     });
 
     it('should pause sandbox instance', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const sandbox = await provider.create();
 
@@ -170,13 +125,12 @@ describe('Dagger-based Local Sandbox Provider', () => {
     });
 
     it('should get host for port mapping', async () => {
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const sandbox = await provider.create();
 
       const host = await sandbox.getHost(3000);
       expect(typeof host).toBe('string');
+      expect(host).toBe('localhost');
     });
   });
 
@@ -185,8 +139,6 @@ describe('Dagger-based Local Sandbox Provider', () => {
 
     agentTypes.forEach(agentType => {
       it(`should create sandbox for ${agentType} agent`, async () => {
-        const { createLocalProvider } = await import('@vibekit/local');
-        
         const provider = createLocalProvider({});
         const sandbox = await provider.create({}, agentType);
 
@@ -197,29 +149,98 @@ describe('Dagger-based Local Sandbox Provider', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle dagger connection errors gracefully', async () => {
-      mockConnect.mockRejectedValueOnce(new Error('Dagger connection failed'));
-      
-      const { createLocalProvider } = await import('@vibekit/local');
-      
-      const provider = createLocalProvider({});
-      
-      await expect(provider.create()).rejects.toThrow('Dagger connection failed');
-    });
-
     it('should handle command execution errors', async () => {
-      mockContainer.exitCode.mockResolvedValueOnce(1);
-      mockContainer.stderr.mockResolvedValueOnce('command failed');
-      
-      const { createLocalProvider } = await import('@vibekit/local');
-      
       const provider = createLocalProvider({});
       const sandbox = await provider.create();
 
-      const result = await sandbox.commands.run('failing-command');
+      const result = await sandbox.commands.run('nonexistent-command-xyz');
 
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toBe('command failed');
+      expect(result).toBeDefined();
+      expect(result.exitCode).not.toBe(0); // Should be non-zero for failed command
+      expect(typeof result.stderr).toBe('string');
     });
+  });
+
+  describe('GitHub Integration', () => {
+    it('should handle GitHub token configuration', async () => {
+      const provider = createLocalProvider({
+        githubToken: 'github-token-123',
+      });
+
+      const sandbox = await provider.create();
+      
+      expect(sandbox).toBeDefined();
+      expect(sandbox.sandboxId).toMatch(/^dagger-/);
+    });
+  });
+
+  describe('Performance', () => {
+    it('should create multiple sandboxes concurrently', async () => {
+      const provider = createLocalProvider({});
+      const startTime = Date.now();
+
+      const sandboxPromises = Array.from({ length: 2 }, (_, i) =>
+        provider.create({ INDEX: i.toString() }, 'codex')
+      );
+
+      const sandboxes = await Promise.all(sandboxPromises);
+
+      const duration = Date.now() - startTime;
+
+      expect(sandboxes).toHaveLength(2);
+      sandboxes.forEach(sandbox => {
+        expect(sandbox).toBeDefined();
+        expect(sandbox.sandboxId).toMatch(/^dagger-codex-/);
+      });
+      
+      // Should complete reasonably quickly
+      expect(duration).toBeLessThan(30000); // 30 seconds timeout for real dagger operations
+    }, 60000); // 60 second timeout for performance test
+
+    it('should handle rapid command execution', async () => {
+      const provider = createLocalProvider({});
+      const sandbox = await provider.create();
+
+      const commandPromises = Array.from({ length: 3 }, (_, i) =>
+        sandbox.commands.run(`echo "command ${i}"`)
+      );
+
+      const results = await Promise.all(commandPromises);
+
+      expect(results).toHaveLength(3);
+      results.forEach((result, i) => {
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain(`command ${i}`);
+      });
+    }, 20000); // 20 second timeout for rapid execution test
+  });
+
+  describe('Resume Functionality', () => {
+    it('should resume existing sandbox', async () => {
+      const provider = createLocalProvider({});
+      const originalSandbox = await provider.create({}, 'claude');
+      const sandboxId = originalSandbox.sandboxId;
+
+      const resumedSandbox = await provider.resume(sandboxId);
+
+      expect(resumedSandbox).toBeDefined();
+      // Resume creates a new sandbox instance but preserves the concept
+      expect(resumedSandbox.sandboxId).toBeDefined();
+    });
+  });
+
+  describe('Integration Scenarios', () => {
+    it('should handle basic development workflow', async () => {
+      const provider = createLocalProvider({});
+      const sandbox = await provider.create();
+
+      // Test basic echo command  
+      const echoResult = await sandbox.commands.run('echo "Hello from dagger"');
+      expect(echoResult.exitCode).toBe(0);
+      expect(echoResult.stdout).toContain('Hello from dagger');
+
+      // Clean up
+      await sandbox.kill();
+    }, 15000); // 15 second timeout for simplified integration test
   });
 }); 

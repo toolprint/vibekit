@@ -5,7 +5,7 @@ import { execa } from "execa";
 import { installE2B } from "./providers/e2b.js";
 import { installDaytona } from "./providers/daytona.js";
 import { installNorthflank } from "./providers/northflank.js";
-import { installLocal, isContainerUseInstalled } from "./providers/local.js";
+import { installLocal, isDaggerCliInstalled } from "./providers/local.js";
 import { authenticate, checkAuth, isCliInstalled } from "../utils/auth.js";
 import { AGENT_TEMPLATES, SANDBOX_PROVIDERS } from "../../constants/enums.js";
 
@@ -46,7 +46,7 @@ const installers: Record<SANDBOX_PROVIDERS, ProviderInstaller> = {
     install: installNorthflank,
   },
   [SANDBOX_PROVIDERS.LOCAL]: {
-    isInstalled: async () => await isContainerUseInstalled(),
+    isInstalled: async () => await isDaggerCliInstalled(),
     configTransform: (config: InstallConfig) => config,
     install: installLocal,
   },

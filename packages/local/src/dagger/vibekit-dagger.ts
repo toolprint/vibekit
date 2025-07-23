@@ -215,7 +215,8 @@ class LocalSandboxInstance extends EventEmitter implements SandboxInstance {
         
         let result: SandboxExecutionResult = { exitCode: 1, stdout: "", stderr: "Command execution failed" };
         
-        await connect(async (client) => {
+        try {
+          await connect(async (client) => {
           try {
             // Get or create persistent workspace container using our reusable base
             let container = await this.getWorkspaceContainer(client);
@@ -306,6 +307,22 @@ class LocalSandboxInstance extends EventEmitter implements SandboxInstance {
             };
           }
         });
+        } catch (connectError) {
+          // Handle errors from the connect function itself
+          const errorMessage = connectError instanceof Error ? connectError.message : String(connectError);
+          const exitCode = errorMessage.includes('exit code') 
+            ? parseInt(errorMessage.match(/exit code (\d+)/)?.[1] || '1') 
+            : 1;
+          
+          // Emit error event for VibeKit compatibility
+          this.emit('error', errorMessage);
+            
+          result = {
+            exitCode: exitCode,
+            stdout: "",
+            stderr: errorMessage,
+          };
+        }
         
         // Emit end event for VibeKit streaming compatibility
         this.emit('update', JSON.stringify({

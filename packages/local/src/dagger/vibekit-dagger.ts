@@ -229,20 +229,26 @@ class LocalDaggerSandboxInstance extends EventEmitter implements SandboxInstance
                 const stdout = await container.stdout();
                 const stderr = await container.stderr();
                 
-                // Call streaming callbacks and emit events if provided
-                if (options?.onStdout && stdout) {
-                  // Emit VibeKit-compatible update event
-                  this.emit('update', JSON.stringify({
-                    type: "stdout",
-                    data: stdout,
-                    timestamp: Date.now()
-                  }));
-                  options.onStdout(stdout);
+                // Simulate incremental streaming by splitting into lines and emitting with delays
+                const emitIncremental = async (type: 'stdout' | 'stderr', fullOutput: string, callback?: (data: string) => void) => {
+                  const lines = fullOutput.split('\n').filter(line => line.trim());
+                  for (const [index, line] of lines.entries()) {
+                    await new Promise(resolve => setTimeout(resolve, 100 + (index * 50))); // Progressive delay
+                    const message = line; // Simple string as per docs
+                    this.emit(type === 'stdout' ? 'update' : 'error', message);
+                    if (callback) callback(line);
+                  }
+                };
+
+                // Handle stdout
+                if (stdout) {
+                  await emitIncremental('stdout', stdout, options?.onStdout);
                 }
-                if (options?.onStderr && stderr) {
-                  // Emit VibeKit-compatible error event
-                  this.emit('error', stderr);
-                  options.onStderr(stderr);
+                
+                // Handle stderr (non-fatal: route to 'update' with flag)
+                if (stderr) {
+                  await emitIncremental('stderr', stderr, options?.onStderr);
+                  this.emit('update', `STDERR: ${stderr}`); // Docs-compatible update
                 }
                 
                 result = {
@@ -251,8 +257,10 @@ class LocalDaggerSandboxInstance extends EventEmitter implements SandboxInstance
                   stderr: stderr,
                 };
               } catch (execError) {
-                // If the container execution failed, extract exit code and throw for proper error handling
+                // Fatal error: emit 'error' as per docs
                 const errorMessage = execError instanceof Error ? execError.message : String(execError);
+                this.emit('error', errorMessage);
+                // If the container execution failed, extract exit code and throw for proper error handling
                 const exitCode = errorMessage.includes('exit code') 
                   ? parseInt(errorMessage.match(/exit code (\d+)/)?.[1] || '1') 
                   : 1;

@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "build:types": "tsup --dts-only",
     "dev": "tsup --watch",
     "test": "vitest",
     "type-check": "tsc --noEmit"

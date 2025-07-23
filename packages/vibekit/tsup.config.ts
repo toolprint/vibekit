@@ -35,7 +35,7 @@ export default defineConfig([
     },
     // Externalize Node.js-specific packages that cause ESM bundling issues
     external: [
-      "@vibe-kit/local",
+      "@vibe-kit/dagger",
       "@dagger.io/dagger",
       "adm-zip",
       "fs-extra",

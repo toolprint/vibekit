@@ -1,6 +1,6 @@
 /**
- * @vibe-kit/local - Local Sandbox Provider
- * 
+ * @vibe-kit/dagger - Local Sandbox Provider
+ *
  * Main entry point for the local provider package.
  * Exports all public APIs for Dagger integration and setup utilities.
  */
@@ -9,7 +9,7 @@
 export interface Environment {
   id: string;
   name: string;
-  status: 'running' | 'stopped' | 'pending' | 'error';
+  status: "running" | "stopped" | "pending" | "error";
   agentType?: string;
   createdAt?: Date;
   lastUsed?: Date;
@@ -22,9 +22,9 @@ export interface Environment {
 }
 
 // Dagger integration - matching other providers' interface pattern
-export { 
-  LocalSandboxProvider, 
-  createLocalProvider, 
+export {
+  LocalSandboxProvider,
+  createLocalProvider,
   prebuildAgentImages,
   // Docker registry setup functions
   setupUserDockerRegistry,
@@ -41,12 +41,12 @@ export {
   type SandboxCommandOptions,
   // Docker registry types
   type DockerLoginInfo,
-  type VibeKitConfig
-} from './dagger/vibekit-dagger';
+  type VibeKitConfig,
+} from "./dagger/vibekit-dagger";
 
 // Alias for backwards compatibility - keep the old Dagger names available
-export { LocalSandboxProvider as LocalDaggerSandboxProvider } from './dagger/vibekit-dagger';
-export type { LocalConfig as LocalDaggerConfig } from './dagger/vibekit-dagger';
+export { LocalSandboxProvider as LocalDaggerSandboxProvider } from "./dagger/vibekit-dagger";
+export type { LocalConfig as LocalDaggerConfig } from "./dagger/vibekit-dagger";
 
 // Setup and installation utilities
 export {
@@ -56,11 +56,11 @@ export {
   checkSetupStatus,
   cleanupPreBuiltImages,
   type SetupOptions,
-  type SetupResult
-} from './setup/installer';
+  type SetupResult,
+} from "./setup/installer";
 
 // Environment storage
 export {
   EnvironmentStore,
-  type EnvironmentRecord
-} from './storage/environment-store'; 
+  type EnvironmentRecord,
+} from "./storage/environment-store";

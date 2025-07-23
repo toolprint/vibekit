@@ -7,28 +7,14 @@
 
 import chalk from 'chalk';
 import enquirer from 'enquirer';
-import { loadConfig, createVibeKitConfig } from './config.js';
+import { loadConfig, createVibeKitConfig, getAgentConfig, getDefaultModel } from './config.js';
 import type { CLIConfig } from './config.js';
 
-// Import from local package (will be resolved correctly at runtime)
-interface EnvironmentRecord {
-  id: string;
-  name: string;
-  status: 'running' | 'stopped' | 'paused' | 'error';
-  agentType?: string;
-  branch?: string;
-  created: Date;
-  lastUsed: Date;
-  sandboxId: string;
-  workingDirectory: string;
-  envVars: Record<string, string>;
-  dockerImage?: string;
-  pid?: number;
-  githubToken?: string;
-  model?: string;
-  apiKey?: string;
-}
+// Import types and classes from local package  
+import type { EnvironmentRecord } from '@vibe-kit/local';
+import type { AgentType } from '../../types.js';
 
+// Define EnvironmentStore interface locally to avoid import issues
 interface EnvironmentStore {
   load(): Promise<EnvironmentRecord[]>;
   save(env: EnvironmentRecord): Promise<void>;
@@ -118,8 +104,36 @@ export async function createVibeKitFromEnvironment(
   // Import VibeKit dynamically to avoid circular dependencies
   const { VibeKit } = await import('../../core/vibekit.js');
   
-  const vibekitConfig = createVibeKitConfig(env, cliConfig);
-  return new VibeKit(vibekitConfig);
+  // Validate and cast agentType
+  const agentType = env.agentType as AgentType || cliConfig.defaults.agent;
+  const agentConfig = getAgentConfig(agentType, cliConfig);
+  const model = agentConfig.model || getDefaultModel(agentType);
+
+  // Build VibeKit instance using builder pattern
+  const vibekit = new VibeKit()
+    .withAgent({
+      type: agentType,
+      provider: 'openai', // Default provider, could be made configurable
+      apiKey: agentConfig.apiKey,
+      model: model
+    })
+    .withSession(env.sandboxId)
+    .withWorkingDirectory(env.workingDirectory);
+
+  // Add GitHub config if available and repository is set
+  if (cliConfig.github && cliConfig.github.repository) {
+    vibekit.withGithub(cliConfig.github as { token: string; repository: string; });
+  }
+
+  // Add telemetry if enabled
+  if (cliConfig.telemetry.enabled) {
+    vibekit.withTelemetry({
+      enabled: true,
+      sessionId: cliConfig.telemetry.sessionId
+    });
+  }
+
+  return vibekit;
 }
 
 /**
@@ -326,7 +340,9 @@ export function displayEnvironmentList(environments: EnvironmentRecord[]): void 
 /**
  * Get environment store instance
  */
-export function getEnvironmentStore(): EnvironmentStore {
+export async function getEnvironmentStore() {
   const config = loadConfig();
+  // Import EnvironmentStore class dynamically
+  const { EnvironmentStore } = await import('@vibe-kit/local');
   return new EnvironmentStore(config.storage.path);
 } 

@@ -128,15 +128,15 @@ export function loadConfig(): CLIConfig {
       agent: (getEnv('VIBEKIT_DEFAULT_AGENT') as AgentType) || 'claude',
       model: getEnv('VIBEKIT_DEFAULT_MODEL'),
       timeout: getEnvNumber('VIBEKIT_DEFAULT_TIMEOUT', 30000),
-      workingDir: getEnv('VIBEKIT_DEFAULT_WORKING_DIR', '/vibe0')
+      workingDir: getEnv('VIBEKIT_DEFAULT_WORKING_DIR') || '/vibe0'
     },
     docker: {
-      registry: getEnv('DOCKER_REGISTRY', 'docker.io'),
+      registry: getEnv('DOCKER_REGISTRY') || 'docker.io',
       username: getEnv('DOCKER_USERNAME'),
       preferRegistryImages: getEnvBoolean('VIBEKIT_PREFER_REGISTRY_IMAGES', true)
     },
     storage: {
-      path: getEnv('VIBEKIT_STORAGE_PATH', join(homedir(), '.vibekit')),
+      path: getEnv('VIBEKIT_STORAGE_PATH') || join(homedir(), '.vibekit'),
       maxEnvironments: getEnvNumber('VIBEKIT_MAX_ENVIRONMENTS', 10),
       logLevel: (getEnv('VIBEKIT_LOG_LEVEL') as any) || 'info'
     },

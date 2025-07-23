@@ -17,6 +17,22 @@ import { EventEmitter } from 'events';
 
 const execAsync = promisify(exec);
 
+// Environment interface for provider methods
+interface Environment {
+  id: string;
+  name: string;
+  status: 'running' | 'stopped' | 'pending' | 'error';
+  agentType?: string;
+  createdAt?: Date;
+  lastUsed?: Date;
+  branch?: string;
+  environment?: {
+    VIBEKIT_AGENT_TYPE?: string;
+    AGENT_TYPE?: string;
+    [key: string]: string | undefined;
+  };
+}
+
 // Interface definitions matching E2B/Northflank patterns
 export interface SandboxExecutionResult {
   exitCode: number;
@@ -66,6 +82,7 @@ export interface LocalDaggerConfig {
   dockerHubUser?: string; // User's Docker Hub username for custom images
   pushImages?: boolean;   // Whether to push images during setup
   privateRegistry?: string; // Alternative registry (ghcr.io, etc.)
+  autoInstall?: boolean;  // Whether to automatically install Dagger CLI if not found
 }
 
 export interface GitConfig {
@@ -663,6 +680,12 @@ export class LocalDaggerSandboxProvider implements SandboxProvider {
     // For Dagger, resume is the same as create since containers are ephemeral
     // The workspace state is maintained through the Directory persistence
     return await this.create();
+  }
+
+  async listEnvironments(): Promise<Environment[]> {
+    // For Dagger-based local provider, we don't maintain persistent environments
+    // Return empty array as environments are created on-demand
+    return [];
   }
 }
 

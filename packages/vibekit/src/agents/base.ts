@@ -269,6 +269,7 @@ export abstract class BaseAgent {
       
       // Create a mock environment object since we're moving away from tight coupling
       const mockEnvironment = {
+        id: this.sandboxInstance.sandboxId,
         name: this.sandboxInstance.sandboxId,
         status: 'running' as const,
         createdAt: new Date(),

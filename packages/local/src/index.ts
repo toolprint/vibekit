@@ -5,6 +5,22 @@
  * Exports all public APIs for Dagger integration and setup utilities.
  */
 
+// Environment type for compatibility with other packages
+export interface Environment {
+  id: string;
+  name: string;
+  status: 'running' | 'stopped' | 'pending' | 'error';
+  agentType?: string;
+  createdAt?: Date;
+  lastUsed?: Date;
+  branch?: string;
+  environment?: {
+    VIBEKIT_AGENT_TYPE?: string;
+    AGENT_TYPE?: string;
+    [key: string]: string | undefined;
+  };
+}
+
 // Dagger integration - matching other providers' interface pattern
 export { 
   LocalDaggerSandboxProvider, 
@@ -27,6 +43,9 @@ export {
   type DockerLoginInfo,
   type VibeKitConfig
 } from './dagger/vibekit-dagger';
+
+// Alias for backwards compatibility
+export { LocalDaggerSandboxProvider as LocalSandboxProvider } from './dagger/vibekit-dagger';
 
 // Setup and installation utilities
 export {

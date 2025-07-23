@@ -2,17 +2,20 @@
  * Local Provider Installation
  * 
  * Handles installation and setup of the local provider using Dagger.
- * This includes dependency validation, Dagger CLI installation, and
- * pre-building agent images for faster startup.
+ * This includes dependency validation, Dagger CLI installation, Docker
+ * login verification, image uploading, and pre-building agent images.
  */
 
 import chalk from 'chalk';
 import ora from 'ora';
 import { execa } from 'execa';
 import os from 'os';
+import enquirer from 'enquirer';
 import type { InstallConfig } from '../../utils/install.js';
 
-export async function installLocal(config: InstallConfig, selectedTemplates?: string[]) {
+const { prompt } = enquirer;
+
+export async function installLocal(config: InstallConfig, selectedTemplates?: string[], uploadImages?: boolean) {
   const spinner = ora('Setting up local provider with Dagger...').start();
   
   try {
@@ -81,13 +84,136 @@ export async function installLocal(config: InstallConfig, selectedTemplates?: st
       console.log(chalk.yellow('\n⚠️  Dagger engine will start automatically on first use'));
     }
 
-    // Step 5: Pre-build agent images for faster startup
+    // Step 5: Docker Registry Setup (New)
+    spinner.text = 'Checking Docker registry configuration...';
+    
+    try {
+      // Import the Docker registry functions
+      const { checkDockerLogin, setupUserDockerRegistry } = await import('@vibekit/local');
+      
+      // Check if user is logged into Docker Hub
+      const loginInfo = await checkDockerLogin();
+      
+      if (loginInfo.isLoggedIn && loginInfo.username) {
+        spinner.succeed(`Docker login confirmed: ${loginInfo.username}`);
+        
+        // Determine whether to upload images
+        let shouldUploadImages: boolean;
+        
+        if (uploadImages !== undefined) {
+          // Use CLI flag if provided
+          shouldUploadImages = uploadImages;
+          console.log(chalk.blue('\n🐳 Docker Registry Setup'));
+          console.log(chalk.gray(`Using CLI flag: ${shouldUploadImages ? 'uploading' : 'skipping'} image upload`));
+        } else {
+          // Ask user if they want to upload images to their account
+          console.log(chalk.blue('\n🐳 Docker Registry Setup'));
+          console.log(chalk.gray('VibeKit can upload optimized agent images to your Docker Hub account.'));
+          console.log(chalk.gray('This enables faster startup and sharing across machines.'));
+          
+          const { uploadImages: userChoice } = await prompt<{ uploadImages: boolean }>({
+            type: 'confirm',
+            name: 'uploadImages',
+            message: 'Upload VibeKit images to your Docker Hub account?',
+            initial: true
+          });
+          
+          shouldUploadImages = userChoice;
+        }
+        
+        if (shouldUploadImages) {
+          const registrySpinner = ora('Setting up Docker registry integration...').start();
+          
+          try {
+            const setupResult = await setupUserDockerRegistry();
+            
+            if (setupResult.success) {
+              registrySpinner.succeed('Docker registry setup completed');
+              
+              console.log(chalk.green('\n🎉 Docker Registry Integration Successful!'));
+              console.log(chalk.blue('📦 Your VibeKit images:'));
+              
+              if (setupResult.config?.registryImages) {
+                for (const [agentType, imageUrl] of Object.entries(setupResult.config.registryImages)) {
+                  console.log(chalk.cyan(`  • ${agentType}: ${imageUrl}`));
+                }
+              }
+              
+              console.log(chalk.yellow('\n💡 Benefits:'));
+              console.log(chalk.gray('  • ⚡ Faster startup with registry images'));
+              console.log(chalk.gray('  • 🌐 Share images across machines'));
+              console.log(chalk.gray('  • 🔄 Automatic fallback to local builds'));
+              console.log(chalk.gray('  • 📦 Public availability on Docker Hub'));
+              
+            } else {
+              registrySpinner.fail('Docker registry setup failed');
+              console.log(chalk.yellow(`\n⚠️ Warning: ${setupResult.error}`));
+              console.log(chalk.gray('Continuing with local image builds...'));
+            }
+            
+          } catch (registryError) {
+            registrySpinner.fail('Docker registry setup encountered an error');
+            console.log(chalk.yellow(`\n⚠️ Warning: ${registryError instanceof Error ? registryError.message : String(registryError)}`));
+            console.log(chalk.gray('Continuing with local image builds...'));
+          }
+        } else {
+          console.log(chalk.blue('\n⏭️ Skipping Docker registry setup'));
+          console.log(chalk.gray('Images will be built locally when needed'));
+        }
+        
+      } else {
+        spinner.succeed('Docker available (registry setup optional)');
+        
+        if (uploadImages === true) {
+          // User explicitly wants to upload but isn't logged in
+          console.log(chalk.yellow('\n🔑 Docker Login Required'));
+          console.log(chalk.red('❌ Cannot upload images: not logged into Docker Hub'));
+          console.log(chalk.blue('To upload images, please login to Docker Hub:'));
+          console.log(chalk.cyan('  docker login'));
+          console.log(chalk.gray('\nThen re-run: vibekit init --providers local --upload-images'));
+        } else if (uploadImages === false) {
+          // User explicitly doesn't want registry setup
+          console.log(chalk.blue('\n⏭️ Skipping Docker registry setup (CLI flag)'));
+          console.log(chalk.gray('Images will be built locally when needed'));
+        } else {
+          // Interactive mode when not logged in
+          console.log(chalk.blue('\n🐳 Docker Registry Setup (Optional)'));
+          console.log(chalk.gray('You can optionally set up Docker Hub integration for faster image access.'));
+          console.log(chalk.gray('This step can be done later if you prefer.'));
+          
+          const { setupNow } = await prompt<{ setupNow: boolean }>({
+            type: 'confirm',
+            name: 'setupNow',
+            message: 'Set up Docker Hub integration now?',
+            initial: false
+          });
+          
+          if (setupNow) {
+            console.log(chalk.yellow('\n🔑 Docker Login Required'));
+            console.log(chalk.blue('To upload images, please login to Docker Hub:'));
+            console.log(chalk.cyan('  docker login'));
+            console.log(chalk.gray('\nThen re-run: vibekit init --providers local'));
+            console.log(chalk.gray('Or set up registry later with your own setup script.'));
+          } else {
+            console.log(chalk.blue('\n⏭️ Skipping Docker registry setup'));
+            console.log(chalk.gray('Images will be built locally when needed'));
+          }
+        }
+      }
+      
+    } catch (registryError) {
+      spinner.succeed('Docker available (registry setup skipped)');
+      console.log(chalk.yellow(`\n⚠️ Registry setup unavailable: ${registryError instanceof Error ? registryError.message : String(registryError)}`));
+      console.log(chalk.gray('Continuing with local image builds...'));
+    }
+
+    // Step 6: Pre-build agent images for faster startup
     if (selectedTemplates && selectedTemplates.length > 0) {
       spinner.text = 'Pre-building agent images for faster startup...';
       
       try {
         // Import and call the pre-build function
-        const { setupLocalProvider } = await import('@vibekit/local/src/setup/installer');
+        const { setupLocalProvider } = await import('@vibekit/local');
         
         const setupResult = await setupLocalProvider({
           skipPreBuild: false,
@@ -137,7 +263,7 @@ export async function installLocal(config: InstallConfig, selectedTemplates?: st
     console.log(chalk.green('\n✅ Local provider is ready!'));
     console.log(chalk.blue('\n📋 What\'s available:'));
     console.log(`  • Create sandboxes: ${chalk.cyan('vibekit local create')}`);
-    console.log(`  • Fast startup: ${chalk.cyan('Pre-built images cached locally')}`);
+    console.log(`  • Fast startup: ${chalk.cyan('Registry or locally cached images')}`);
     console.log(`  • Git integration: ${chalk.cyan('Built-in GitHub operations')}`);
     console.log(`  • Isolation: ${chalk.cyan('Containerized environments')}`);
       
@@ -150,11 +276,12 @@ export async function installLocal(config: InstallConfig, selectedTemplates?: st
     }
     
     console.log(chalk.blue('\n🔧 Benefits:'));
-    console.log(chalk.gray('  • ⚡ Fast startup with pre-built images'));
+    console.log(chalk.gray('  • ⚡ Fast startup with optimized images'));
     console.log(chalk.gray('  • 🔒 Isolated containerized environments'));
     console.log(chalk.gray('  • 🔄 Built-in git operations and PR creation'));
     console.log(chalk.gray('  • 🌐 Cross-platform compatibility'));
     console.log(chalk.gray('  • 📦 Automatic dependency management'));
+    console.log(chalk.gray('  • 🐳 Docker Hub integration (if configured)'));
       
     return true;
     

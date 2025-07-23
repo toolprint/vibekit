@@ -10,6 +10,9 @@ import type { Client, Container, Directory } from "@dagger.io/dagger";
 import { Octokit } from "@octokit/rest";
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { readFile, writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 const execAsync = promisify(exec);
 
@@ -56,6 +59,9 @@ export type AgentType = "codex" | "claude" | "opencode" | "gemini";
 export interface LocalDaggerConfig {
   githubToken?: string;
   preferRegistryImages?: boolean; // If true, use registry images instead of building from Dockerfiles
+  dockerHubUser?: string; // User's Docker Hub username for custom images
+  pushImages?: boolean;   // Whether to push images during setup
+  privateRegistry?: string; // Alternative registry (ghcr.io, etc.)
 }
 
 export interface GitConfig {
@@ -85,9 +91,39 @@ const getDockerfilePathFromAgentType = (agentType?: AgentType): string | undefin
   return undefined; // fallback to base image
 };
 
-// Helper to get registry image name (updated to use public Docker Hub images)
-const getRegistryImage = (agentType?: AgentType): string => {
-  const baseRegistry = "joedanziger";
+// Helper to get registry image name (configurable version for future use)
+const getConfigurableRegistryImage = (agentType?: AgentType, config?: LocalDaggerConfig): string => {
+  const registry = config?.privateRegistry || "docker.io";
+  const user = config?.dockerHubUser || "superagent-ai"; // fallback to project default
+  
+  switch (agentType) {
+    case "claude":
+      return `${registry === "docker.io" ? "" : `${registry}/`}${user}/vibekit-claude:latest`;
+    case "codex":
+      return `${registry === "docker.io" ? "" : `${registry}/`}${user}/vibekit-codex:latest`;
+    case "gemini":
+      return `${registry === "docker.io" ? "" : `${registry}/`}${user}/vibekit-gemini:latest`;
+    case "opencode":
+      return `${registry === "docker.io" ? "" : `${registry}/`}${user}/vibekit-opencode:latest`;
+    default:
+      return "ubuntu:24.04"; // fallback for unknown agent types
+  }
+};
+
+// Helper to get registry image name (current implementation with user config support)
+const getRegistryImage = async (agentType?: AgentType): Promise<string> => {
+  // Check if user has configured their own images
+  try {
+    const config = await getVibeKitConfig();
+    if (agentType && config.registryImages?.[agentType]) {
+      return config.registryImages[agentType]!;
+    }
+  } catch {
+    // Fall back to default if config reading fails
+  }
+  
+  // Default fallback to superagent-ai
+  const baseRegistry = "superagent-ai";
   switch (agentType) {
     case "claude":
       return `${baseRegistry}/vibekit-claude:latest`;
@@ -255,7 +291,7 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
 
     try {
       // Priority 1: Always try public registry image first for agent types (fastest)
-      const registryImage = getRegistryImage(agentType);
+      const registryImage = await getRegistryImage(agentType);
       if (agentType && registryImage !== "ubuntu:24.04") {
         console.log(`🚀 Trying public registry image: ${registryImage}`);
         try {
@@ -607,7 +643,7 @@ export async function prebuildAgentImages(): Promise<{ success: boolean; results
   console.log("📋 Priority: Registry images → Dockerfile builds → Skip");
   
   for (const agentType of agentTypes) {
-    const registryImage = getRegistryImage(agentType);
+    const registryImage = await getRegistryImage(agentType);
     const imageTag = getImageTag(agentType);
     const dockerfilePath = getDockerfilePathFromAgentType(agentType);
     
@@ -673,4 +709,210 @@ export async function prebuildAgentImages(): Promise<{ success: boolean; results
     success: successCount > 0,
     results
   };
+} 
+
+// Docker login and configuration utilities
+export interface DockerLoginInfo {
+  isLoggedIn: boolean;
+  username?: string;
+  registry?: string;
+}
+
+export interface VibeKitConfig {
+  dockerHubUser?: string;
+  lastImageBuild?: string;
+  registryImages?: Partial<Record<AgentType, string>>;
+}
+
+// Check if user is logged into Docker Hub
+export async function checkDockerLogin(): Promise<DockerLoginInfo> {
+  try {
+    // Method 1: Try docker info
+    const { stdout } = await execAsync('docker info');
+    const usernameMatch = stdout.match(/Username:\s*(.+)/);
+    if (usernameMatch) {
+      return {
+        isLoggedIn: true,
+        username: usernameMatch[1].trim(),
+        registry: 'https://index.docker.io/v1/'
+      };
+    }
+    
+    // Method 2: Try credential store (Docker Desktop)
+    try {
+      const { stdout: credList } = await execAsync('docker-credential-desktop list');
+      const creds = JSON.parse(credList);
+      const dockerHubUser = creds['https://index.docker.io/v1/'];
+      
+      if (dockerHubUser) {
+        return {
+          isLoggedIn: true,
+          username: dockerHubUser,
+          registry: 'https://index.docker.io/v1/'
+        };
+      }
+    } catch {
+      // Credential store method failed, continue
+    }
+    
+    // Method 3: Try a simple docker push test (safe way)
+    try {
+      // This will fail fast if not logged in without actually pushing anything
+      await execAsync('docker info | grep -q "Username"');
+    } catch {
+      // Not logged in
+    }
+    
+    return { isLoggedIn: false };
+    
+  } catch (error) {
+    return { isLoggedIn: false };
+  }
+}
+
+// Get or create VibeKit configuration
+export async function getVibeKitConfig(): Promise<VibeKitConfig> {
+  const configPath = join(process.cwd(), '.vibekit-config.json');
+  
+  if (existsSync(configPath)) {
+    try {
+      const content = await readFile(configPath, 'utf-8');
+      return JSON.parse(content);
+    } catch {
+      return {};
+    }
+  }
+  
+  return {};
+}
+
+// Save VibeKit configuration
+export async function saveVibeKitConfig(config: VibeKitConfig): Promise<void> {
+  const configPath = join(process.cwd(), '.vibekit-config.json');
+  await writeFile(configPath, JSON.stringify(config, null, 2));
+}
+
+// Upload images to user's Docker Hub account
+export async function uploadImagesToUserAccount(dockerHubUser: string): Promise<{ success: boolean; results: Array<{ agentType: AgentType; success: boolean; error?: string; imageUrl?: string }> }> {
+  const agentTypes: AgentType[] = ["claude", "codex", "opencode", "gemini"];
+  const results: Array<{ agentType: AgentType; success: boolean; error?: string; imageUrl?: string }> = [];
+  
+  console.log(`🚀 Uploading VibeKit images to ${dockerHubUser}'s Docker Hub account...`);
+  
+  for (const agentType of agentTypes) {
+    try {
+      console.log(`📦 Processing ${agentType} agent...`);
+      
+      // Check if local image exists
+      const localImageTag = getImageTag(agentType);
+      const { stdout: localImages } = await execAsync(`docker images -q ${localImageTag}`);
+      
+      if (!localImages.trim()) {
+        console.log(`⚠️ Local image ${localImageTag} not found, building from Dockerfile...`);
+        
+        // Build image if it doesn't exist
+        const dockerfilePath = getDockerfilePathFromAgentType(agentType);
+        if (dockerfilePath) {
+          await execAsync(`docker build -t ${localImageTag} -f ${dockerfilePath} .`);
+          console.log(`✅ Built ${localImageTag} from Dockerfile`);
+        } else {
+          results.push({ agentType, success: false, error: "No Dockerfile found and no local image" });
+          continue;
+        }
+      }
+      
+      // Tag for user's account
+      const userImageTag = `${dockerHubUser}/vibekit-${agentType}:latest`;
+      await execAsync(`docker tag ${localImageTag} ${userImageTag}`);
+      console.log(`🏷️ Tagged as ${userImageTag}`);
+      
+      // Push to user's Docker Hub
+      console.log(`📤 Pushing ${userImageTag} to Docker Hub...`);
+      await execAsync(`docker push ${userImageTag}`);
+      console.log(`✅ Successfully pushed ${userImageTag}`);
+      
+      results.push({ 
+        agentType, 
+        success: true, 
+        imageUrl: userImageTag 
+      });
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Failed to upload ${agentType} image: ${errorMessage}`);
+      results.push({ agentType, success: false, error: errorMessage });
+    }
+  }
+  
+  const successCount = results.filter(r => r.success).length;
+  console.log(`🎯 Upload complete: ${successCount}/${agentTypes.length} images uploaded successfully`);
+  
+  return {
+    success: successCount > 0,
+    results
+  };
+}
+
+// Setup user's Docker registry integration
+export async function setupUserDockerRegistry(): Promise<{ success: boolean; config?: VibeKitConfig; error?: string }> {
+  try {
+    console.log('🐳 Setting up VibeKit Docker Registry Integration...');
+    
+    // Step 1: Check Docker login
+    console.log('🔍 Checking Docker login status...');
+    const loginInfo = await checkDockerLogin();
+    
+    if (!loginInfo.isLoggedIn || !loginInfo.username) {
+      return {
+        success: false,
+        error: 'Not logged into Docker Hub. Please run "docker login" first.'
+      };
+    }
+    
+    console.log(`✅ Logged in as: ${loginInfo.username}`);
+    
+    // Step 2: Upload images to user's account
+    const uploadResult = await uploadImagesToUserAccount(loginInfo.username);
+    
+    if (!uploadResult.success) {
+      return {
+        success: false,
+        error: 'Failed to upload images to Docker Hub'
+      };
+    }
+    
+    // Step 3: Update configuration
+    const config: VibeKitConfig = {
+      dockerHubUser: loginInfo.username,
+      lastImageBuild: new Date().toISOString(),
+      registryImages: {}
+    };
+    
+    // Map successful uploads to registry images
+    for (const result of uploadResult.results) {
+      if (result.success && result.imageUrl) {
+        config.registryImages![result.agentType] = result.imageUrl;
+      }
+    }
+    
+    await saveVibeKitConfig(config);
+    console.log('💾 Configuration saved to .vibekit-config.json');
+    
+    console.log('🎉 Setup complete! VibeKit will now use your Docker Hub images.');
+    console.log('📋 Your images:');
+    for (const result of uploadResult.results) {
+      if (result.success) {
+        console.log(`  ✅ ${result.agentType}: ${result.imageUrl}`);
+      }
+    }
+    
+    return { success: true, config };
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return {
+      success: false,
+      error: `Setup failed: ${errorMessage}`
+    };
+  }
 } 

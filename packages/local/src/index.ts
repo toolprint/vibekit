@@ -10,13 +10,22 @@ export {
   LocalDaggerSandboxProvider, 
   createLocalProvider, 
   prebuildAgentImages,
+  // Docker registry setup functions
+  setupUserDockerRegistry,
+  checkDockerLogin,
+  uploadImagesToUserAccount,
+  getVibeKitConfig,
+  saveVibeKitConfig,
   type LocalDaggerConfig,
   type AgentType,
   type SandboxInstance,
   type SandboxProvider,
   type SandboxCommands,
   type SandboxExecutionResult,
-  type SandboxCommandOptions
+  type SandboxCommandOptions,
+  // Docker registry types
+  type DockerLoginInfo,
+  type VibeKitConfig
 } from './dagger/vibekit-dagger';
 
 // Setup and installation utilities

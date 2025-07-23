@@ -9,13 +9,13 @@ import chalk from 'chalk';
 import ora from 'ora';
 import enquirer from 'enquirer';
 import { 
-  LocalDaggerSandboxProvider, 
+      LocalSandboxProvider, 
   createLocalProvider,
-  type LocalDaggerConfig,
+  type LocalConfig,
   type AgentType,
 } from '@vibekit/local';
 
-let localProvider: LocalDaggerSandboxProvider | null = null;
+let localProvider: LocalSandboxProvider | null = null;
 
 // Mock environment interface for the commands
 interface Environment {
@@ -33,7 +33,7 @@ let environments: Environment[] = [];
 /**
  * Get or create the local provider instance
  */
-function getLocalProvider(): LocalDaggerSandboxProvider {
+function getLocalProvider(): LocalSandboxProvider {
   if (!localProvider) {
     localProvider = createLocalProvider({});
   }

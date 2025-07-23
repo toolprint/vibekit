@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createLocalProvider, LocalDaggerSandboxProvider } from '@vibekit/local';
+import { createLocalProvider, LocalSandboxProvider } from '@vibekit/local';
 
 describe('Local Dagger Sandbox Provider - Unit Tests', () => {
   beforeEach(() => {

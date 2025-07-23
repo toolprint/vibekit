@@ -23,7 +23,7 @@ export interface Environment {
 
 // Dagger integration - matching other providers' interface pattern
 export { 
-  LocalDaggerSandboxProvider, 
+  LocalSandboxProvider, 
   createLocalProvider, 
   prebuildAgentImages,
   // Docker registry setup functions
@@ -32,7 +32,7 @@ export {
   uploadImagesToUserAccount,
   getVibeKitConfig,
   saveVibeKitConfig,
-  type LocalDaggerConfig,
+  type LocalConfig,
   type AgentType,
   type SandboxInstance,
   type SandboxProvider,
@@ -44,8 +44,9 @@ export {
   type VibeKitConfig
 } from './dagger/vibekit-dagger';
 
-// Alias for backwards compatibility
-export { LocalDaggerSandboxProvider as LocalSandboxProvider } from './dagger/vibekit-dagger';
+// Alias for backwards compatibility - keep the old Dagger names available
+export { LocalSandboxProvider as LocalDaggerSandboxProvider } from './dagger/vibekit-dagger';
+export type { LocalConfig as LocalDaggerConfig } from './dagger/vibekit-dagger';
 
 // Setup and installation utilities
 export {

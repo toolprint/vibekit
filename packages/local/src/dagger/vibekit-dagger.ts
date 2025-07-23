@@ -277,13 +277,17 @@ class LocalSandboxInstance extends EventEmitter implements SandboxInstance {
                 // Fatal error: emit 'error' as per docs
                 const errorMessage = execError instanceof Error ? execError.message : String(execError);
                 this.emit('error', errorMessage);
-                // If the container execution failed, extract exit code and throw for proper error handling
+                // If the container execution failed, extract exit code and return proper result
                 const exitCode = errorMessage.includes('exit code') 
                   ? parseInt(errorMessage.match(/exit code (\d+)/)?.[1] || '1') 
                   : 1;
                 
-                // For foreground commands, throw the error so base agent can handle it
-                throw new Error(`Command failed with exit code ${exitCode}: ${errorMessage}`);
+                // Return error result instead of throwing for better test compatibility
+                result = {
+                  exitCode: exitCode,
+                  stdout: "",
+                  stderr: errorMessage,
+                };
               }
             }
           } catch (error) {

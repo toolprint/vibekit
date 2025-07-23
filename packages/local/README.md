@@ -63,7 +63,7 @@ const provider = createLocalProvider();
 const sandbox = await provider.create(
   { NODE_ENV: 'development' }, // environment variables
   'claude',                    // agent type
-  '/workspace'                 // working directory
+  '/vibe0'                     // working directory
 );
 
 // Execute commands

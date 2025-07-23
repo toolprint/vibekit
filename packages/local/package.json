@@ -1,5 +1,5 @@
 {
-  "name": "@vibekit/local",
+  "name": "@vibe-kit/local",
   "version": "0.0.1",
   "description": "Local sandbox provider for Vibekit using Dagger",
   "main": "dist/index.js",

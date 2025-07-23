@@ -13,7 +13,7 @@ import {
   createLocalProvider,
   type LocalConfig,
   type AgentType,
-} from '@vibekit/local';
+} from '@vibe-kit/local';
 
 let localProvider: LocalSandboxProvider | null = null;
 

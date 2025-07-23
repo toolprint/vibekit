@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createLocalProvider, LocalSandboxProvider } from '@vibekit/local';
+import { createLocalProvider, LocalSandboxProvider } from '@vibe-kit/local';
 
 describe('Local Dagger Sandbox Provider - Unit Tests', () => {
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe('Local Dagger Sandbox Provider - Unit Tests', () => {
       const provider = createLocalProvider({});
 
       expect(provider).toBeDefined();
-      expect(provider).toBeInstanceOf(LocalDaggerSandboxProvider);
+      expect(provider).toBeInstanceOf(LocalSandboxProvider);
       expect(typeof provider.create).toBe('function');
       expect(typeof provider.resume).toBe('function');
     });
@@ -32,13 +32,13 @@ describe('Local Dagger Sandbox Provider - Unit Tests', () => {
       
       const provider = createLocalProvider(config);
       expect(provider).toBeDefined();
-      expect(provider).toBeInstanceOf(LocalDaggerSandboxProvider);
+      expect(provider).toBeInstanceOf(LocalSandboxProvider);
     });
 
     it('should create provider with empty config', () => {
       const provider = createLocalProvider();
       expect(provider).toBeDefined();
-      expect(provider).toBeInstanceOf(LocalDaggerSandboxProvider);
+      expect(provider).toBeInstanceOf(LocalSandboxProvider);
     });
   });
 

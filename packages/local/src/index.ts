@@ -1,5 +1,5 @@
 /**
- * @vibekit/local - Local Sandbox Provider
+ * @vibe-kit/local - Local Sandbox Provider
  * 
  * Main entry point for the local provider package.
  * Exports all public APIs for Dagger integration and setup utilities.

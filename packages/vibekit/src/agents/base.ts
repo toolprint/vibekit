@@ -106,7 +106,7 @@ export interface BaseAgentConfig {
   // Local MCP server configuration
   localMCP?: {
     enabled: boolean;
-    environment?: any; // Environment from @vibekit/local
+    environment?: any; // Environment from @vibe-kit/local
     serverType?: 'stdio' | 'transport';
     autoStart?: boolean;
   };

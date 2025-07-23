@@ -6,7 +6,7 @@
  */
 
 import { SandboxProvider, SandboxInstance, SandboxCommands, SandboxExecutionResult, SandboxCommandOptions } from '../types';
-import { LocalSandboxProvider, createLocalProvider, type LocalConfig, type AgentType } from '@vibekit/local';
+import { LocalSandboxProvider, createLocalProvider, type LocalConfig, type AgentType } from '@vibe-kit/local';
 import { 
   initializeMCPForAgent, 
   cleanupMCPForSandbox, 

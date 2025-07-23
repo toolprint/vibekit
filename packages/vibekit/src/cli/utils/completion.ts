@@ -4,7 +4,7 @@
  * Provides auto-completion support for vibekit local commands
  */
 
-import { LocalSandboxProvider, createLocalProvider } from '@vibekit/local';
+import { LocalSandboxProvider, createLocalProvider } from '@vibe-kit/local';
 
 let cachedProvider: LocalSandboxProvider | null = null;
 

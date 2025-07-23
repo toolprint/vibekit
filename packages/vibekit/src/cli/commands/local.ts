@@ -258,6 +258,7 @@ export async function runCommand(options: {
   sandbox?: string;
   command?: string;
   agent?: string;
+  streaming?: boolean;
 }) {
   try {
     if (!options.command) {
@@ -280,22 +281,80 @@ export async function runCommand(options: {
       spinner.text = `Running command in new sandbox ${sandbox.sandboxId}...`;
     }
 
-    const result = await sandbox.commands.run(options.command);
+    let streamingActive = false;
     
-    spinner.succeed('Command completed');
+    // Set up streaming listeners for real-time output (only if streaming enabled)
+    if (options.streaming) {
+      const streamingSandbox = sandbox as any;
+      
+      streamingSandbox.on('update', (message: string) => {
+        try {
+          const data = JSON.parse(message);
+          if (data.type === 'stdout' && data.data) {
+            if (!streamingActive) {
+              spinner.stop();
+              streamingActive = true;
+            }
+            console.log(chalk.blue('📤'), data.data);
+          }
+        } catch {
+          // Ignore non-JSON messages in streaming mode
+        }
+      });
+
+      streamingSandbox.on('error', (error: string) => {
+        if (!streamingActive) {
+          spinner.stop();
+          streamingActive = true;
+        }
+        console.log(chalk.yellow('⚠️'), error);
+      });
+    }
+
+    const result = await sandbox.commands.run(options.command, {
+      // Enable streaming callbacks if streaming option is provided
+      onStdout: options.streaming ? (data: string) => {
+        if (!streamingActive) {
+          spinner.stop();
+          streamingActive = true;
+        }
+        // Don't duplicate output - streaming callbacks are redundant with events
+      } : undefined,
+      onStderr: options.streaming ? (data: string) => {
+        if (!streamingActive) {
+          spinner.stop();
+          streamingActive = true;
+        }
+        console.log(chalk.yellow('📤 STDERR:'), data);
+      } : undefined
+    });
+    
+    if (spinner.isSpinning) {
+      spinner.succeed('Command completed');
+    } else if (!streamingActive) {
+      console.log(chalk.green('✅ Command completed'));
+    }
     
     console.log(chalk.green('\n✅ Command executed successfully!'));
     console.log(chalk.cyan(`📦 Sandbox ID: ${sandbox.sandboxId}`));
     console.log(chalk.cyan(`🔢 Exit Code: ${result.exitCode}`));
     
-    if (result.stdout) {
+    // Only show final output if not streaming (to avoid duplicates)
+    if (!options.streaming && result.stdout) {
       console.log(chalk.blue('\n📤 STDOUT:'));
       console.log(result.stdout);
     }
     
-    if (result.stderr) {
+    if (!options.streaming && result.stderr) {
       console.log(chalk.yellow('\n📤 STDERR:'));
       console.log(result.stderr);
+    }
+
+    // Clean up event listeners to ensure process exits cleanly
+    if (options.streaming) {
+      const streamingSandbox = sandbox as any;
+      streamingSandbox.removeAllListeners('update');
+      streamingSandbox.removeAllListeners('error');
     }
     
   } catch (error) {
@@ -378,6 +437,7 @@ export function createLocalCommand(): Command {
     .option('--sandbox <id>', 'Existing sandbox ID (creates new if not specified)')
     .option('--command <cmd>', 'Command to execute')
     .option('--agent <type>', 'Agent type for new sandbox (claude, codex, opencode, gemini)')
+    .option('--streaming', 'Enable real-time output streaming')
     .action(runCommand);
 
   // Help subcommand

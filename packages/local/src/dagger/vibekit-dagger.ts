@@ -13,6 +13,7 @@ import { promisify } from 'util';
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { EventEmitter } from 'events';
 
 const execAsync = promisify(exec);
 
@@ -43,6 +44,9 @@ export interface SandboxInstance {
   kill(): Promise<void>;
   pause(): Promise<void>;
   getHost(port: number): Promise<string>;
+  // EventEmitter methods for VibeKit streaming compatibility
+  on(event: string, listener: (...args: any[]) => void): this;
+  emit(event: string, ...args: any[]): boolean;
 }
 
 export interface SandboxProvider {
@@ -143,8 +147,8 @@ const getImageTag = (agentType?: AgentType): string => {
   return `vibekit-${agentType || 'default'}:latest`;
 };
 
-// Local Dagger implementation with proper workspace state persistence
-class LocalDaggerSandboxInstance implements SandboxInstance {
+// Local Dagger implementation with proper workspace state persistence and VibeKit streaming compatibility
+class LocalDaggerSandboxInstance extends EventEmitter implements SandboxInstance {
   private isRunning = true;
   private octokit?: Octokit;
   private workspaceDirectory: Directory | null = null;
@@ -160,6 +164,7 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
     private dockerfilePath?: string, // Path to Dockerfile if building from source
     private agentType?: AgentType
   ) {
+    super(); // Call EventEmitter constructor
     if (githubToken) {
       this.octokit = new Octokit({ auth: githubToken });
     }
@@ -183,6 +188,13 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
     return {
       run: async (command: string, options?: SandboxCommandOptions): Promise<SandboxExecutionResult> => {
         await this.ensureInitialized();
+        
+        // Emit start event for VibeKit streaming compatibility
+        this.emit('update', JSON.stringify({
+          type: "start",
+          command: command,
+          timestamp: Date.now()
+        }));
         
         let result: SandboxExecutionResult = { exitCode: 1, stdout: "", stderr: "Command execution failed" };
         
@@ -217,11 +229,19 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
                 const stdout = await container.stdout();
                 const stderr = await container.stderr();
                 
-                // Call streaming callbacks if provided
+                // Call streaming callbacks and emit events if provided
                 if (options?.onStdout && stdout) {
+                  // Emit VibeKit-compatible update event
+                  this.emit('update', JSON.stringify({
+                    type: "stdout",
+                    data: stdout,
+                    timestamp: Date.now()
+                  }));
                   options.onStdout(stdout);
                 }
                 if (options?.onStderr && stderr) {
+                  // Emit VibeKit-compatible error event
+                  this.emit('error', stderr);
                   options.onStderr(stderr);
                 }
                 
@@ -246,6 +266,9 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
             const exitCode = errorMessage.includes('exit code') 
               ? parseInt(errorMessage.match(/exit code (\d+)/)?.[1] || '1') 
               : 1;
+            
+            // Emit error event for VibeKit compatibility
+            this.emit('error', errorMessage);
               
             result = {
               exitCode: exitCode,
@@ -254,6 +277,14 @@ class LocalDaggerSandboxInstance implements SandboxInstance {
             };
           }
         });
+        
+        // Emit end event for VibeKit streaming compatibility
+        this.emit('update', JSON.stringify({
+          type: "end",
+          command: command,
+          exitCode: result.exitCode,
+          timestamp: Date.now()
+        }));
         
         return result;
       },

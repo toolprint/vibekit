@@ -129,7 +129,7 @@ function getStatusColor(status: EnvironmentRecord["status"]) {
 
 // Simple file-based storage for environments
 class SimpleEnvironmentStore {
-  private storePath = `${homedir()}/.vibekit/environments.json`;
+  private storePath = join(homedir(), ".vibekit", "environments.json");
 
   async ensureDir(): Promise<void> {
     const dir = dirname(this.storePath);

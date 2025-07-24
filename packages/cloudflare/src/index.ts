@@ -1,4 +1,4 @@
-import { getSandbox, type Sandbox, type SandboxEnv } from "@cloudflare/sandbox";
+import { ExecEvent, getSandbox, type LogEvent, parseSSEStream, type Sandbox, type SandboxEnv } from "@cloudflare/sandbox";
 
 // Define the interfaces we need from the SDK
 export interface SandboxExecutionResult {
@@ -42,36 +42,61 @@ export type AgentType = "codex" | "claude" | "opencode" | "gemini";
 
 export interface CloudflareConfig {
   env: SandboxEnv;
+  hostname: string;
 }
-
-const defaultErrorResponse: SandboxExecutionResult = {
-  exitCode: 1,
-  stdout: "",
-  stderr: "Failed to execute command in Cloudflare sandbox"
-};
 
 // Cloudflare implementation
 export class CloudflareSandboxInstance implements SandboxInstance {
   constructor(
     private sandbox: Sandbox,
-    public sandboxId: string
+    public sandboxId: string,
+    private hostname: string,
   ) { }
+
+  private async handleBackgroundCommand(command: string, options?: SandboxCommandOptions) {
+    const response = await this.sandbox.startProcess(command);
+
+    // Start streaming logs asynchronously without blocking
+    const logStream = await this.sandbox.streamProcessLogs(response.id);
+    (async () => {
+      for await (const log of parseSSEStream<LogEvent>(logStream)) {
+        if (log.type === 'stdout') {
+          options?.onStdout?.(log.data);
+        } else if (log.type === 'stderr') {
+          options?.onStderr?.(log.data);
+        }
+      }
+    })().catch(console.error);
+
+    // Return immediately for background commands
+    return {
+      exitCode: 0,
+      stdout: "Background command started successfully",
+      stderr: "",
+    };
+  }
+
+  private async handleForegroundCommand(command: string, options?: SandboxCommandOptions) {
+    const response = await this.sandbox.exec(command, {
+      stream: true,
+      onOutput(stream, data) {
+        if (stream === 'stdout') {
+          options?.onStdout?.(data);
+        } else if (stream === 'stderr') {
+          options?.onStderr?.(data);
+        }
+      },
+    });
+
+    return response;
+  }
 
   get commands(): SandboxCommands {
     return {
-      run: async (command: string, options?: SandboxCommandOptions) => {
-        const { background } = options || {};
-        if (background) {
-          const response = await this.sandbox.exec(command, [], { background: true });
-          return response ? {
-            exitCode: 0,
-            stdout: "Background command started successfully",
-            stderr: ""
-          } : defaultErrorResponse;
-        }
-
-        const response = await this.sandbox.exec(command, []);
-        return response ?? defaultErrorResponse;
+      run: (command: string, options?: SandboxCommandOptions) => {
+        return options?.background
+          ? this.handleBackgroundCommand(command, options)
+          : this.handleForegroundCommand(command, options);
       },
     };
   }
@@ -85,7 +110,7 @@ export class CloudflareSandboxInstance implements SandboxInstance {
   }
 
   async getHost(port: number): Promise<string> {
-    const response = await this.sandbox.exposePort(port);
+    const response = await this.sandbox.exposePort(port, { name: 'vibekit', hostname: this.hostname });
     return response.url;
   }
 }
@@ -111,14 +136,14 @@ export class CloudflareSandboxProvider implements SandboxProvider {
     // Get or create a sandbox instance using the SDK
     const sandbox = getSandbox(this.config.env.Sandbox, sandboxId) as Sandbox;
     sandbox.setEnvVars(envs || {});
-    await sandbox.exec(`sudo mkdir -p ${workingDirectory} && sudo chown $USER:$USER ${workingDirectory}`, []);
+    await sandbox.exec(`sudo mkdir -p ${workingDirectory} && sudo chown $USER:$USER ${workingDirectory}`);
 
-    return new CloudflareSandboxInstance(sandbox, sandboxId);
+    return new CloudflareSandboxInstance(sandbox, sandboxId, this.config.hostname);
   }
 
   async resume(sandboxId: string): Promise<SandboxInstance> {
     const sandbox = getSandbox(this.config.env.Sandbox, sandboxId) as Sandbox;
-    return new CloudflareSandboxInstance(sandbox, sandboxId);
+    return new CloudflareSandboxInstance(sandbox, sandboxId, this.config.hostname);
   }
 }
 

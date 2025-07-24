@@ -12,7 +12,7 @@ import enquirer from "enquirer";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { homedir } from "os";
-import { dirname } from "path";
+import { dirname, join } from "path";
 import {
   LocalSandboxProvider,
   createLocalProvider,

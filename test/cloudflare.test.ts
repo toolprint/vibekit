@@ -70,7 +70,7 @@ describe("Cloudflare Sandbox Provider - Unit Tests", () => {
   describe("Error Handling for Missing Bindings", () => {
     it("should throw error when Sandbox binding is missing", async () => {
       const invalidConfig = {
-        env: {}, // No Sandbox binding
+        env: {} as any, // No Sandbox binding
         hostname: "test-worker.workers.dev",
       };
 

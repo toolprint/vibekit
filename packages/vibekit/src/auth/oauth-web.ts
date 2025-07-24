@@ -1,6 +1,9 @@
 import crypto from "crypto";
 import type { OAuthToken } from "./oauth.js";
 
+// Re-export OAuthToken for convenience
+export type { OAuthToken };
+
 // OAuth configuration
 const OAUTH_CONFIG = {
   clientId: "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
@@ -330,7 +333,7 @@ export class LocalStorageTokenStorage implements TokenStorage {
       throw new Error("localStorage not available");
     }
     
-    localStorage.setItem(this.key, JSON.stringify(token));
+    window.localStorage.setItem(this.key, JSON.stringify(token));
   }
   
   async remove(): Promise<void> {
@@ -338,7 +341,7 @@ export class LocalStorageTokenStorage implements TokenStorage {
       return;
     }
     
-    localStorage.removeItem(this.key);
+    window.localStorage.removeItem(this.key);
   }
 }
 

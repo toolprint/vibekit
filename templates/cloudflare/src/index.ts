@@ -22,6 +22,10 @@ const sandboxProxyMiddleware = createMiddleware(async (c, next) => {
 // Apply the middleware
 app.use('*', sandboxProxyMiddleware)
 
+app.get("/", async (c) => {
+  return c.text("Welcome to Vibekit + Cloudflare! Hit /message to generate a new project.");
+})
+
 app.get("/message", async (c) => {
   const cloudflareProvider = createCloudflareProvider({
     env: c.env,
@@ -48,7 +52,7 @@ app.get("/message", async (c) => {
   });
 
   await vibeKit.generateCode({
-    prompt: "Run 'bun init -r' to create a new bun + react project. Then, set `port: 3001` in the serve config. That's it.",
+    prompt: `Run 'bun init -r' to create a new bun + react project. Then, set 'port: 3001' in the serve config within index.tsx. That's it.`,
     mode: "code",
   });
   await vibeKit.executeCommand("bun run dev", { background: true });

@@ -1,4 +1,4 @@
-import { ExecEvent, getSandbox, type LogEvent, parseSSEStream, type Sandbox, type SandboxEnv } from "@cloudflare/sandbox";
+import { getSandbox, type LogEvent, parseSSEStream, type Sandbox, type SandboxEnv } from "@cloudflare/sandbox";
 
 // Define the interfaces we need from the SDK
 export interface SandboxExecutionResult {
@@ -56,17 +56,26 @@ export class CloudflareSandboxInstance implements SandboxInstance {
   private async handleBackgroundCommand(command: string, options?: SandboxCommandOptions) {
     const response = await this.sandbox.startProcess(command);
 
-    // Start streaming logs asynchronously without blocking
-    const logStream = await this.sandbox.streamProcessLogs(response.id);
+    // Defer log streaming to avoid blocking the return
     (async () => {
-      for await (const log of parseSSEStream<LogEvent>(logStream)) {
-        if (log.type === 'stdout') {
-          options?.onStdout?.(log.data);
-        } else if (log.type === 'stderr') {
-          options?.onStderr?.(log.data);
+      try {
+        const logStream = await this.sandbox.streamProcessLogs(response.id);
+        for await (const log of parseSSEStream<LogEvent>(logStream)) {
+          if (log.type === 'stdout') {
+            options?.onStdout?.(log.data);
+          } else if (log.type === 'stderr') {
+            options?.onStderr?.(log.data);
+          } else if (log.type === 'exit') {
+            await this.sandbox.killProcess(response.id);
+          } else if (log.type === 'error') {
+            options?.onStderr?.(log.data);
+            await this.sandbox.killProcess(response.id);
+          }
         }
+      } catch (error) {
+        console.error('Background log streaming error:', error);
       }
-    })().catch(console.error);
+    })();
 
     // Return immediately for background commands
     return {

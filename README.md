@@ -41,7 +41,7 @@ vibekit init
 
 ## 📦 Supported Sandbox Runtimes
 
-Currently supports E2B with Daytona, Modal, Fly.io, and other providers coming soon.
+Currently supports E2B, Daytona, Northflank, Cloudflare and Dagger, with other providers coming soon.
 
 ## 🧪 Use Cases
 

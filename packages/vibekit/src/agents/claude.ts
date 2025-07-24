@@ -65,6 +65,22 @@ export class ClaudeAgent extends BaseAgent {
     
     // Determine which auth method to use
     this._determineAuthMethod();
+  }
+
+  /**
+   * Determines the authentication method to use (OAuth or API key).
+   * Sets the `useOAuth` flag based on the available credentials.
+   */
+  private _determineAuthMethod(): void {
+    if (this.oauthToken) {
+      this.useOAuth = true;
+    } else if (this.anthropicApiKey) {
+      this.useOAuth = false;
+    } else {
+      throw new Error(
+        "Claude agent requires either providerApiKey or oauthToken. Run 'vibekit auth claude' to authenticate."
+      );
+    }
     
     // Validate that at least one auth method is provided
     if (!this.anthropicApiKey && !this.oauthToken) {

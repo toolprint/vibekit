@@ -11,6 +11,9 @@ export default defineConfig([
       "agents/gemini": "src/agents/gemini.ts",
       "agents/opencode": "src/agents/opencode.ts",
       "agents/utils": "src/agents/utils.ts",
+      "auth/index": "src/auth/index.ts",
+      "auth/oauth": "src/auth/oauth.ts",
+      "auth/oauth-web": "src/auth/oauth-web.ts",
     },
     format: ["esm", "cjs"],
     dts: true,
@@ -33,7 +36,9 @@ export default defineConfig([
     banner: {
       js: "#!/usr/bin/env node",
     },
-    // Externalize Node.js-specific packages that cause ESM bundling issues
+    // Keep all dependencies external to avoid bundling issues
+    noExternal: [],
+    // Externalize Node.js built-ins and large dependencies
     external: [
       "@vibe-kit/dagger",
       "@dagger.io/dagger",
@@ -55,6 +60,10 @@ export default defineConfig([
       "querystring",
       "zlib",
       "buffer",
+      "fs/promises",
+      "process",
+      "tty",
+      "readline",
     ],
   },
 ]);

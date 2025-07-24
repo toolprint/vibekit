@@ -46,7 +46,8 @@ export class ClaudeAgent extends BaseAgent {
     this.anthropicApiKey = config.providerApiKey;
     this.model = config.model;
     
-    // Initial auth check (will be updated in initializeToken)
+    // Perform a preliminary check to set useOAuth based on the presence of oauthToken and absence of anthropicApiKey.
+    // The final determination of the authentication method is made in initializeToken().
     this.useOAuth = !!(this.oauthToken && !this.anthropicApiKey);
   }
   

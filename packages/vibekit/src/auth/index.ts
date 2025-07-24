@@ -317,7 +317,7 @@ export class ClaudeAuth {
   /**
    * Get raw token data (for advanced use)
    */
-  static async getTokenData(): Promise<OAuthToken | null> {
+  static async getRawToken(): Promise<OAuthToken | null> {
     return loadToken();
   }
 

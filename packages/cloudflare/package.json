@@ -24,12 +24,12 @@
     "@vibe-kit/sdk": "*"
   },
   "dependencies": {
-    "@cloudflare/sandbox": "file:/Users/naresh/github/cloudflare/sandbox-sdk/packages/sandbox"
+    "@cloudflare/sandbox": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.18",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
-    "wrangler": "^4.25.0"
+    "wrangler": "^4.26.0"
   }
 }

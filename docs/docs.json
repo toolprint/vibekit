@@ -52,11 +52,12 @@
           {
             "group": "Supported Sandboxes",
             "pages": [
-              "supported-sandboxes/e2b",
-               "supported-sandboxes/northflank",
+              "supported-sandboxes/cloudflare",
               "supported-sandboxes/daytona",
+              "supported-sandboxes/e2b",
               "supported-sandboxes/flyio",
-              "supported-sandboxes/modal"
+              "supported-sandboxes/modal",
+              "supported-sandboxes/northflank"
             ]
           }
         ]

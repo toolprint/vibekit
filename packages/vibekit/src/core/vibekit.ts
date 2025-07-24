@@ -7,7 +7,7 @@ import type {
   Conversation,
   LabelOptions,
 } from "../types";
-import { AgentResponse } from "../agents/base";
+import { AgentResponse, ExecuteCommandOptions } from "../agents/base";
 
 export interface VibeKitEvents {
   stdout: (chunk: string) => void;
@@ -201,7 +201,10 @@ export class VibeKit extends EventEmitter {
     return this.agent.runTests(undefined, undefined, callbacks);
   }
 
-  async executeCommand(command: string): Promise<any> {
+  async executeCommand(
+    command: string,
+    options: Omit<ExecuteCommandOptions, "callbacks"> = {},
+  ): Promise<any> {
     if (!this.agent) {
       await this.initializeAgent();
     }
@@ -211,7 +214,7 @@ export class VibeKit extends EventEmitter {
       onError: (error: string) => this.emit("stderr", error),
     };
 
-    return this.agent.executeCommand(command, { callbacks });
+    return this.agent.executeCommand(command, { ...options, callbacks });
   }
 
   async kill(): Promise<void> {

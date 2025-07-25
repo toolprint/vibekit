@@ -52,6 +52,7 @@
           {
             "group": "Supported Sandboxes",
             "pages": [
+              "supported-sandboxes/dagger",
               "supported-sandboxes/cloudflare",
               "supported-sandboxes/daytona",
               "supported-sandboxes/e2b",

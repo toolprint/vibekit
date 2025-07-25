@@ -40,15 +40,17 @@ export class GrokAgent extends BaseAgent {
 
     // Store config values
     const envApiKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
-    this.grokApiKey = config.providerApiKey || envApiKey;
-    this.model = config.model;
-    this.baseUrl = config.baseUrl;
-
-    if (!this.grokApiKey) {
+    const apiKey = config.providerApiKey || envApiKey;
+    
+    if (!apiKey) {
       throw new Error(
         "Grok agent requires providerApiKey or GROK_API_KEY environment variable"
       );
     }
+    
+    this.grokApiKey = apiKey;
+    this.model = config.model;
+    this.baseUrl = config.baseUrl;
   }
 
   protected getCommandConfig(

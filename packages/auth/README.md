@@ -1,13 +1,15 @@
 # @vibe-kit/auth
 
-Authentication utilities for VibeKit, providing OAuth integration with Claude and other AI providers.
+Universal OAuth authentication library for AI providers' MAX subscriptions. Currently supports Claude AI with Gemini, Grok, and ChatGPT Max coming soon.
 
 ## Features
 
-- **OAuth Authentication**: Complete OAuth 2.0 flow with PKCE support
+- **MAX Subscription Access**: Leverage your existing AI provider MAX subscriptions programmatically
+- **Multiple Providers**: Claude AI (available), Gemini, Grok, ChatGPT Max (coming soon)
+- **Environment-Specific Builds**: Separate Node.js and browser-compatible builds
+- **OAuth 2.0 + PKCE**: Secure authentication with industry standards
 - **Token Management**: Automatic token refresh and secure storage
-- **Web Integration**: Browser-compatible authentication for web applications
-- **CLI Support**: Command-line authentication flow
+- **Browser & Node.js**: Works in both web applications and server environments
 
 ## Installation
 
@@ -17,12 +19,14 @@ npm install @vibe-kit/auth
 
 ## Usage
 
-### Basic Authentication
+### Node.js Environment
+
+For Node.js applications (CLI tools, servers, etc.), use the Node.js-specific import:
 
 ```typescript
-import { ClaudeAuth } from '@vibe-kit/auth';
+import { ClaudeAuth } from '@vibe-kit/auth/node';
 
-// Start OAuth flow
+// Start OAuth flow (opens browser automatically)
 const token = await ClaudeAuth.authenticate();
 
 // Check if authenticated
@@ -41,54 +45,110 @@ const status = await ClaudeAuth.getStatus();
 await ClaudeAuth.logout();
 ```
 
-### Using with VibeKit SDK
+### Browser Environment
 
-The auth package is completely separate from the SDK. Get your token and pass it as the API key:
+For browser/web applications, use the browser-safe import:
 
 ```typescript
-import { VibeKit } from '@vibe-kit/sdk';
-import { ClaudeAuth } from '@vibe-kit/auth';
+import { ClaudeWebAuth, LocalStorageTokenStorage } from '@vibe-kit/auth/browser';
+// OR use the default import which is browser-safe:
+// import { ClaudeAuth, LocalStorageTokenStorage } from '@vibe-kit/auth';
+
+// Create storage
+const storage = new LocalStorageTokenStorage();
+const auth = new ClaudeWebAuth(storage);
+
+// Create authorization URL
+const { url, state, codeVerifier } = ClaudeWebAuth.createAuthorizationUrl();
+
+// Open URL in browser for user authentication
+window.open(url, '_blank');
+
+// After user authorizes and provides the code#state string:
+const authCode = 'code123#state456'; // From user input
+const token = await auth.authenticate(authCode, codeVerifier, state);
+
+// Check authentication status
+const isAuthenticated = await auth.isAuthenticated();
+
+// Get valid token (auto-refresh if needed)
+const accessToken = await auth.getValidToken();
+```
+
+### Using with AI Provider APIs
+
+Once authenticated, use the access token with your MAX subscription to access AI APIs:
+
+#### Claude AI (Available Now)
+
+```typescript
+import { ClaudeAuth } from '@vibe-kit/auth/node'; // For Node.js
 
 // Authenticate and get token
-const accessToken = await ClaudeAuth.getValidToken();
+let accessToken = await ClaudeAuth.getValidToken();
 if (!accessToken) {
   await ClaudeAuth.authenticate();
   accessToken = await ClaudeAuth.getValidToken();
 }
 
-// Use token with VibeKit
-const vibekit = new VibeKit();
-const agent = await vibekit.withAgent("claude", {
-  providerApiKey: accessToken, // Pass OAuth token as API key
-  model: "claude-sonnet-4-20250514"
+// Use token with Claude API
+const response = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'anthropic-version': '2023-06-01',
+    'anthropic-beta': 'oauth-2025-04-20',
+    'Authorization': `Bearer ${accessToken}`,
+    'X-API-Key': '', // Empty for OAuth
+  },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages: [{
+      role: 'user',
+      content: 'Hello, Claude!'
+    }]
+  })
 });
-
-const result = await agent.generateCode("Create a hello world function");
 ```
 
-### Web Applications
+For browser applications:
 
 ```typescript
-import { ClaudeWebAuth, LocalStorageTokenStorage } from '@vibe-kit/auth';
+import { ClaudeWebAuth, LocalStorageTokenStorage } from '@vibe-kit/auth/browser';
 
-// Create storage (localStorage, sessionStorage, or custom)
 const storage = new LocalStorageTokenStorage();
 const auth = new ClaudeWebAuth(storage);
 
-// Generate authorization URL
-const { url, state, codeVerifier } = ClaudeWebAuth.createAuthorizationUrl();
+// Get token (assumes user is already authenticated)
+const accessToken = await auth.getValidToken();
+if (!accessToken) {
+  // Handle authentication flow...
+}
 
-// Open URL in browser, user copies code
-window.open(url, '_blank');
-
-// After user pastes code
-const userCode = 'auth-code#state-from-clipboard';
-const token = await auth.authenticate(userCode, codeVerifier, state);
+// Use with Claude API
+const response = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+    'anthropic-version': '2023-06-01',
+    'anthropic-beta': 'oauth-2025-04-20',
+    'X-API-Key': '',
+  },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages: [{ role: 'user', content: 'Hello!' }]
+  })
+});
 ```
 
-### Token Import/Export
+### Token Import/Export (Node.js only)
 
 ```typescript
+import { ClaudeAuth } from '@vibe-kit/auth/node';
+
 // Export token in different formats
 const envToken = await ClaudeAuth.exportToken('env');
 const jsonToken = await ClaudeAuth.exportToken('json');
@@ -126,16 +186,55 @@ interface OAuthToken {
 - PKCE (Proof Key for Code Exchange) for secure OAuth flows
 - State parameter validation prevents CSRF attacks
 
-## Standalone CLI Usage
+## Environment Compatibility
 
-The auth package can be used independently for authentication:
+- **Node.js**: Use `@vibe-kit/auth/node` for full functionality including file system access and browser launching
+- **Browser**: Use `@vibe-kit/auth/browser` or default import for browser-safe functionality
+- **Universal**: The default import provides browser-safe functionality that works everywhere
 
-```bash
-# Install globally for CLI usage
-npm install -g @vibe-kit/auth
+## Why Use MAX Subscriptions?
 
-# Or use the auth utilities programmatically in your code
-import { authenticate, getValidToken } from '@vibe-kit/auth';
+Instead of paying per API call, leverage the subscriptions you already have:
+
+- **Cost Effective**: Use your existing MAX subscriptions instead of pay-per-use APIs
+- **Higher Limits**: MAX subscriptions often have higher rate limits and priority access
+- **Latest Models**: Access to the newest and most capable models in each provider's lineup
+- **Consistent Experience**: Same interface across different AI providers
+
+## Usage with Other Libraries
+
+The auth package can be used with any Claude AI client library or direct API calls:
+
+```typescript
+// Node.js applications
+import { authenticate, getValidToken } from '@vibe-kit/auth/node';
+
+// Browser applications  
+import { ClaudeWebAuth } from '@vibe-kit/auth/browser';
 ```
 
-Note: CLI authentication commands have been moved out of the main VibeKit CLI to keep packages separate.
+#### Coming Soon
+
+- **Gemini Max**: Access Google's most advanced AI models with your subscription
+- **Grok Max**: Leverage xAI's premium models through your subscription  
+- **ChatGPT Max**: Use OpenAI's latest models with your existing subscription
+
+### With Official SDKs
+
+```typescript
+// Claude AI with Anthropic SDK
+import Anthropic from '@anthropic-ai/sdk';
+import { ClaudeAuth } from '@vibe-kit/auth/node';
+
+const accessToken = await ClaudeAuth.getValidToken();
+const anthropic = new Anthropic({
+  apiKey: '', // Leave empty for OAuth
+  authToken: accessToken, // Use your MAX subscription token
+});
+
+const message = await anthropic.messages.create({
+  model: 'claude-sonnet-4-20250514',
+  max_tokens: 1000,
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+```

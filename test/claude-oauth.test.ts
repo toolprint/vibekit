@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { ClaudeAgent } from "../packages/vibekit/src/agents/claude";
-import { getValidToken, loadToken, ClaudeAuth } from "../packages/auth/src/index.js";
+import { getValidToken, loadToken, ClaudeAuth } from "../packages/auth/src/node.js";
 import type { ClaudeConfig } from "../packages/vibekit/src/types";
 import dotenv from "dotenv";
 

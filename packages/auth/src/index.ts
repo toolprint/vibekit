@@ -285,7 +285,7 @@ export class ClaudeAuth {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as any;
         return { 
           success: true, 
           status: response.status,
@@ -342,8 +342,18 @@ export class ClaudeAuth {
   }
 }
 
-// Re-export types
+// Re-export types and functions
 export type { OAuthToken } from './oauth.js';
+export {
+  authenticate,
+  getValidToken,
+  loadToken,
+  saveToken,
+  clearToken,
+  isTokenExpired,
+  refreshToken,
+  refreshTokenToAccessToken
+} from './oauth.js';
 
 // Re-export web OAuth utilities
 export {

@@ -154,11 +154,11 @@ export class ClaudeWebAuth {
       throw new Error(`Failed to exchange code for token: ${error}`);
     }
     
-    const tokenData = await response.json();
+    const tokenData = await response.json() as any;
     return {
       ...tokenData,
       created_at: Date.now(),
-    };
+    } as OAuthToken;
   }
   
   /**
@@ -184,13 +184,13 @@ export class ClaudeWebAuth {
       throw new Error(`Failed to refresh token: ${error}`);
     }
     
-    const tokenData = await response.json();
+    const tokenData = await response.json() as any;
     return {
       ...tokenData,
       created_at: Date.now(),
       // Keep the refresh token if not provided in response
       refresh_token: tokenData.refresh_token || refreshToken,
-    };
+    } as OAuthToken;
   }
   
   /**

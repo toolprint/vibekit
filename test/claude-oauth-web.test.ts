@@ -5,7 +5,7 @@ import {
   LocalStorageTokenStorage,
   type TokenStorage,
   type OAuthToken 
-} from '../packages/vibekit/src/auth/oauth-web';
+} from '../packages/auth/src/oauth-web';
 
 describe('ClaudeWebAuth - CLI-like OAuth Flow', () => {
   let storage: TokenStorage;

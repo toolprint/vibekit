@@ -1,6 +1,6 @@
 {
   "name": "@vibe-kit/sdk",
-  "version": "0.0.52",
+  "version": "0.0.53",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,11 +12,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./auth": {
-      "types": "./dist/auth/index.d.ts",
-      "import": "./dist/auth/index.js",
-      "require": "./dist/auth/index.cjs"
     },
     "./agents/*": {
       "types": "./dist/agents/*.d.ts",

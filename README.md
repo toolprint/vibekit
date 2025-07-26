@@ -22,9 +22,26 @@ One SDK. Any coding agent. Any sandbox.
 ## 🚀 Quick Start
 
 ```bash
-npx @vibe-kit/sdk init
-# or after global install
-vibekit init
+npm i @vibe-kit/sdk
+```
+
+```javascript
+import { VibeKit } from "@vibe-kit/sdk";
+import { createE2BProvider } from "@vibe-kit/e2b";
+
+const e2bProvider = createE2BProvider({
+  apiKey: process.env.E2B_API_KEY!,
+  templateId: "vibekit-claude",
+});
+
+const vibeKit = new VibeKit()
+  .withAgent({
+    type: "claude",
+    provider: "anthropic",
+    apiKey: process.env.ANTHROPIC_API_KEY!,
+    model: "claude-sonnet-4-20250514",
+  })
+  .withSandbox(e2bProvider);
 ```
 
 ## ⚡️ Features

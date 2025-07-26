@@ -1,5 +1,5 @@
 // AGENTS
-export type AgentType = "codex" | "claude" | "opencode" | "gemini";
+export type AgentType = "codex" | "claude" | "opencode" | "gemini" | "grok";
 
 export type AgentMode = "ask" | "code";
 
@@ -127,6 +127,11 @@ export interface GeminiStreamCallbacks {
   onError?: (error: string) => void;
 }
 
+export interface GrokStreamCallbacks {
+  onUpdate?: (message: string) => void;
+  onError?: (error: string) => void;
+}
+
 // CODEX CONFIG
 export interface CodexConfig {
   providerApiKey?: string;
@@ -228,6 +233,38 @@ export interface GeminiResponse {
   commitSha?: string;
 }
 
+// GROK CONFIG
+export interface GrokConfig {
+  providerApiKey?: string;
+  provider?: ModelProvider;
+  githubToken?: string;
+  repoUrl?: string; // org/repo, e.g. "octocat/hello-world"
+  sandboxProvider?: SandboxProvider;
+  secrets?: SecretsConfig;
+  model?: string;
+  sandboxId?: string;
+  telemetry?: TelemetryConfig;
+  workingDirectory?: string;
+  baseUrl?: string; // for custom xAI API endpoints
+  localMCP?: {
+    enabled: boolean;
+    environment?: any;
+    serverType?: "stdio" | "transport";
+    autoStart?: boolean;
+  };
+}
+
+export interface GrokResponse {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  sandboxId: string;
+  patch?: string;
+  patchApplyScript?: string;
+  branchName?: string;
+  commitSha?: string;
+}
+
 // SANDBOX ABSTRACTION
 export interface SandboxExecutionResult {
   exitCode: number;
@@ -273,7 +310,7 @@ export interface SandboxConfig {
 export interface SandboxProvider {
   create(
     envs?: Record<string, string>,
-    agentType?: "codex" | "claude" | "opencode" | "gemini",
+    agentType?: "codex" | "claude" | "opencode" | "gemini" | "grok",
     workingDirectory?: string
   ): Promise<SandboxInstance>;
   resume(sandboxId: string): Promise<SandboxInstance>;

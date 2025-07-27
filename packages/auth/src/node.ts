@@ -1,38 +1,6 @@
 /**
- * OAuth authentication utilities for VibeKit
- * 
- * @example
- * ```typescript
- * import { ClaudeAuth } from '@vibe-kit/sdk/auth';
- * 
- * // Authenticate and get token
- * const token = await ClaudeAuth.authenticate();
- * 
- * // Check if authenticated
- * const isAuthenticated = await ClaudeAuth.isAuthenticated();
- * 
- * // Get valid token (auto-refresh if needed)
- * const accessToken = await ClaudeAuth.getValidToken();
- * 
- * // Verify authentication
- * const isValid = await ClaudeAuth.verify();
- * // or with details
- * const details = await ClaudeAuth.verifyWithDetails();
- * 
- * // Export token
- * const exportedToken = await ClaudeAuth.exportToken('full');
- * 
- * // Import token from various sources
- * await ClaudeAuth.importToken({ refreshToken: 'your-refresh-token' });
- * await ClaudeAuth.importToken({ fromFile: './token.json' });
- * await ClaudeAuth.importToken({ fromEnv: true });
- * 
- * // Get authentication status
- * const status = await ClaudeAuth.getStatus();
- * 
- * // Clear authentication
- * await ClaudeAuth.logout();
- * ```
+ * Node.js-specific OAuth authentication utilities for VibeKit
+ * This module includes Node.js specific features like file system access and child_process
  */
 
 import {
@@ -285,7 +253,7 @@ export class ClaudeAuth {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as any;
         return { 
           success: true, 
           status: response.status,
@@ -342,14 +310,15 @@ export class ClaudeAuth {
   }
 }
 
-// Re-export types
+// Re-export types and functions for direct use
 export type { OAuthToken } from './oauth.js';
-
-// Re-export web OAuth utilities
 export {
-  ClaudeWebAuth,
-  type TokenStorage,
-  MemoryTokenStorage,
-  LocalStorageTokenStorage,
-  CookieTokenStorage
-} from './oauth-web.js';
+  authenticate,
+  getValidToken,
+  loadToken,
+  saveToken,
+  clearToken,
+  isTokenExpired,
+  refreshToken,
+  refreshTokenToAccessToken
+} from './oauth.js';

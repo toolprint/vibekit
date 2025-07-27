@@ -94,11 +94,11 @@ async function exchangeCodeForToken(code: string, codeVerifier: string, state: s
     throw new Error(`Failed to exchange code for token: ${error}`);
   }
   
-  const tokenData = await response.json();
+  const tokenData = await response.json() as any;
   return {
     ...tokenData,
     created_at: Date.now(),
-  };
+  } as OAuthToken;
 }
 
 /**
@@ -163,7 +163,7 @@ export async function refreshToken(token: OAuthToken): Promise<OAuthToken> {
     throw new Error(`Failed to refresh token: ${error}`);
   }
   
-  const newTokenData = await response.json();
+  const newTokenData = await response.json() as any;
   const newToken: OAuthToken = {
     ...newTokenData,
     created_at: Date.now(),
@@ -298,10 +298,10 @@ export async function refreshTokenToAccessToken(refreshTokenString: string): Pro
     throw new Error(`Failed to exchange refresh token: ${error}`);
   }
   
-  const tokenData = await response.json();
+  const tokenData = await response.json() as any;
   return {
     ...tokenData,
     created_at: Date.now(),
     refresh_token: tokenData.refresh_token || refreshTokenString,
-  };
+  } as OAuthToken;
 }

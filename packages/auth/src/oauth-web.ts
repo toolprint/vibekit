@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import * as oauth from 'oauth4webapi';
 import type { OAuthToken } from "./oauth.js";
 
 // Re-export OAuthToken for convenience
@@ -59,12 +59,9 @@ export class ClaudeWebAuth {
   /**
    * Generate PKCE code verifier and challenge
    */
-  static generatePKCE() {
-    const codeVerifier = crypto.randomBytes(32).toString("base64url");
-    const codeChallenge = crypto
-      .createHash("sha256")
-      .update(codeVerifier)
-      .digest("base64url");
+  static async generatePKCE() {
+    const codeVerifier = oauth.generateRandomCodeVerifier();
+    const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
     
     return { codeVerifier, codeChallenge };
   }
@@ -73,21 +70,21 @@ export class ClaudeWebAuth {
    * Generate random state for OAuth flow
    */
   static generateState() {
-    return crypto.randomBytes(32).toString("base64url");
+    return oauth.generateRandomState();
   }
   
   /**
    * Create authorization URL with ?code=true for manual code copying
    * @returns Authorization URL, state, and PKCE verifier
    */
-  static createAuthorizationUrl(): {
+  static async createAuthorizationUrl(): Promise<{
     url: string;
     state: string;
     codeVerifier: string;
     codeChallenge: string;
-  } {
+  }> {
     // Generate PKCE and state
-    const { codeVerifier, codeChallenge } = ClaudeWebAuth.generatePKCE();
+    const { codeVerifier, codeChallenge } = await ClaudeWebAuth.generatePKCE();
     const state = ClaudeWebAuth.generateState();
     
     // Build authorization URL with ?code=true (like CLI)
@@ -154,11 +151,11 @@ export class ClaudeWebAuth {
       throw new Error(`Failed to exchange code for token: ${error}`);
     }
     
-    const tokenData = await response.json();
+    const tokenData = await response.json() as any;
     return {
       ...tokenData,
       created_at: Date.now(),
-    };
+    } as OAuthToken;
   }
   
   /**
@@ -184,13 +181,13 @@ export class ClaudeWebAuth {
       throw new Error(`Failed to refresh token: ${error}`);
     }
     
-    const tokenData = await response.json();
+    const tokenData = await response.json() as any;
     return {
       ...tokenData,
       created_at: Date.now(),
       // Keep the refresh token if not provided in response
       refresh_token: tokenData.refresh_token || refreshToken,
-    };
+    } as OAuthToken;
   }
   
   /**

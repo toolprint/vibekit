@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,17 +89,39 @@ export default function AuthExample() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
-      <div className="max-w-2xl mx-auto py-8">
+      <div className="max-w-2xl mx-auto py-8 flex-col flex gap-y-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            AI MAX Subscription Auth Demo
+            VibeKit Auth Demo
           </h1>
           <p className="text-slate-600 dark:text-slate-400">
             Authenticate with your Claude MAX subscription using @vibe-kit/auth
           </p>
         </div>
-
-        <Card className="mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>How it works</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+            <p>
+              1. <strong>Start OAuth:</strong> Generate authorization URL and
+              open Claude&apos;s auth page
+            </p>
+            <p>
+              2. <strong>User Authorization:</strong> User clicks
+              &quot;Authorize&quot; and copies the authentication code
+            </p>
+            <p>
+              3. <strong>Token Exchange:</strong> Exchange the code for an
+              access token using PKCE
+            </p>
+            <p>
+              4. <strong>Use Token:</strong> Pass the token in Authorization
+              header for Claude API calls
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               Step 1: Start Authentication
@@ -114,8 +137,18 @@ export default function AuthExample() {
           </CardHeader>
           <CardContent>
             {!authUrl ? (
-              <Button onClick={startAuth} className="w-full" size="lg">
-                <ExternalLink className="mr-2 h-4 w-4" />
+              <Button
+                onClick={startAuth}
+                className="w-full bg-[#d97757]"
+                size="lg"
+              >
+                <Image
+                  src="/claude.svg"
+                  alt="Claude"
+                  width={20}
+                  height={20}
+                  className="filter brightness-0 invert"
+                />
                 Login with Claude
               </Button>
             ) : (
@@ -135,7 +168,6 @@ export default function AuthExample() {
             )}
           </CardContent>
         </Card>
-
         {authUrl && !accessToken && (
           <Card className="mb-6">
             <CardHeader>
@@ -154,21 +186,27 @@ export default function AuthExample() {
                   placeholder="Paste your authentication code here"
                   value={authCode}
                   onChange={(e) => setAuthCode(e.target.value)}
-                  className="font-mono text-sm"
+                  className="font-mono text-lg"
                 />
               </div>
               <Button
                 onClick={completeAuth}
                 disabled={!authCode || loading}
-                className="w-full"
+                className="w-full bg-[#d97757]"
                 size="lg"
               >
+                <Image
+                  src="/claude.svg"
+                  alt="Claude"
+                  width={20}
+                  height={20}
+                  className="filter brightness-0 invert"
+                />
                 {loading ? "Authenticating..." : "Complete Authentication"}
               </Button>
             </CardContent>
           </Card>
         )}
-
         {accessToken && (
           <Card className="mb-6">
             <CardHeader>
@@ -177,8 +215,8 @@ export default function AuthExample() {
                 <Badge variant="default">Authenticated</Badge>
               </CardTitle>
               <CardDescription>
-                You&apos;re now authenticated with your Claude MAX subscription. Here&apos;s your
-                access token:
+                You&apos;re now authenticated with your Claude MAX subscription.
+                Here&apos;s your access token:
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -211,7 +249,9 @@ export default function AuthExample() {
                     • Use this token to access your MAX subscription models
                   </li>
                   <li>• Higher rate limits than pay-per-use APIs</li>
-                  <li>• Access to latest Claude models with your subscription</li>
+                  <li>
+                    • Access to latest Claude models with your subscription
+                  </li>
                   <li>• Token auto-refreshes when needed</li>
                 </ul>
               </div>
@@ -245,30 +285,6 @@ export default function AuthExample() {
             </CardContent>
           </Card>
         )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>How it works</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-            <p>
-              1. <strong>Start OAuth:</strong> Generate authorization URL and
-              open Claude&apos;s auth page
-            </p>
-            <p>
-              2. <strong>User Authorization:</strong> User clicks
-              &quot;Authorize&quot; and copies the authentication code
-            </p>
-            <p>
-              3. <strong>Token Exchange:</strong> Exchange the code for an
-              access token using PKCE
-            </p>
-            <p>
-              4. <strong>Use Token:</strong> Pass the token in Authorization header
-              for Claude API calls
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

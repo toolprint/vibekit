@@ -21,11 +21,13 @@ const provider = createCloudflareProvider({
 });
 
 const vibeKit = new VibeKit()
-  .provider(provider)
-  .agent("claude", {
-    apiKey: env.ANTHROPIC_API_KEY,
-    model: "claude-3-5-sonnet-20241022",
-  });
+  .withSandbox(provider)
+  .withAgent({
+    type: "claude",
+    provider: "anthropic",
+    apiKey: process.env.ANTHROPIC_API_KEY!,
+    model: "claude-sonnet-4-20250514",
+  })
 
 // Use the sandbox
 const result = await vibeKit.generateCode({
@@ -99,16 +101,19 @@ export default {
       });
 
       const vibeKit = new VibeKit()
-        .provider(provider)
-        .agent("claude", {
-          apiKey: env.ANTHROPIC_API_KEY,
-          model: "claude-3-5-sonnet-20241022",
-        });
+        .withSandbox(provider)
+        .withAgent({
+          type: "claude",
+          provider: "anthropic",
+          apiKey: process.env.ANTHROPIC_API_KEY!,
+          model: "claude-sonnet-4-20250514",
+        })
 
       const result = await vibeKit.generateCode({
         prompt: "Create a Node.js web server",
         mode: "code",
       });
+
       return new Response(JSON.stringify(result), {
         headers: { "Content-Type": "application/json" },
       });

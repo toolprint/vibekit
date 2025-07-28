@@ -4,9 +4,9 @@
     "main": "packages/vibekit/dist/index.js",
     "types": "packages/vibekit/dist/index.d.ts",
     "version": "0.0.48-rc.1",
-    "bin": {
-        "vibekit": "./packages/vibekit/dist/cli/index.js"
-    },
+      "bin": {
+    "vibekit": "./packages/cli/dist/index.js"
+  },
     "engines": {
         "node": ">=18.0.0"
     },
@@ -27,7 +27,7 @@
     },
     "scripts": {
         "build": "npm run build --workspaces",
-        "build:packages": "npm run build --workspace=packages/e2b && npm run build --workspace=packages/daytona && npm run build --workspace=packages/northflank && npm run build --workspace=packages/cloudflare && npm run build --workspace=packages/dagger && npm run build --workspace=packages/auth && npm run build --workspace=packages/vibekit",
+        "build:packages": "npm run build --workspace=packages/e2b && npm run build --workspace=packages/daytona && npm run build --workspace=packages/northflank && npm run build --workspace=packages/cloudflare && npm run build --workspace=packages/dagger && npm run build --workspace=packages/auth && npm run build --workspace=packages/vibekit && npm run build --workspace=packages/cli",
         "dev": "npm run dev --workspace=packages/vibekit",
         "type-check": "npm run build:types --workspace=packages/dagger && npm run type-check --workspaces",
         "test": "vitest"

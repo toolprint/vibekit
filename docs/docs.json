@@ -46,6 +46,7 @@
               "agents/codex",
               "agents/claude-code",
               "agents/gemini",
+              "agents/grok",
               "agents/opencode"
             ]
           },

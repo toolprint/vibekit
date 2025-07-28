@@ -10,7 +10,7 @@ export default {
 		if (proxyResponse) return proxyResponse;
 
 		// @ts-ignore
-		const sandbox = createCloudflareProvider({ env: env, hostname: request.url });
+		const sandbox = createCloudflareProvider({ env: env, hostname: request.headers.get("host") });
 		const vibeKit = new VibeKit()
 			.withAgent({
 				type: "claude",

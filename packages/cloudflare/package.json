@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist/",
-    "Dockerfile"
+    "Dockerfile",
+    "patches/"
   ],
   "exports": {
     ".": {
@@ -18,7 +19,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "dev": "tsup src/index.ts --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "postinstall": "patch-package"
   },
   "peerDependencies": {
     "@vibe-kit/sdk": "*"
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.18",
+    "patch-package": "^8.0.0",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
     "wrangler": "^4.26.0"

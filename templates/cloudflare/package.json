@@ -13,7 +13,7 @@
 		"wrangler": "^4.26.0"
 	},
 	"dependencies": {
-		"@vibe-kit/cloudflare": "^0.0.3",
-		"@vibe-kit/sdk": "^0.0.53"
+		"@vibe-kit/cloudflare": "^0.0.6",
+		"@vibe-kit/sdk": "^0.0.55"
 	}
 }

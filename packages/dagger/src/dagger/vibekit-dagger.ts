@@ -869,10 +869,10 @@ export function createLocalProvider(
 }
 
 /**
- * Pre-cache all agent images for faster startup times
+ * Pre-cache agent images for faster startup times
  * This function pulls public registry images to local cache and/or builds from Dockerfiles as fallback
  */
-export async function prebuildAgentImages(): Promise<{
+export async function prebuildAgentImages(selectedAgents?: AgentType[]): Promise<{
   success: boolean;
   results: Array<{
     agentType: AgentType;
@@ -881,13 +881,15 @@ export async function prebuildAgentImages(): Promise<{
     source: "registry" | "dockerfile" | "cached";
   }>;
 }> {
-  const agentTypes: AgentType[] = [
+  // Use selected agents or default to all agents
+  const allAgentTypes: AgentType[] = [
     "claude",
     "codex",
     "opencode",
     "gemini",
     "grok",
   ];
+  const agentTypes = selectedAgents && selectedAgents.length > 0 ? selectedAgents : allAgentTypes;
   const results: Array<{
     agentType: AgentType;
     success: boolean;
@@ -1078,7 +1080,8 @@ export async function saveVibeKitConfig(config: VibeKitConfig): Promise<void> {
 
 // Upload images to user's Docker Hub account
 export async function uploadImagesToUserAccount(
-  dockerHubUser: string
+  dockerHubUser: string,
+  selectedAgents?: AgentType[]
 ): Promise<{
   success: boolean;
   results: Array<{
@@ -1088,7 +1091,9 @@ export async function uploadImagesToUserAccount(
     imageUrl?: string;
   }>;
 }> {
-  const agentTypes: AgentType[] = ["claude", "codex", "opencode", "gemini"];
+  // Use selected agents or default to all agents (excluding grok which has issues)
+  const defaultAgentTypes: AgentType[] = ["claude", "codex", "opencode", "gemini"];
+  const agentTypes = selectedAgents && selectedAgents.length > 0 ? selectedAgents : defaultAgentTypes;
   const results: Array<{
     agentType: AgentType;
     success: boolean;
@@ -1167,7 +1172,7 @@ export async function uploadImagesToUserAccount(
 }
 
 // Setup user's Docker registry integration
-export async function setupUserDockerRegistry(): Promise<{
+export async function setupUserDockerRegistry(selectedAgents?: AgentType[]): Promise<{
   success: boolean;
   config?: VibeKitConfig;
   error?: string;
@@ -1189,7 +1194,7 @@ export async function setupUserDockerRegistry(): Promise<{
     console.log(`✅ Logged in as: ${loginInfo.username}`);
 
     // Step 2: Upload images to user's account
-    const uploadResult = await uploadImagesToUserAccount(loginInfo.username);
+    const uploadResult = await uploadImagesToUserAccount(loginInfo.username, selectedAgents);
 
     if (!uploadResult.success) {
       return {

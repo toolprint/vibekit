@@ -240,6 +240,7 @@ export default function AuthExample() {
                     value={accessToken}
                     readOnly
                     className="font-mono text-xs"
+                    type="password"
                   />
                   <Button variant="outline" size="icon" onClick={copyToken}>
                     {copied ? (

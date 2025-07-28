@@ -1,0 +1,29 @@
+diff --git a/node_modules/unicorn-magic/default.js b/node_modules/unicorn-magic/default.js
+index 7bd4088..313e734 100644
+--- a/node_modules/unicorn-magic/default.js
++++ b/node_modules/unicorn-magic/default.js
+@@ -12,3 +12,24 @@ export async function delay({seconds, milliseconds} = {}) {
+ 		setTimeout(resolve, duration);
+ 	});
+ }
++
++// Cloudflare Workers compatibility patch
++// Re-export Node.js specific functions for npm-run-path compatibility
++export function toPath(urlOrPath) {
++	return urlOrPath instanceof URL ? urlOrPath.pathname : urlOrPath;
++}
++
++export function traversePathUp(startPath) {
++	return {
++		* [Symbol.iterator]() {
++			let currentPath = startPath;
++			let previousPath;
++
++			while (previousPath !== currentPath) {
++				yield currentPath;
++				previousPath = currentPath;
++				currentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
++			}
++		},
++	};
++}

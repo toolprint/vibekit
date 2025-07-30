@@ -7,6 +7,12 @@ dotenv.config();
 
 describe("Opencode CLI", () => {
   it("should generate code with opencode cli", async () => {
+    // Skip test if required API keys are not available
+    if (!process.env.E2B_API_KEY || !process.env.ANTHROPIC_API_KEY) {
+      console.log("Skipping Opencode test - Required API keys not available");
+      return;
+    }
+
     const prompt = "Hi there";
 
     const e2bProvider = createE2BProvider({

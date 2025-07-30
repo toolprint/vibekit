@@ -7,6 +7,12 @@ dotenv.config();
 
 describe("Claude Code CLI", () => {
   it("should generate code with claude cli", async () => {
+    // Skip test if required API keys are not available
+    if (!process.env.E2B_API_KEY || !process.env.ANTHROPIC_API_KEY) {
+      console.log("Skipping Claude test - Required API keys not available");
+      return;
+    }
+
     const prompt = "Hi there";
 
     const e2bProvider = createE2BProvider({

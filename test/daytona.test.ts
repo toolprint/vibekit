@@ -7,10 +7,19 @@ dotenv.config();
 
 describe("Daytona Sandbox", () => {
   it("should generate code with daytona sandbox", async () => {
+    // Skip test if required API keys are not available
+    if (!process.env.DAYTONA_SERVER_URL || !process.env.DAYTONA_SERVER_API_KEY || 
+        !process.env.DAYTONA_TARGET_ID || !process.env.ANTHROPIC_API_KEY) {
+      console.log("Skipping Daytona test - Required API keys not available");
+      return;
+    }
+
     const prompt = "Hi there";
 
     const daytonaProvider = createDaytonaProvider({
-      apiKey: process.env.DAYTONA_API_KEY!,
+      apiUrl: process.env.DAYTONA_SERVER_URL!,
+      apiKey: process.env.DAYTONA_SERVER_API_KEY!,
+      targetId: process.env.DAYTONA_TARGET_ID!,
     });
 
     const vibeKit = new VibeKit()

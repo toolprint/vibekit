@@ -1,16 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { VibeKit } from "../packages/vibekit/src/index.js";
 import { createE2BProvider } from "../packages/e2b/dist/index.js";
+import { skipIfNoGeminiKeys, skipTest } from "./helpers/test-utils.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 describe("Gemini CLI", () => {
   it("should generate code with gemini cli", async () => {
-    // Skip test if required API keys are not available
-    if (!process.env.E2B_API_KEY || !process.env.GEMINI_API_KEY) {
-      console.log("Skipping Gemini test - Required API keys not available");
-      return;
+    if (skipIfNoGeminiKeys()) {
+      return skipTest();
     }
 
     const prompt = "Hi there";

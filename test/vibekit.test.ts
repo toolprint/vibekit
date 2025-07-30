@@ -3,15 +3,14 @@ import dotenv from "dotenv";
 
 import { VibeKit } from "../packages/vibekit/src/index.js";
 import { createE2BProvider } from "../packages/e2b/dist/index.js";
+import { skipIfNoVibeKitKeys, skipTest } from "./helpers/test-utils.js";
 
 dotenv.config();
 
 describe("VibeKit SDK", () => {
   it("should create working directory", async () => {
-    // Skip test if required API keys are not available
-    if (!process.env.E2B_API_KEY || !process.env.ANTHROPIC_API_KEY) {
-      console.log("Skipping VibeKit working directory test - Required API keys not available");
-      return;
+    if (skipIfNoVibeKitKeys()) {
+      return skipTest();
     }
 
     const dir = "/var/vibe0";
@@ -41,11 +40,8 @@ describe("VibeKit SDK", () => {
   }, 60000);
 
   it("should download repository", async () => {
-    // Skip test if required API keys are not available
-    if (!process.env.E2B_API_KEY || !process.env.ANTHROPIC_API_KEY || 
-        (!process.env.GH_TOKEN && !process.env.GITHUB_TOKEN)) {
-      console.log("Skipping VibeKit repository test - Required API keys not available");
-      return;
+    if (skipIfNoVibeKitKeys()) {
+      return skipTest();
     }
 
     const dir = "/var/vibe0";
@@ -90,11 +86,8 @@ describe("VibeKit SDK", () => {
     expect(gitUpdateReceived).toBe(true);
   }, 60000);
   it("should set env variables", async () => {
-    // Skip test if required API keys are not available
-    if (!process.env.E2B_API_KEY || !process.env.ANTHROPIC_API_KEY || 
-        (!process.env.GH_TOKEN && !process.env.GITHUB_TOKEN)) {
-      console.log("Skipping VibeKit env variables test - Required API keys not available");
-      return;
+    if (skipIfNoVibeKitKeys()) {
+      return skipTest();
     }
 
     const e2bProvider = createE2BProvider({

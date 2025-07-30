@@ -148,8 +148,17 @@ const getRegistryImage = async (agentType?: AgentType): Promise<string> => {
     // Fall back to default if config reading fails
   }
 
-  // Default fallback to superagent-ai
-  const baseRegistry = "superagent-ai";
+  // Determine the registry user - check Docker login first, then fall back to default
+  let baseRegistry = "superagent-ai"; // Default fallback
+  try {
+    const dockerLogin = await checkDockerLogin();
+    if (dockerLogin.isLoggedIn && dockerLogin.username) {
+      baseRegistry = dockerLogin.username;
+    }
+  } catch {
+    // If Docker login check fails, use the default
+  }
+
   switch (agentType) {
     case "claude":
       return `${baseRegistry}/vibekit-claude:latest`;
@@ -234,19 +243,62 @@ class LocalSandboxInstance extends EventEmitter implements SandboxInstance {
         try {
           await connect(async (client) => {
             try {
-              // Get or create persistent workspace container using our reusable base
-              let container = await this.getWorkspaceContainer(client);
+              // Create a fresh container for this execution - no reuse across connections
+              const registryImage = await getRegistryImage(this.agentType);
+              
+              let container: Container;
+              
+              // Try registry image first
+              try {
+                container = client.container()
+                  .from(registryImage)
+                  .withWorkdir(this.workDir || "/vibe0");
+              } catch (registryError) {
+                console.log(`⚠️ Registry image failed: ${registryError instanceof Error ? registryError.message : String(registryError)}`);
+                
+                // Fall back to Dockerfile if available
+                const dockerfilePath = getDockerfilePathFromAgentType(this.agentType);
+                if (dockerfilePath && existsSync(dockerfilePath)) {
+                  console.log(`🏗️ Building from local Dockerfile: ${dockerfilePath}`);
+                  try {
+                    const context = client.host().directory(".");
+                    container = client
+                      .container()
+                      .build(context, { dockerfile: dockerfilePath })
+                      .withWorkdir(this.workDir || "/vibe0");
+                    console.log(`✅ Built container from Dockerfile`);
+                  } catch (buildError) {
+                    console.log(`❌ Dockerfile build also failed: ${buildError instanceof Error ? buildError.message : String(buildError)}`);
+                    throw new Error(`Failed to create container from both registry and Dockerfile`);
+                  }
+                } else {
+                  throw registryError;
+                }
+              }
+              
+              // Add environment variables to the fresh container
+              if (this.envs) {
+                for (const [key, value] of Object.entries(this.envs)) {
+                  container = container.withEnvVariable(key, value);
+                }
+              }
+              
+              // Set workspace directory
+              if (this.workspaceDirectory) {
+                container = container.withDirectory(
+                  this.workDir || "/vibe0",
+                  this.workspaceDirectory
+                );
+              }
 
+              // Execute the command (background or foreground)
+              let execContainer: Container = container;
+              
               if (options?.background) {
                 // Background execution: start and detach
-                container = container.withExec(["sh", "-c", command], {
+                execContainer = container.withExec(["sh", "-c", command], {
                   experimentalPrivilegedNesting: true,
                 });
-
-                // CRITICAL: Export the workspace directory to capture any changes
-                this.workspaceDirectory = container.directory(
-                  this.workDir || "/vibe0"
-                );
 
                 result = {
                   exitCode: 0,
@@ -254,18 +306,17 @@ class LocalSandboxInstance extends EventEmitter implements SandboxInstance {
                   stderr: "",
                 };
               } else {
-                // Foreground execution with output
-                container = container.withExec(["sh", "-c", command]);
-
-                // CRITICAL: Export the workspace directory to capture filesystem changes
-                this.workspaceDirectory = container.directory(
-                  this.workDir || "/vibe0"
-                );
-
+                // Foreground execution with output - use the working Dagger pattern
                 try {
-                  // Execute the command and get output
-                  const stdout = await container.stdout();
-                  const stderr = await container.stderr();
+                  // Use the working pattern: chain withExec directly with output capture
+                  execContainer = container.withExec(["sh", "-c", command]);
+                  
+                  // Capture all outputs in one go using the working pattern
+                  const [stdout, stderr, actualExitCode] = await Promise.all([
+                    execContainer.stdout(),
+                    execContainer.stderr(), 
+                    execContainer.exitCode()
+                  ]);
 
                   // Simulate incremental streaming by splitting into lines and emitting with delays
                   const emitIncremental = async (
@@ -281,10 +332,8 @@ class LocalSandboxInstance extends EventEmitter implements SandboxInstance {
                         setTimeout(resolve, 100 + index * 50)
                       ); // Progressive delay
                       const message = line; // Simple string as per docs
-                      this.emit(
-                        type === "stdout" ? "update" : "error",
-                        message
-                      );
+                      // Always emit as "update" - stderr is not necessarily an error
+                      this.emit("update", `${type.toUpperCase()}: ${message}`);
                       if (callback) callback(line);
                     }
                   };
@@ -301,7 +350,7 @@ class LocalSandboxInstance extends EventEmitter implements SandboxInstance {
                   }
 
                   result = {
-                    exitCode: 0,
+                    exitCode: actualExitCode,
                     stdout: stdout,
                     stderr: stderr,
                   };
@@ -327,6 +376,11 @@ class LocalSandboxInstance extends EventEmitter implements SandboxInstance {
                   };
                 }
               }
+              
+              // Capture workspace directory changes after execution (both background and foreground)
+              this.workspaceDirectory = execContainer.directory(
+                this.workDir || "/vibe0"
+              );
             } catch (error) {
               const errorMessage =
                 error instanceof Error ? error.message : String(error);
@@ -422,6 +476,15 @@ class LocalSandboxInstance extends EventEmitter implements SandboxInstance {
       if (agentType && registryImage !== "ubuntu:24.04") {
         console.log(`🚀 Trying public registry image: ${registryImage}`);
         try {
+          // First, try to pull the image locally if not already cached
+          try {
+            await execAsync(`docker pull ${registryImage}`);
+            console.log(`✅ Pulled ${registryImage} to local Docker`);
+          } catch (pullError) {
+            console.log(`⚠️ Could not pre-pull image: ${pullError instanceof Error ? pullError.message : String(pullError)}`);
+            // Continue anyway - Dagger might still be able to pull it
+          }
+          
           container = client.container().from(registryImage);
           console.log(`✅ Successfully loaded ${registryImage} from registry`);
           // If we get here, registry worked - skip Dockerfile build

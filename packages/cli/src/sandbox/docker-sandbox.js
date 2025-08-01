@@ -7,7 +7,7 @@ class DockerSandbox {
   constructor(projectRoot, logger, options = {}) {
     this.projectRoot = projectRoot;
     this.logger = logger;
-    this.sandboxRoot = path.join(projectRoot, '.vibekit-sandbox');
+    this.sandboxRoot = path.join(projectRoot, '.vibekit', '.vibekit-sandbox');
     this.workspaceDir = path.join(this.sandboxRoot, 'workspace');
     this.imageName = 'vibekit-sandbox';
     this.persistentContainerName = 'vibekit-persistent';

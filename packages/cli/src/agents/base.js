@@ -3,12 +3,13 @@ import chalk from 'chalk';
 import path from 'path';
 import fs from 'fs-extra';
 import DockerSandbox from '../sandbox/docker-sandbox.js';
+import displayStartupStatus from '../components/status-display.js';
 
 class BaseAgent {
   constructor(agentName, logger, options = {}) {
     this.agentName = agentName;
     this.logger = logger;
-    this.sandboxPath = path.join(process.cwd(), '.vibekit-sandbox');
+    this.sandboxPath = path.join(process.cwd(), '.vibekit', '.vibekit-sandbox');
     
     // Sandbox options: 'local' (default), 'docker', or false
     this.sandboxType = options.sandbox || 'local';
@@ -140,7 +141,8 @@ class BaseAgent {
     const startTime = Date.now();
     
     return new Promise((resolve, reject) => {
-      console.log(chalk.blue(`[vibekit] Executing: ${command} ${args.join(' ')}`));
+      // Show startup status
+      displayStartupStatus(this.agentName, this.sandboxType);
       
       const child = spawn(command, args, {
         stdio: 'inherit',

@@ -144,7 +144,7 @@ program
     }
     
     if (options.sandbox || (!options.sandbox && !options.logs && !options.docker)) {
-      const sandboxPath = path.join(process.cwd(), '.vibekit-sandbox');
+      const sandboxPath = path.join(process.cwd(), '.vibekit', '.vibekit-sandbox');
       if (await fs.pathExists(sandboxPath)) {
         await fs.remove(sandboxPath);
         console.log(chalk.green('✓ Sandbox cleaned'));

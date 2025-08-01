@@ -12,5 +12,8 @@ export default defineConfig({
   bundle: true,
   minify: false,
   shims: true,
-  external: []
+  external: [],
+  loader: {
+    '.js': 'jsx'
+  }
 });

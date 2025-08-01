@@ -6,7 +6,7 @@ class Sandbox {
   constructor(projectRoot, logger) {
     this.projectRoot = projectRoot;
     this.logger = logger;
-    this.sandboxRoot = path.join(projectRoot, '.vibekit-sandbox');
+    this.sandboxRoot = path.join(projectRoot, '.vibekit', '.vibekit-sandbox');
     this.workspaceDir = path.join(this.sandboxRoot, 'workspace');
     this.backupDir = path.join(this.sandboxRoot, 'backups');
   }

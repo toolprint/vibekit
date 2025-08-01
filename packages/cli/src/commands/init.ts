@@ -7,7 +7,7 @@ import { installDaytona } from "./providers/daytona.js";
 import { installNorthflank } from "./providers/northflank.js";
 import { installLocal, isDaggerCliInstalled } from "./providers/dagger.js";
 import { authenticate, checkAuth, isCliInstalled } from "../utils/auth.js";
-import { AGENT_TEMPLATES, SANDBOX_PROVIDERS } from "../constants/enums.js";
+import { AGENT_TEMPLATES, SANDBOX_PROVIDERS } from "@vibe-kit/sdk";
 
 const { prompt } = enquirer;
 
@@ -69,6 +69,18 @@ const installers: Record<SANDBOX_PROVIDERS, ProviderInstaller> = {
       templates: string[],
       uploadImages?: boolean
     ) => installLocal(config, templates, uploadImages),
+  },
+  [SANDBOX_PROVIDERS.CLOUDFLARE]: {
+    isInstalled: async () => true, // Cloudflare doesn't require CLI installation
+    configTransform: (config: InstallConfig) => config,
+    install: async (
+      config: InstallConfig,
+      templates: string[],
+      uploadImages?: boolean
+    ) => {
+      console.log(chalk.yellow("Cloudflare provider setup is not yet implemented"));
+      return true;
+    },
   },
 };
 

@@ -187,8 +187,8 @@ export async function initCommand(
         name: "providers",
         message: "Which providers would you like to set up?",
         choices: Object.entries(SANDBOX_PROVIDERS).map(([key, value]) => ({
-          name: value,
-          message: value,
+          name: value as string,
+          message: value as string,
         })),
       });
       providers = result.providers;
@@ -202,12 +202,12 @@ export async function initCommand(
     // Handle agents from CLI flag
     if (options.agents) {
       const agentsInput = options.agents.split(",").map((a) => a.trim());
-      const validAgents = AGENT_TEMPLATES.map((t) => t.name);
+      const validAgents = AGENT_TEMPLATES.map((t: any) => t.name);
 
       for (const agent of agentsInput) {
         const lowerAgent = agent.toLowerCase();
         const foundAgent = validAgents.find(
-          (valid) => valid.toLowerCase() === lowerAgent
+          (valid: any) => valid.toLowerCase() === lowerAgent
         );
 
         if (foundAgent) {
@@ -228,7 +228,7 @@ export async function initCommand(
         type: "multiselect",
         name: "templates",
         message: "Which agent templates would you like to install?",
-        choices: AGENT_TEMPLATES.map((template) => ({
+        choices: AGENT_TEMPLATES.map((template: any) => ({
           name: template.name,
           message: template.display,
         })),

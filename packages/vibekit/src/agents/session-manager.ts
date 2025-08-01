@@ -8,7 +8,7 @@
 import { Environment } from "@vibe-kit/dagger";
 import { MCPServerInstance } from "./local-mcp";
 import { BaseAgent } from "./base";
-import { AgentType } from "../constants/agents";
+import { AgentType, AGENT_TYPES } from "../constants/agents";
 
 export interface AgentSession {
   id: string;
@@ -340,7 +340,7 @@ export class AgentSessionManager {
       for (const env of environments) {
         if (env.status === "running") {
           // Try to recover session for running environment
-          const agentType = env.environment?.VIBEKIT_AGENT_TYPE || "codex";
+          const agentType = env.environment?.VIBEKIT_AGENT_TYPE || AGENT_TYPES.CODEX;
 
           // Check if we already have a session for this environment
           const existingSessions = this.getSessionsForEnvironment(env.name);

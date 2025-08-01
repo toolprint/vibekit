@@ -47,6 +47,15 @@ class Logger {
         };
         const colorFn = colorMap[level.toUpperCase()] || chalk.white;
         console.log(colorFn(`[${timestamp}] ${level.toUpperCase()}: ${message}`));
+        
+        // Log analytics metadata if present
+        if (metadata.inputTokens || metadata.outputTokens || metadata.duration) {
+          console.log(chalk.gray(`  Analytics: ${JSON.stringify({
+            tokens: (metadata.inputTokens || 0) + (metadata.outputTokens || 0),
+            duration: metadata.duration,
+            files: metadata.filesChanged || 0
+          })}`));
+        }
       }
     } catch (error) {
       console.error(chalk.red('Failed to write log:'), error.message);

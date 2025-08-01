@@ -37,6 +37,8 @@ logs
 # vibekit
 .vibekit
 
+# grok
+.grok
 # Misc
 .cache/
 .temp/

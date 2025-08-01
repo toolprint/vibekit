@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import DockerSandbox from '../sandbox/docker-sandbox.js';
 import displayStartupStatus from '../components/status-display.js';
+import AgentAnalytics from '../analytics/agent-analytics.js';
 
 class BaseAgent {
   constructor(agentName, logger, options = {}) {
@@ -93,6 +94,11 @@ class BaseAgent {
         }
         
         console.log(chalk.blue('\n💡 Run "vibekit sync" to apply changes to your project'));
+        
+        // Capture file changes in analytics if available
+        if (result.analytics) {
+          result.analytics.filesChanged = changes;
+        }
       }
 
       return { ...result, duration, changes };
@@ -139,33 +145,151 @@ class BaseAgent {
 
   createChildProcess(command, args, options = {}) {
     const startTime = Date.now();
+    const analytics = new AgentAnalytics(this.agentName, this.logger);
+    
+    // Capture the command being executed
+    analytics.captureCommand(command, args);
+    
+    // Determine if this is likely an interactive session
+    const isInteractive = args.length === 0 && process.stdin.isTTY;
     
     return new Promise((resolve, reject) => {
       // Show startup status
       displayStartupStatus(this.agentName, this.sandboxType);
       
-      const child = spawn(command, args, {
-        stdio: 'inherit',
-        cwd: options.cwd || process.cwd(),
-        env: { ...process.env, ...options.env },
-        ...options
-      });
+      let spawnOptions;
+      
+      if (isInteractive) {
+        // For interactive mode, use inherit stdio but still capture analytics
+        spawnOptions = {
+          stdio: 'inherit',
+          cwd: options.cwd || process.cwd(),
+          env: { ...process.env, ...options.env },
+          ...options
+        };
+      } else {
+        // For non-interactive mode, capture streams for detailed analytics
+        spawnOptions = {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: options.cwd || process.cwd(),
+          env: { ...process.env, ...options.env },
+          ...options
+        };
+      }
+      
+      const child = spawn(command, args, spawnOptions);
 
-      child.on('close', (code) => {
-        const duration = Date.now() - startTime;
-        console.log(chalk.blue(`[vibekit] Process exited with code ${code} (${duration}ms)`));
+      if (!isInteractive) {
+        // Only set up stream interception for non-interactive mode
         
-        resolve({
-          code,
-          duration
+        // Intercept and forward stdout
+        child.stdout.on('data', (data) => {
+          analytics.captureOutput(data);
+          process.stdout.write(data);
         });
-      });
 
-      child.on('error', (error) => {
-        console.error(chalk.red(`[vibekit] Process error: ${error.message}`));
-        reject(error);
-      });
+        // Intercept and forward stderr
+        child.stderr.on('data', (data) => {
+          analytics.captureOutput(data);
+          process.stderr.write(data);
+        });
 
+        // Forward stdin to child process
+        const stdinHandler = (data) => {
+          analytics.captureInput(data);
+          if (child.stdin && !child.stdin.destroyed) {
+            child.stdin.write(data);
+          }
+        };
+
+        process.stdin.on('data', stdinHandler);
+
+        // Handle process end
+        process.stdin.on('end', () => {
+          if (child.stdin && !child.stdin.destroyed) {
+            child.stdin.end();
+          }
+        });
+
+        // Cleanup function for non-interactive mode
+        const cleanup = () => {
+          process.stdin.removeListener('data', stdinHandler);
+        };
+
+        child.on('close', async (code) => {
+          cleanup();
+          
+          const duration = Date.now() - startTime;
+          console.log(chalk.blue(`[vibekit] Process exited with code ${code} (${duration}ms)`));
+          
+          // Finalize analytics
+          const analyticsData = await analytics.finalize(code, duration);
+          
+          resolve({
+            code,
+            duration,
+            analytics: analyticsData
+          });
+        });
+
+        child.on('error', async (error) => {
+          cleanup();
+          
+          console.error(chalk.red(`[vibekit] Process error: ${error.message}`));
+          
+          // Finalize analytics with error
+          await analytics.finalize(-1, Date.now() - startTime);
+          
+          reject(error);
+        });
+      } else {
+        // For interactive mode, try to capture some output for token analysis
+        // by briefly intercepting stderr for Claude's final usage statistics
+        let finalOutput = '';
+        
+        if (child.stderr) {
+          child.stderr.on('data', (data) => {
+            const output = data.toString();
+            finalOutput += output;
+            // Look for token usage patterns that Claude might output to stderr
+            if (output.includes('token') || output.includes('usage') || output.includes('cost')) {
+              analytics.parseOutputForMetrics(output);
+            }
+          });
+        }
+        
+        child.on('close', async (code) => {
+          const duration = Date.now() - startTime;
+          console.log(chalk.blue(`[vibekit] Process exited with code ${code} (${duration}ms)`));
+          
+          // For interactive sessions, estimate tokens based on duration
+          // This is a rough heuristic: longer sessions likely used more tokens
+          if (duration > 10000) { // If session was longer than 10 seconds
+            analytics.metrics.inputTokens = Math.max(analytics.metrics.inputTokens, Math.floor(duration / 1000));
+            analytics.metrics.outputTokens = Math.max(analytics.metrics.outputTokens, Math.floor(duration / 500));
+          }
+          
+          // Finalize analytics
+          const analyticsData = await analytics.finalize(code, duration);
+          
+          resolve({
+            code,
+            duration,
+            analytics: analyticsData
+          });
+        });
+
+        child.on('error', async (error) => {
+          console.error(chalk.red(`[vibekit] Process error: ${error.message}`));
+          
+          // Finalize analytics with error
+          await analytics.finalize(-1, Date.now() - startTime);
+          
+          reject(error);
+        });
+      }
+
+      // Handle signals
       process.on('SIGINT', () => {
         child.kill('SIGINT');
       });

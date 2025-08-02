@@ -12,6 +12,9 @@ const Settings = () => {
     },
     analytics: {
       enabled: true
+    },
+    sandbox: {
+      enabled: false
     }
   });
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -61,6 +64,11 @@ const Settings = () => {
         ];
       case 'settings':
         return [
+          {
+            label: `Sandbox Isolation: ${settings.sandbox.enabled ? '✓ ON' : '✗ OFF'}`,
+            description: 'Enable or disable sandbox isolation for secure execution',
+            action: 'toggle-sandbox'
+          },
           {
             label: `Proxy Server: ${settings.proxy.enabled ? '✓ ON' : '✗ OFF'}`,
             description: 'Enable or disable the proxy server functionality',
@@ -186,6 +194,16 @@ const Settings = () => {
             }
           };
           saveSettings(newAnalyticsSettings);
+          break;
+        case 'toggle-sandbox':
+          const newSandboxSettings = {
+            ...settings,
+            sandbox: {
+              ...settings.sandbox,
+              enabled: !settings.sandbox.enabled
+            }
+          };
+          saveSettings(newSandboxSettings);
           break;
         case 'exit':
           exit();

@@ -1,7 +1,6 @@
 import { spawn } from 'child_process';
 import chalk from 'chalk';
 import path from 'path';
-import fs from 'fs-extra';
 import Docker from '../sandbox/docker.js';
 import displayStartupStatus from '../components/status-display.js';
 import Analytics from '../analytics/analytics.js';
@@ -12,8 +11,8 @@ class BaseAgent {
     this.logger = logger;
     this.sandboxPath = path.join(process.cwd(), '.vibekit', '.vibekit-sandbox');
     
-    // Sandbox options: 'local' (default), 'docker', or false
-    this.sandboxType = options.sandbox || 'local';
+    // Sandbox options: 'docker' or false
+    this.sandboxType = options.sandbox || 'none';
     this.sandboxOptions = options.sandboxOptions || {};
     
     // Analytics options
@@ -24,28 +23,6 @@ class BaseAgent {
     this.proxy = options.proxy;
   }
 
-  async setupSandbox() {
-    await fs.ensureDir(this.sandboxPath);
-    
-    const originalCwd = process.cwd();
-    const sandboxCwd = path.join(this.sandboxPath, 'workspace');
-    await fs.ensureDir(sandboxCwd);
-
-    if (!await fs.pathExists(path.join(sandboxCwd, '.git'))) {
-      const gitFiles = ['.git', '.gitignore', 'package.json', 'yarn.lock', 'package-lock.json'];
-      
-      for (const file of gitFiles) {
-        const srcPath = path.join(originalCwd, file);
-        const destPath = path.join(sandboxCwd, file);
-        
-        if (await fs.pathExists(srcPath)) {
-          await fs.copy(srcPath, destPath);
-        }
-      }
-    }
-
-    return sandboxCwd;
-  }
 
   async run(args) {
     await this.logger.log('info', `Starting ${this.agentName} agent`, { 
@@ -57,14 +34,12 @@ class BaseAgent {
       switch (this.sandboxType) {
         case 'docker':
           return await this.runInDocker(args);
-        case 'local':
-          return await this.runInLocalSandbox(args);
         case false:
         case 'none':
           return await this.runDirect(args);
         default:
-          // Default to local sandbox (no dependencies required)
-          return await this.runInLocalSandbox(args);
+          // Default to no sandbox
+          return await this.runDirect(args);
       }
     } catch (error) {
       await this.logger.log('error', `${this.agentName} agent failed`, { 
@@ -114,17 +89,6 @@ class BaseAgent {
     }
   }
 
-  async runInLocalSandbox(args) {
-    const sandboxCwd = await this.setupSandbox();
-    const result = await this.executeAgent(args, sandboxCwd);
-    
-    await this.logger.log('info', `${this.agentName} agent completed in local sandbox`, { 
-      exitCode: result.code,
-      duration: result.duration 
-    });
-
-    return result;
-  }
 
   async runDirect(args) {
     console.log(chalk.red('⚠ WARNING: Running without sandbox - agent has full system access!'));
@@ -146,7 +110,7 @@ class BaseAgent {
     return this.agentName;
   }
 
-  async executeAgent(args, cwd) {
+  async executeAgent(args) {
     throw new Error('executeAgent must be implemented by subclass');
   }
 

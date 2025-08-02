@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
+import os from 'os';
 import ClaudeAgent from './agents/claude.js';
 import GeminiAgent from './agents/gemini.js';
 import Logger from './logging/logger.js';
@@ -16,6 +17,27 @@ import Settings from './components/settings.js';
 
 const program = new Command();
 
+// Function to read user settings
+async function readSettings() {
+  const settingsPath = path.join(os.homedir(), '.vibekit', 'settings.json');
+  const defaultSettings = {
+    sandbox: { enabled: false },
+    proxy: { enabled: true, redactionEnabled: true },
+    analytics: { enabled: true }
+  };
+  
+  try {
+    if (await fs.pathExists(settingsPath)) {
+      const userSettings = await fs.readJson(settingsPath);
+      return { ...defaultSettings, ...userSettings };
+    }
+  } catch (error) {
+    // Use default settings if reading fails
+  }
+  
+  return defaultSettings;
+}
+
 program
   .name('vibekit')
   .description('CLI middleware for headless and TUI coding agents')
@@ -24,8 +46,8 @@ program
 
 program
   .command('claude')
-  .description('Run Claude Code CLI with secure sandbox')
-  .option('--sandbox <type>', 'Sandbox type: local (default), docker, none', 'local')
+  .description('Run Claude Code CLI (sandbox configurable in settings)')
+  .option('--sandbox <type>', 'Sandbox type: none (default), docker', 'none')
   .option('--no-network', 'Disable network access (Docker only)')
   .option('--fresh-container', 'Use fresh Docker container instead of persistent one')
   .option('--analytics-mode <mode>', 'Analytics capture mode: basic (default), full', 'basic')
@@ -34,6 +56,7 @@ program
   .allowExcessArguments()
   .action(async (options, command) => {
     const logger = new Logger('claude');
+    const settings = await readSettings();
     
     // Get proxy from global option or environment variable
     const proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
@@ -45,8 +68,22 @@ program
       console.log(chalk.gray(`[vibekit] Set ANTHROPIC_BASE_URL=${proxy}`));
     }
     
+    // Determine sandbox type based on settings and options
+    let sandboxType = options.sandbox;
+    if (sandboxType === 'docker' && !settings.sandbox.enabled) {
+      // If user explicitly selected docker but settings have sandbox disabled, use none
+      sandboxType = 'none';
+      console.log(chalk.yellow('[vibekit] Sandbox is disabled in settings. Running without sandbox.'));
+    } else if (!options.sandbox || options.sandbox === 'docker') {
+      // If no explicit option or default docker, use settings preference
+      sandboxType = settings.sandbox.enabled ? 'docker' : 'none';
+      if (!settings.sandbox.enabled) {
+        console.log(chalk.yellow('[vibekit] Sandbox is disabled in settings. Running without sandbox.'));
+      }
+    }
+    
     const agentOptions = {
-      sandbox: options.sandbox,
+      sandbox: sandboxType,
       analyticsMode: options.analyticsMode,
       disablePty: options.noPty,
       proxy: proxy,
@@ -63,14 +100,15 @@ program
 
 program
   .command('gemini')
-  .description('Run Gemini CLI with secure sandbox')
-  .option('--sandbox <type>', 'Sandbox type: local (default), docker, none', 'local')
+  .description('Run Gemini CLI (sandbox configurable in settings)')
+  .option('--sandbox <type>', 'Sandbox type: none (default), docker', 'none')
   .option('--network', 'Allow network access (less secure)')
   .option('--analytics-mode <mode>', 'Analytics capture mode: basic (default), full', 'basic')
   .allowUnknownOption()
   .allowExcessArguments()
   .action(async (options, command) => {
     const logger = new Logger('gemini');
+    const settings = await readSettings();
     
     // Get proxy from global option
     const proxy = command.parent.opts().proxy;
@@ -80,8 +118,22 @@ program
       console.log(chalk.blue(`[vibekit] Using proxy for Gemini: ${proxy}`));
     }
     
+    // Determine sandbox type based on settings and options
+    let sandboxType = options.sandbox;
+    if (sandboxType === 'docker' && !settings.sandbox.enabled) {
+      // If user explicitly selected docker but settings have sandbox disabled, use none
+      sandboxType = 'none';
+      console.log(chalk.yellow('[vibekit] Sandbox is disabled in settings. Running without sandbox.'));
+    } else if (!options.sandbox || options.sandbox === 'docker') {
+      // If no explicit option or default docker, use settings preference
+      sandboxType = settings.sandbox.enabled ? 'docker' : 'none';
+      if (!settings.sandbox.enabled) {
+        console.log(chalk.yellow('[vibekit] Sandbox is disabled in settings. Running without sandbox.'));
+      }
+    }
+    
     const agentOptions = {
-      sandbox: options.sandbox,
+      sandbox: sandboxType,
       analyticsMode: options.analyticsMode,
       proxy: proxy,
       sandboxOptions: {
@@ -388,20 +440,19 @@ program
 
 program
   .command('clean')
-  .description('Clean sandbox, logs, and Docker containers')
+  .description('Clean logs, analytics, and Docker containers')
   .option('--logs', 'Clean logs only')
-  .option('--sandbox', 'Clean sandbox only')
   .option('--docker', 'Clean Docker containers and images only')
   .option('--analytics', 'Clean analytics data only')
   .action(async (options) => {
     const logger = new Logger();
     
-    if (options.logs || (!options.sandbox && !options.logs && !options.docker && !options.analytics)) {
+    if (options.logs || (!options.logs && !options.docker && !options.analytics)) {
       await logger.cleanLogs();
       console.log(chalk.green('✓ Logs cleaned'));
     }
     
-    if (options.analytics || (!options.sandbox && !options.logs && !options.docker && !options.analytics)) {
+    if (options.analytics || (!options.logs && !options.docker && !options.analytics)) {
       const os = await import('os');
       const analyticsDir = path.join(os.homedir(), '.vibekit', 'analytics');
       if (await fs.pathExists(analyticsDir)) {
@@ -410,15 +461,8 @@ program
       }
     }
     
-    if (options.sandbox || (!options.sandbox && !options.logs && !options.docker && !options.analytics)) {
-      const sandboxPath = path.join(process.cwd(), '.vibekit', '.vibekit-sandbox');
-      if (await fs.pathExists(sandboxPath)) {
-        await fs.remove(sandboxPath);
-        console.log(chalk.green('✓ Sandbox cleaned'));
-      }
-    }
 
-    if (options.docker || (!options.sandbox && !options.logs && !options.docker && !options.analytics)) {
+    if (options.docker || (!options.logs && !options.docker && !options.analytics)) {
       try {
         // Stop and remove persistent container
         const dockerSandbox = new Docker(process.cwd(), logger);

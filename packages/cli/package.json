@@ -28,6 +28,7 @@
     "commander": "^11.0.0",
     "fs-extra": "^11.1.1",
     "ink": "^6.1.0",
+    "node-pty": "^1.0.0",
     "react": "^19.1.1"
   },
   "devDependencies": {

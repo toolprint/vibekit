@@ -9,13 +9,15 @@ import GeminiAgent from './agents/gemini.js';
 import Logger from './logging/logger.js';
 import DockerSandbox from './sandbox/docker-sandbox.js';
 import AgentAnalytics from './analytics/agent-analytics.js';
+import ProxyServer from './proxy/proxy-server.js';
 
 const program = new Command();
 
 program
   .name('vibekit')
   .description('CLI middleware for headless and TUI coding agents')
-  .version('1.0.0');
+  .version('1.0.0')
+  .option('--proxy <url>', 'HTTP/HTTPS proxy URL for all agents (e.g., http://proxy.example.com:8080)');
 
 program
   .command('claude')
@@ -23,12 +25,26 @@ program
   .option('--sandbox <type>', 'Sandbox type: local (default), docker, none', 'local')
   .option('--no-network', 'Disable network access (Docker only)')
   .option('--fresh-container', 'Use fresh Docker container instead of persistent one')
+  .option('--analytics-mode <mode>', 'Analytics capture mode: basic (default), full', 'basic')
+  .option('--no-pty', 'Disable PTY for interactive sessions (basic analytics only)')
   .allowUnknownOption()
   .allowExcessArguments()
   .action(async (options, command) => {
     const logger = new Logger('claude');
+    
+    // Get proxy from global option or environment variable
+    const proxy = command.parent.opts().proxy || process.env.HTTPS_PROXY;
+    
+    // Show proxy usage if specified
+    if (proxy) {
+      console.log(chalk.blue(`[vibekit] Using proxy for Claude: ${proxy}`));
+    }
+    
     const agentOptions = {
       sandbox: options.sandbox,
+      analyticsMode: options.analyticsMode,
+      disablePty: options.noPty,
+      proxy: proxy,
       sandboxOptions: {
         networkMode: options.noNetwork ? 'none' : 'bridge',
         usePersistent: !options.freshContainer // Use persistent unless explicitly disabled
@@ -45,12 +61,24 @@ program
   .description('Run Gemini CLI with secure sandbox')
   .option('--sandbox <type>', 'Sandbox type: local (default), docker, none', 'local')
   .option('--network', 'Allow network access (less secure)')
+  .option('--analytics-mode <mode>', 'Analytics capture mode: basic (default), full', 'basic')
   .allowUnknownOption()
   .allowExcessArguments()
   .action(async (options, command) => {
     const logger = new Logger('gemini');
+    
+    // Get proxy from global option
+    const proxy = command.parent.opts().proxy;
+    
+    // Show proxy usage if specified
+    if (proxy) {
+      console.log(chalk.blue(`[vibekit] Using proxy for Gemini: ${proxy}`));
+    }
+    
     const agentOptions = {
       sandbox: options.sandbox,
+      analyticsMode: options.analyticsMode,
+      proxy: proxy,
       sandboxOptions: {
         networkAccess: options.network === true
       }
@@ -127,6 +155,136 @@ program
     
     if (!options.status && !options.stop && !options.restart) {
       console.log(chalk.blue('Use --status, --stop, or --restart'));
+    }
+  });
+
+const proxyCommand = program
+  .command('proxy')
+  .description('Manage proxy server');
+
+proxyCommand
+  .command('start')
+  .description('Start proxy server with request/response logging')
+  .option('-p, --port <number>', 'Port to run proxy server on', '8080')
+  .action(async (options) => {
+    const port = parseInt(options.port) || 8080;
+    const proxyServer = new ProxyServer(port);
+    
+    try {
+      await proxyServer.start();
+    } catch (error) {
+      console.error(chalk.red('Failed to start proxy server:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Default action for 'proxy' without subcommand - start the server
+proxyCommand
+  .option('-p, --port <number>', 'Port to run proxy server on', '8080')
+  .action(async (options, command) => {
+    // If no subcommand was provided, start the proxy
+    if (command.args.length === 0) {
+      const port = parseInt(options.port) || 8080;
+      const proxyServer = new ProxyServer(port);
+      
+      try {
+        await proxyServer.start();
+      } catch (error) {
+        console.error(chalk.red('Failed to start proxy server:'), error.message);
+        process.exit(1);
+      }
+    }
+  });
+
+proxyCommand
+  .command('kill')
+  .description('Kill proxy server running on specified port')
+  .option('-p, --port <number>', 'Port to kill proxy server on', '8080')
+  .action(async (options) => {
+    const port = parseInt(options.port) || 8080;
+    
+    try {
+      const { spawn } = await import('child_process');
+      
+      console.log(chalk.blue(`🔍 Looking for processes on port ${port}...`));
+      
+      // Use lsof to find processes using the port
+      const lsof = spawn('lsof', ['-ti', `:${port}`]);
+      let pids = '';
+      
+      lsof.stdout.on('data', (data) => {
+        pids += data.toString();
+      });
+      
+      lsof.on('close', (code) => {
+        if (code === 0 && pids.trim()) {
+          const pidList = pids.trim().split('\n').filter(pid => pid.trim());
+          
+          console.log(chalk.yellow(`📋 Found ${pidList.length} process(es) on port ${port}`));
+          
+          pidList.forEach(pid => {
+            try {
+              process.kill(parseInt(pid), 'SIGTERM');
+              console.log(chalk.green(`✅ Killed process ${pid}`));
+            } catch (error) {
+              if (error.code === 'ESRCH') {
+                console.log(chalk.gray(`⚠️ Process ${pid} already dead`));
+              } else {
+                console.log(chalk.red(`❌ Failed to kill process ${pid}: ${error.message}`));
+              }
+            }
+          });
+          
+          // Wait a moment then check again
+          setTimeout(() => {
+            const checkLsof = spawn('lsof', ['-ti', `:${port}`]);
+            let stillRunning = '';
+            
+            checkLsof.stdout.on('data', (data) => {
+              stillRunning += data.toString();
+            });
+            
+            checkLsof.on('close', (checkCode) => {
+              if (checkCode === 0 && stillRunning.trim()) {
+                console.log(chalk.red(`⚠️ Some processes still running, trying SIGKILL...`));
+                stillRunning.trim().split('\n').forEach(pid => {
+                  try {
+                    process.kill(parseInt(pid), 'SIGKILL');
+                    console.log(chalk.green(`💀 Force killed process ${pid}`));
+                  } catch (error) {
+                    console.log(chalk.red(`❌ Failed to force kill ${pid}: ${error.message}`));
+                  }
+                });
+              } else {
+                console.log(chalk.green(`🎉 Port ${port} is now free`));
+              }
+            });
+          }, 1000);
+          
+        } else {
+          console.log(chalk.yellow(`🔍 No processes found running on port ${port}`));
+        }
+      });
+      
+      lsof.on('error', (error) => {
+        console.error(chalk.red(`❌ Error finding processes: ${error.message}`));
+        console.log(chalk.yellow(`💡 Trying alternative method...`));
+        
+        // Alternative: kill vibekit proxy processes
+        const pkill = spawn('pkill', ['-f', 'vibekit.*proxy']);
+        
+        pkill.on('close', (code) => {
+          if (code === 0) {
+            console.log(chalk.green(`✅ Killed vibekit proxy processes`));
+          } else {
+            console.log(chalk.yellow(`⚠️ No vibekit proxy processes found to kill`));
+          }
+        });
+      });
+      
+    } catch (error) {
+      console.error(chalk.red('Failed to kill proxy server:'), error.message);
+      process.exit(1);
     }
   });
 

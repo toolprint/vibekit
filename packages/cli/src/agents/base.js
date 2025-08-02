@@ -15,6 +15,13 @@ class BaseAgent {
     // Sandbox options: 'local' (default), 'docker', or false
     this.sandboxType = options.sandbox || 'local';
     this.sandboxOptions = options.sandboxOptions || {};
+    
+    // Analytics options
+    this.analyticsMode = options.analyticsMode || 'basic'; // 'basic' or 'full'
+    this.disablePty = options.disablePty || false;
+    
+    // Proxy options
+    this.proxy = options.proxy;
   }
 
   async setupSandbox() {
@@ -153,18 +160,38 @@ class BaseAgent {
     // Determine if this is likely an interactive session
     const isInteractive = args.length === 0 && process.stdin.isTTY;
     
+    // Use PTY for interactive sessions to capture full analytics
+    // Interactive sessions always use PTY for better analytics unless explicitly disabled
+    if (isInteractive && !this.disablePty) {
+      return this.createPtyProcess(command, args, options, analytics, startTime);
+    }
+    
     return new Promise((resolve, reject) => {
       // Show startup status
       displayStartupStatus(this.agentName, this.sandboxType);
       
       let spawnOptions;
       
+      // Prepare environment variables with proxy settings
+      const env = { 
+        ...process.env, 
+        ...options.env 
+      };
+      
+      // Add proxy settings to environment if specified
+      if (this.proxy) {
+        env.HTTP_PROXY = this.proxy;
+        env.HTTPS_PROXY = this.proxy;
+        env.http_proxy = this.proxy;
+        env.https_proxy = this.proxy;
+      }
+      
       if (isInteractive) {
         // For interactive mode, use inherit stdio but still capture analytics
         spawnOptions = {
           stdio: 'inherit',
           cwd: options.cwd || process.cwd(),
-          env: { ...process.env, ...options.env },
+          env,
           ...options
         };
       } else {
@@ -172,7 +199,7 @@ class BaseAgent {
         spawnOptions = {
           stdio: ['pipe', 'pipe', 'pipe'],
           cwd: options.cwd || process.cwd(),
-          env: { ...process.env, ...options.env },
+          env,
           ...options
         };
       }
@@ -297,6 +324,128 @@ class BaseAgent {
       process.on('SIGTERM', () => {
         child.kill('SIGTERM');
       });
+    });
+  }
+
+  async createPtyProcess(command, args, options, analytics, startTime) {
+    let pty;
+    
+    try {
+      // Dynamic import to handle environments where node-pty might not be available
+      pty = (await import('node-pty')).default;
+    } catch (error) {
+      console.log(chalk.yellow('⚠ node-pty not available, falling back to basic analytics'));
+      // Fall back to basic mode
+      this.analyticsMode = 'basic';
+      return this.createChildProcess(command, args, options);
+    }
+
+    return new Promise((resolve, reject) => {
+      // Show startup status
+      displayStartupStatus(this.agentName, this.sandboxType);
+      
+      // Get terminal size
+      const cols = process.stdout.columns || 80;
+      const rows = process.stdout.rows || 24;
+      
+      // Prepare environment variables with proxy settings
+      const env = { 
+        ...process.env, 
+        ...options.env 
+      };
+      
+      // Add proxy settings to environment if specified
+      if (this.proxy) {
+        env.HTTP_PROXY = this.proxy;
+        env.HTTPS_PROXY = this.proxy;
+        env.http_proxy = this.proxy;
+        env.https_proxy = this.proxy;
+      }
+      
+      // Spawn with PTY for full interactivity + analytics
+      const child = pty.spawn(command, args, {
+        name: 'xterm-color',
+        cols: cols,
+        rows: rows,
+        cwd: options.cwd || process.cwd(),
+        env
+      });
+
+      // Set up raw mode for proper TTY behavior
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(true);
+        process.stdin.resume();
+      }
+
+      // Forward data from PTY to stdout and capture for analytics
+      child.onData((data) => {
+        analytics.captureOutput(data);
+        process.stdout.write(data);
+        
+        // Capture for analytics (debug logs removed to avoid interference)
+      });
+
+      // Forward stdin to PTY and capture for analytics
+      const stdinHandler = (data) => {
+        analytics.captureInput(data);
+        child.write(data);
+        
+        // Capture for analytics (debug logs removed to avoid interference)
+      };
+
+      process.stdin.on('data', stdinHandler);
+
+      // Handle terminal resize
+      const resizeHandler = () => {
+        if (process.stdout.columns && process.stdout.rows) {
+          child.resize(process.stdout.columns, process.stdout.rows);
+        }
+      };
+      process.stdout.on('resize', resizeHandler);
+
+      // Handle process exit
+      child.onExit(async ({ exitCode, signal }) => {
+        // Cleanup
+        process.stdin.removeListener('data', stdinHandler);
+        process.stdout.removeListener('resize', resizeHandler);
+        
+        if (process.stdin.isTTY) {
+          process.stdin.setRawMode(false);
+          process.stdin.pause();
+        }
+
+        const duration = Date.now() - startTime;
+        const code = exitCode !== undefined ? exitCode : (signal ? -1 : 0);
+        
+        console.log(chalk.blue(`[vibekit] Process exited with code ${code} (${duration}ms)`));
+        
+        // Finalize analytics with full data
+        const analyticsData = await analytics.finalize(code, duration);
+        
+        resolve({
+          code,
+          duration,
+          analytics: analyticsData
+        });
+      });
+
+      // Handle PTY errors
+      child.onData((data) => {
+        // Check for error patterns in the data
+        const output = data.toString();
+        if (output.includes('command not found') || output.includes('error')) {
+          console.error(chalk.red(`[vibekit] Possible error detected: ${output.trim()}`));
+        }
+      });
+
+      // Handle signals
+      const signalHandler = (signal) => {
+        console.log(chalk.yellow(`\n[vibekit] Received ${signal}, terminating...`));
+        child.kill(signal);
+      };
+
+      process.on('SIGINT', signalHandler);
+      process.on('SIGTERM', signalHandler);
     });
   }
 }

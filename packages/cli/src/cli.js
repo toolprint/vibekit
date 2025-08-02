@@ -9,7 +9,10 @@ import GeminiAgent from './agents/gemini.js';
 import Logger from './logging/logger.js';
 import Docker from './sandbox/docker.js';
 import Analytics from './analytics/analytics.js';
-import ProxyServer from './proxy/proxy-server.js';
+import ProxyServer from './proxy/server.js';
+import React from 'react';
+import { render } from 'ink';
+import Settings from './components/settings.js';
 
 const program = new Command();
 
@@ -33,11 +36,13 @@ program
     const logger = new Logger('claude');
     
     // Get proxy from global option or environment variable
-    const proxy = command.parent.opts().proxy || process.env.HTTPS_PROXY;
+    const proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     
-    // Show proxy usage if specified
+    // Set ANTHROPIC_BASE_URL to route Claude requests through proxy
     if (proxy) {
-      console.log(chalk.blue(`[vibekit] Using proxy for Claude: ${proxy}`));
+      process.env.ANTHROPIC_BASE_URL = proxy;
+      console.log(chalk.blue(`[vibekit] Routing Claude API calls through proxy: ${proxy}`));
+      console.log(chalk.gray(`[vibekit] Set ANTHROPIC_BASE_URL=${proxy}`));
     }
     
     const agentOptions = {
@@ -286,6 +291,13 @@ proxyCommand
       console.error(chalk.red('Failed to kill proxy server:'), error.message);
       process.exit(1);
     }
+  });
+
+program
+  .command('settings')
+  .description('Manage vibekit settings and configurations')
+  .action(async () => {
+    render(React.createElement(Settings));
   });
 
 program

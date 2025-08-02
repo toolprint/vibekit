@@ -28,8 +28,10 @@
     "commander": "^11.0.0",
     "fs-extra": "^11.1.1",
     "ink": "^6.1.0",
+    "js-yaml": "^4.1.0",
     "node-pty": "^1.0.0",
-    "react": "^19.1.1"
+    "react": "^19.1.1",
+    "redact-pii": "^3.4.0"
   },
   "devDependencies": {
     "@types/node": "^24.1.0",

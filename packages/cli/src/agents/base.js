@@ -2,9 +2,9 @@ import { spawn } from 'child_process';
 import chalk from 'chalk';
 import path from 'path';
 import fs from 'fs-extra';
-import DockerSandbox from '../sandbox/docker-sandbox.js';
+import Docker from '../sandbox/docker.js';
 import displayStartupStatus from '../components/status-display.js';
-import AgentAnalytics from '../analytics/agent-analytics.js';
+import Analytics from '../analytics/analytics.js';
 
 class BaseAgent {
   constructor(agentName, logger, options = {}) {
@@ -79,7 +79,7 @@ class BaseAgent {
 
 
   async runInDocker(args) {
-    const dockerSandbox = new DockerSandbox(process.cwd(), this.logger, this.sandboxOptions);
+    const dockerSandbox = new Docker(process.cwd(), this.logger, this.sandboxOptions);
     
     try {
       const startTime = Date.now();
@@ -152,7 +152,7 @@ class BaseAgent {
 
   createChildProcess(command, args, options = {}) {
     const startTime = Date.now();
-    const analytics = new AgentAnalytics(this.agentName, this.logger);
+    const analytics = new Analytics(this.agentName, this.logger);
     
     // Capture the command being executed
     analytics.captureCommand(command, args);

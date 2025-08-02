@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
 
-class DockerSandbox {
+class Docker {
   constructor(projectRoot, logger, options = {}) {
     this.projectRoot = projectRoot;
     this.logger = logger;
@@ -584,4 +584,4 @@ class DockerSandbox {
   }
 }
 
-export default DockerSandbox;
+export default Docker;

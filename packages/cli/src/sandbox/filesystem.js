@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
 
-class Sandbox {
+class Filesystem {
   constructor(projectRoot, logger) {
     this.projectRoot = projectRoot;
     this.logger = logger;
@@ -235,4 +235,4 @@ class Sandbox {
   }
 }
 
-export default Sandbox;
+export default Filesystem;

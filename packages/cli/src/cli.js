@@ -7,8 +7,8 @@ import path from 'path';
 import ClaudeAgent from './agents/claude.js';
 import GeminiAgent from './agents/gemini.js';
 import Logger from './logging/logger.js';
-import DockerSandbox from './sandbox/docker-sandbox.js';
-import AgentAnalytics from './analytics/agent-analytics.js';
+import Docker from './sandbox/docker.js';
+import Analytics from './analytics/analytics.js';
 import ProxyServer from './proxy/proxy-server.js';
 
 const program = new Command();
@@ -104,7 +104,7 @@ program
   .description('Sync changes from sandbox back to project')
   .action(async () => {
     const logger = new Logger();
-    const dockerSandbox = new DockerSandbox(process.cwd(), logger);
+    const dockerSandbox = new Docker(process.cwd(), logger);
     
     try {
       const changes = await dockerSandbox.syncChangesBack();
@@ -127,7 +127,7 @@ program
   .option('--status', 'Show container status')
   .action(async (options) => {
     const logger = new Logger();
-    const dockerSandbox = new DockerSandbox(process.cwd(), logger);
+    const dockerSandbox = new Docker(process.cwd(), logger);
     
     if (options.status) {
       const isRunning = await dockerSandbox.isPersistentContainerRunning();
@@ -298,7 +298,7 @@ program
   .action(async (options) => {
     try {
       const days = parseInt(options.days) || 7;
-      const analytics = await AgentAnalytics.getAnalytics(options.agent, days);
+      const analytics = await Analytics.getAnalytics(options.agent, days);
       
       if (analytics.length === 0) {
         console.log(chalk.yellow('No analytics data found'));
@@ -311,7 +311,7 @@ program
         return;
       }
       
-      const summary = AgentAnalytics.generateSummary(analytics);
+      const summary = Analytics.generateSummary(analytics);
       
       console.log(chalk.blue('📊 Agent Analytics Summary'));
       console.log(chalk.gray('─'.repeat(50)));
@@ -409,7 +409,7 @@ program
     if (options.docker || (!options.sandbox && !options.logs && !options.docker && !options.analytics)) {
       try {
         // Stop and remove persistent container
-        const dockerSandbox = new DockerSandbox(process.cwd(), logger);
+        const dockerSandbox = new Docker(process.cwd(), logger);
         await dockerSandbox.stopPersistentContainer();
         
         // Clean up Docker containers and images

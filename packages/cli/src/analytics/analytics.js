@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 
-class AgentAnalytics {
+class Analytics {
   constructor(agentName, logger) {
     this.agentName = agentName;
     this.logger = logger;
@@ -315,4 +315,4 @@ class AgentAnalytics {
   }
 }
 
-export default AgentAnalytics;
+export default Analytics;

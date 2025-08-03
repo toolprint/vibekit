@@ -26,7 +26,11 @@ describe("Claude Code CLI", () => {
         apiKey: process.env.ANTHROPIC_API_KEY!,
         model: "claude-sonnet-4-20250514",
       })
-      .withSandbox(e2bProvider);
+      .withSandbox(e2bProvider)
+      .withGithub({
+        token: process.env.GH_TOKEN || process.env.GITHUB_TOKEN!,
+        repository: process.env.GH_REPOSITORY || "superagent-ai/signals",
+      });
 
     const updateSpy = vi.fn();
     const errorSpy = vi.fn();
@@ -34,7 +38,7 @@ describe("Claude Code CLI", () => {
     vibeKit.on("update", updateSpy);
     vibeKit.on("error", errorSpy);
 
-    const result = await vibeKit.generateCode({ prompt, mode: "ask" });
+    const result = await vibeKit.generateCode({ prompt, mode: "code" });
     const host = await vibeKit.getHost(3000);
 
     await vibeKit.kill();

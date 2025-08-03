@@ -39,6 +39,7 @@ logs
 
 # grok
 .grok
+
 # Misc
 .cache/
 .temp/

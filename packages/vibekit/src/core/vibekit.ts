@@ -7,7 +7,7 @@ import type {
   Conversation,
   LabelOptions,
 } from "../types";
-import { AgentResponse, ExecuteCommandOptions } from "../agents/base";
+import { AgentResponse, ExecuteCommandOptions, PullRequestResult } from "../agents/base";
 
 export interface VibeKitEvents {
   stdout: (chunk: string) => void;
@@ -184,12 +184,20 @@ export class VibeKit extends EventEmitter {
   async createPullRequest(
     labelOptions?: LabelOptions,
     branchPrefix?: string
-  ): Promise<any> {
+  ): Promise<PullRequestResult> {
     if (!this.agent) {
       await this.initializeAgent();
     }
 
     return this.agent.createPullRequest(labelOptions, branchPrefix);
+  }
+
+  async pushToBranch(branch?: string): Promise<void> {
+    if (!this.agent) {
+      await this.initializeAgent();
+    }
+
+    return this.agent.pushToBranch(branch);
   }
 
   async runTests(): Promise<any> {

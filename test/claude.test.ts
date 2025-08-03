@@ -26,11 +26,7 @@ describe("Claude Code CLI", () => {
         apiKey: process.env.ANTHROPIC_API_KEY!,
         model: "claude-sonnet-4-20250514",
       })
-      .withSandbox(e2bProvider)
-      .withGithub({
-        token: process.env.GH_TOKEN || process.env.GITHUB_TOKEN!,
-        repository: process.env.GH_REPOSITORY || "superagent-ai/signals",
-      });
+      .withSandbox(e2bProvider);
 
     const updateSpy = vi.fn();
     const errorSpy = vi.fn();

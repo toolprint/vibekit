@@ -99,7 +99,7 @@ const Settings = () => {
         
         if (await fs.pathExists(settingsPath)) {
           const loadedSettings = await fs.readJson(settingsPath);
-          setSettings(loadedSettings);
+          setSettings(prevSettings => ({...prevSettings, ...loadedSettings}));
         }
       } catch (error) {
         // Use default settings if loading fails

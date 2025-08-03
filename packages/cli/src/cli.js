@@ -58,14 +58,17 @@ program
     const logger = new Logger('claude');
     const settings = await readSettings();
     
-    // Get proxy from global option or environment variable
-    const proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    // Get proxy from global option, environment variable, or default if proxy enabled in settings
+    let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    
+    // Use default proxy if enabled in settings but no explicit proxy provided
+    if (!proxy && settings.proxy.enabled) {
+      proxy = 'http://localhost:8080';
+    }
     
     // Set ANTHROPIC_BASE_URL to route Claude requests through proxy
     if (proxy) {
       process.env.ANTHROPIC_BASE_URL = proxy;
-      console.log(chalk.blue(`[vibekit] Routing Claude API calls through proxy: ${proxy}`));
-      console.log(chalk.gray(`[vibekit] Set ANTHROPIC_BASE_URL=${proxy}`));
     }
     
     // Determine sandbox type based on settings and options
@@ -73,13 +76,11 @@ program
     if (sandboxType === 'docker' && !settings.sandbox.enabled) {
       // If user explicitly selected docker but settings have sandbox disabled, use none
       sandboxType = 'none';
-      console.log(chalk.yellow('[vibekit] Sandbox is disabled in settings. Running without sandbox.'));
     } else if (!options.sandbox || options.sandbox === 'docker') {
       // If no explicit option or default docker, use settings preference
       sandboxType = settings.sandbox.enabled ? 'docker' : 'none';
       if (!settings.sandbox.enabled) {
-        console.log(chalk.yellow('[vibekit] Sandbox is disabled in settings. Running without sandbox.'));
-      }
+        }
     }
     
     const agentOptions = {
@@ -110,12 +111,12 @@ program
     const logger = new Logger('gemini');
     const settings = await readSettings();
     
-    // Get proxy from global option
-    const proxy = command.parent.opts().proxy;
+    // Get proxy from global option, environment variable, or default if proxy enabled in settings
+    let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     
-    // Show proxy usage if specified
-    if (proxy) {
-      console.log(chalk.blue(`[vibekit] Using proxy for Gemini: ${proxy}`));
+    // Use default proxy if enabled in settings but no explicit proxy provided
+    if (!proxy && settings.proxy.enabled) {
+      proxy = 'http://localhost:8080';
     }
     
     // Determine sandbox type based on settings and options
@@ -123,13 +124,11 @@ program
     if (sandboxType === 'docker' && !settings.sandbox.enabled) {
       // If user explicitly selected docker but settings have sandbox disabled, use none
       sandboxType = 'none';
-      console.log(chalk.yellow('[vibekit] Sandbox is disabled in settings. Running without sandbox.'));
     } else if (!options.sandbox || options.sandbox === 'docker') {
       // If no explicit option or default docker, use settings preference
       sandboxType = settings.sandbox.enabled ? 'docker' : 'none';
       if (!settings.sandbox.enabled) {
-        console.log(chalk.yellow('[vibekit] Sandbox is disabled in settings. Running without sandbox.'));
-      }
+        }
     }
     
     const agentOptions = {

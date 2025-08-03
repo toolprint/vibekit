@@ -2,7 +2,9 @@ import { spawn } from 'child_process';
 import chalk from 'chalk';
 import path from 'path';
 import Docker from '../sandbox/docker.js';
-import displayStartupStatus from '../components/status-display.js';
+import StatusDisplay from '../components/status-display.js';
+import React from 'react';
+import { render } from 'ink';
 import Analytics from '../analytics/analytics.js';
 
 class BaseAgent {
@@ -91,8 +93,6 @@ class BaseAgent {
 
 
   async runDirect(args) {
-    console.log(chalk.red('⚠ WARNING: Running without sandbox - agent has full system access!'));
-    
     const startTime = Date.now();
     const result = await this.createChildProcess(this.getAgentCommand(), args);
     const duration = Date.now() - startTime;
@@ -132,7 +132,14 @@ class BaseAgent {
     
     return new Promise((resolve, reject) => {
       // Show startup status
-      displayStartupStatus(this.agentName, this.sandboxType);
+      const { unmount } = render(React.createElement(StatusDisplay, {
+        agentName: this.agentName,
+        sandboxType: this.sandboxType,
+        options: { proxy: this.proxy }
+      }));
+      
+      // Unmount after a short delay to let it render
+      setTimeout(() => unmount(), 100);
       
       let spawnOptions;
       
@@ -306,7 +313,14 @@ class BaseAgent {
 
     return new Promise((resolve, reject) => {
       // Show startup status
-      displayStartupStatus(this.agentName, this.sandboxType);
+      const { unmount } = render(React.createElement(StatusDisplay, {
+        agentName: this.agentName,
+        sandboxType: this.sandboxType,
+        options: { proxy: this.proxy }
+      }));
+      
+      // Unmount after a short delay to let it render
+      setTimeout(() => unmount(), 100);
       
       // Get terminal size
       const cols = process.stdout.columns || 80;

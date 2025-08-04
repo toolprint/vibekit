@@ -531,14 +531,9 @@ class ImageResolver {
   }
 
   private async getDockerLoginInfo(): Promise<{ username?: string }> {
-    try {
-      const { stdout } = await execAsync("docker info");
-      const match = stdout.match(/Username:\s*(.+)/);
-      if (match) {
-        return { username: match[1].trim() };
-      }
-    } catch {
-      // Ignore errors
+    const loginInfo = await checkDockerLogin();
+    if (loginInfo.isLoggedIn && loginInfo.username) {
+      return { username: loginInfo.username };
     }
     return {};
   }
@@ -841,7 +836,7 @@ export async function prebuildAgentImages(
 // Docker login and configuration types
 export interface DockerLoginInfo {
   isLoggedIn: boolean;
-  username?: string;
+  username?: string | null;
   registry?: string;
 }
 
@@ -856,14 +851,113 @@ export async function checkDockerLogin(): Promise<DockerLoginInfo> {
   const logger = Configuration.getInstance().getLogger();
   
   try {
-    const { stdout } = await execAsync("docker info");
-    const usernameMatch = stdout.match(/Username:\s*(.+)/);
-    if (usernameMatch) {
-      return {
-        isLoggedIn: true,
-        username: usernameMatch[1].trim(),
-        registry: "https://index.docker.io/v1/",
-      };
+    // Primary method: Use 'docker login' command to check current login status
+    try {
+      // Run docker login without credentials - this will show current login status
+      const { stdout, stderr } = await execAsync('docker login', { timeout: 5000 });
+      
+      // Combine stdout and stderr to search for username
+      const output = stdout + stderr;
+      
+      // Look for username in various docker login output formats
+      let usernameMatch = output.match(/\[Username:\s*([^\]]+)\]/); // New format: [Username: joedanziger]
+      if (!usernameMatch) {
+        usernameMatch = output.match(/Username:\s*([^\s\]]+)/); // Old format: Username: joedanziger
+      }
+      
+      if (usernameMatch) {
+        return {
+          isLoggedIn: true,
+          username: usernameMatch[1].trim(),
+          registry: "https://index.docker.io/v1/",
+        };
+      }
+    } catch (loginError) {
+      // docker login might exit with non-zero even when showing login status
+      const errorStr = loginError instanceof Error ? loginError.message : String(loginError);
+      
+      // Look for username in error message (docker login output often goes to stderr)
+      let usernameMatch = errorStr.match(/\[Username:\s*([^\]]+)\]/); // New format: [Username: joedanziger]
+      if (!usernameMatch) {
+        usernameMatch = errorStr.match(/Username:\s*([^\s\]]+)/); // Old format: Username: joedanziger
+      }
+      
+      if (usernameMatch) {
+        return {
+          isLoggedIn: true,
+          username: usernameMatch[1].trim(),
+          registry: "https://index.docker.io/v1/",
+        };
+      }
+      
+      logger.debug('Docker login command check failed:', errorStr);
+    }
+
+    // Fallback method 1: Try docker info 
+    try {
+      const { stdout } = await execAsync("docker info");
+      let usernameMatch = stdout.match(/\[Username:\s*([^\]]+)\]/); // New format
+      if (!usernameMatch) {
+        usernameMatch = stdout.match(/Username:\s*(.+)/); // Old format
+      }
+      
+      if (usernameMatch) {
+        return {
+          isLoggedIn: true,
+          username: usernameMatch[1].trim(),
+          registry: "https://index.docker.io/v1/",
+        };
+      }
+    } catch (infoError) {
+      logger.debug('Docker info check failed:', infoError instanceof Error ? infoError.message : String(infoError));
+    }
+    
+    // Fallback method 2: Check Docker config file and test authentication
+    try {
+      const configPath = join(homedir(), '.docker', 'config.json');
+      const configContent = await readFile(configPath, 'utf-8');
+      const config = JSON.parse(configContent);
+      
+      // Check if logged into Docker Hub
+      if (config.auths && (config.auths['https://index.docker.io/v1/'] || config.auths['index.docker.io'])) {
+        // Check if using credential store (common with Docker Desktop)
+        const usingCredStore = config.credsStore || config.credHelpers;
+        
+        if (usingCredStore) {
+          // When using credential store, test authentication by pulling a small image
+          try {
+            await execAsync('docker pull hello-world:latest', { timeout: 10000 });
+            
+            // We're authenticated but can't easily get username from credential store
+            // Return with null username to signal that it needs to be provided
+            return {
+              isLoggedIn: true,
+              username: null, // Will be handled by calling code
+              registry: "https://index.docker.io/v1/",
+            };
+          } catch (pullError) {
+            logger.debug('Docker Hub auth test failed:', pullError instanceof Error ? pullError.message : String(pullError));
+            return { isLoggedIn: false };
+          }
+        } else {
+          // Not using credential store, check for auth token
+          const auth = config.auths['https://index.docker.io/v1/'] || config.auths['index.docker.io'];
+          if (auth && auth.auth) {
+            // Decode base64 auth to get username
+            const decoded = Buffer.from(auth.auth, 'base64').toString('utf-8');
+            const [username] = decoded.split(':');
+            if (username) {
+              return {
+                isLoggedIn: true,
+                username: username,
+                registry: "https://index.docker.io/v1/",
+              };
+            }
+          }
+        }
+      }
+    } catch (configError) {
+      logger.debug('Config check failed:', configError instanceof Error ? configError.message : String(configError));
     }
     
     return { isLoggedIn: false };

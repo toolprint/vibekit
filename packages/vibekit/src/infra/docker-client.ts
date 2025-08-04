@@ -55,7 +55,7 @@ async function retryWithBackoff<T>(
       return await fn();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      options.logger.warn(
+      options.logger.debug(
         `${options.context} failed (attempt ${attempt}/${options.attempts})`,
         lastError
       );

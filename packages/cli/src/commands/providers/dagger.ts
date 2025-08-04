@@ -286,17 +286,15 @@ export async function installLocal(
         }
       }
     } catch (registryError) {
-      spinner.succeed("Docker available (registry setup skipped)");
-      console.log(
-        chalk.yellow(
-          `\n⚠️ Registry setup unavailable: ${
-            registryError instanceof Error
-              ? registryError.message
-              : String(registryError)
-          }`
-        )
-      );
-      console.log(chalk.gray("Continuing with local image builds..."));
+      spinner.succeed("Docker available");
+      // Only show a simple message, no technical error details
+      if (process.env.VIBEKIT_DEBUG) {
+        console.log(
+          chalk.gray(
+            `\nRegistry integration not available in this version. Images will be built locally.`
+          )
+        );
+      }
     }
 
     // Step 6: Pre-build agent images for faster startup

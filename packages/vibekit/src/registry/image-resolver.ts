@@ -101,7 +101,7 @@ export class ImageResolver {
     try {
       const hasLocalImage = await this.dockerClient.checkLocalImage(localTag);
       if (hasLocalImage) {
-        this.config.logger.info(`Using cached local image: ${localTag}`);
+        this.config.logger.debug(`Using cached local image: ${localTag}`);
         return localTag;
       }
     } catch (error) {
@@ -121,7 +121,7 @@ export class ImageResolver {
           return localTag;
         }
       } catch (error) {
-        this.config.logger.warn(`Failed to pull from registry`, error);
+        this.config.logger.debug(`Registry image not found, will build locally`);
       }
     }
 
@@ -135,7 +135,7 @@ export class ImageResolver {
         }
         // Build the image
         await this.dockerClient.buildImage(dockerfilePath, localTag);
-        this.config.logger.info(`Built image locally: ${localTag}`);
+        this.config.logger.info(`✓ Built ${agentType} agent`);
 
         // Push to registry if configured
         if (this.config.pushImages) {
@@ -144,7 +144,7 @@ export class ImageResolver {
             if (registryImage) {
               await this.dockerClient.tagImage(localTag, registryImage);
               await this.dockerClient.pushImage(registryImage);
-              this.config.logger.info(`Pushed image to registry: ${registryImage}`);
+              this.config.logger.debug(`Pushed image to registry: ${registryImage}`);
             }
           } catch (pushError) {
             this.config.logger.warn(`Failed to push to registry, continuing with local image`, pushError);
@@ -191,7 +191,11 @@ export class ImageResolver {
       source: "registry" | "dockerfile" | "cached";
     }> = [];
 
-    this.config.logger.info("Pre-building agent images for faster startup");
+    // Only show pre-build message if not all images are cached
+    const needsBuild = agentTypes.length > 0;
+    if (needsBuild) {
+      this.config.logger.info("Preparing agent images...");
+    }
 
     for (const agentType of agentTypes) {
       try {
@@ -205,7 +209,11 @@ export class ImageResolver {
     }
 
     const successCount = results.filter(r => r.success).length;
-    this.config.logger.info(`Pre-build complete: ${successCount}/${agentTypes.length} images ready`);
+    if (successCount === agentTypes.length) {
+      this.config.logger.info(`✓ All agent images ready`);
+    } else if (successCount > 0) {
+      this.config.logger.info(`Images prepared: ${successCount}/${agentTypes.length} successful`);
+    }
 
     return {
       success: successCount > 0,

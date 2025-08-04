@@ -241,31 +241,17 @@ class BaseAgent {
           reject(error);
         });
       } else {
-        // For interactive mode, try to capture some output for token analysis
-        // by briefly intercepting stderr for Claude's final usage statistics
-        let finalOutput = '';
-        
+        // For interactive mode, capture stderr for error analysis
         if (child.stderr) {
           child.stderr.on('data', (data) => {
             const output = data.toString();
-            finalOutput += output;
-            // Look for token usage patterns that Claude might output to stderr
-            if (output.includes('token') || output.includes('usage') || output.includes('cost')) {
-              analytics.parseOutputForMetrics(output);
-            }
+            analytics.parseOutputForMetrics(output);
           });
         }
         
         child.on('close', async (code) => {
           const duration = Date.now() - startTime;
           console.log(chalk.blue(`[vibekit] Process exited with code ${code} (${duration}ms)`));
-          
-          // For interactive sessions, estimate tokens based on duration
-          // This is a rough heuristic: longer sessions likely used more tokens
-          if (duration > 10000) { // If session was longer than 10 seconds
-            analytics.metrics.inputTokens = Math.max(analytics.metrics.inputTokens, Math.floor(duration / 1000));
-            analytics.metrics.outputTokens = Math.max(analytics.metrics.outputTokens, Math.floor(duration / 500));
-          }
           
           // Finalize analytics
           const analyticsData = await analytics.finalize(code, duration);

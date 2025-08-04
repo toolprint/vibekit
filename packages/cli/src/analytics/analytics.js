@@ -20,8 +20,6 @@ class Analytics {
       // Input/Output metrics
       inputBytes: 0,
       outputBytes: 0,
-      inputTokens: 0,
-      outputTokens: 0,
       
       // Command & process metrics
       commands: [],
@@ -53,9 +51,6 @@ class Analytics {
     const input = data.toString();
     this.metrics.inputBytes += Buffer.byteLength(input, 'utf8');
     this.inputBuffer += input;
-    
-    // Estimate tokens (rough approximation: 1 token ≈ 4 characters)
-    this.metrics.inputTokens += Math.ceil(input.length / 4);
   }
 
   captureOutput(data) {
@@ -63,34 +58,11 @@ class Analytics {
     this.metrics.outputBytes += Buffer.byteLength(output, 'utf8');
     this.outputBuffer += output;
     
-    // Estimate tokens
-    this.metrics.outputTokens += Math.ceil(output.length / 4);
-    
     // Parse for specific patterns
     this.parseOutputForMetrics(output);
   }
 
   parseOutputForMetrics(output) {
-    // Look for token usage patterns from different agents
-    const tokenPatterns = [
-      /Input tokens:\s*(\d+)/i,
-      /Output tokens:\s*(\d+)/i,
-      /Tokens used:\s*(\d+)/i,
-      /(\d+)\s*tokens/i,
-    ];
-
-    tokenPatterns.forEach(pattern => {
-      const match = output.match(pattern);
-      if (match) {
-        const tokens = parseInt(match[1]);
-        if (pattern.source.includes('Input')) {
-          this.metrics.inputTokens = Math.max(this.metrics.inputTokens, tokens);
-        } else if (pattern.source.includes('Output')) {
-          this.metrics.outputTokens = Math.max(this.metrics.outputTokens, tokens);
-        }
-      }
-    });
-
     // Look for error patterns
     const errorPatterns = [
       /Error:/i,
@@ -164,8 +136,8 @@ class Analytics {
   }
 
   refineTokenCounts() {
-    // More sophisticated token counting could be added here
-    // For now, use the estimates from real-time parsing
+    // More sophisticated analytics could be added here
+    // For now, use the basic metrics we collect
   }
 
   async saveAnalytics() {
@@ -189,8 +161,6 @@ class Analytics {
         duration: this.metrics.duration,
         inputBytes: this.metrics.inputBytes,
         outputBytes: this.metrics.outputBytes,
-        inputTokens: this.metrics.inputTokens,
-        outputTokens: this.metrics.outputTokens,
         filesChanged: this.metrics.filesChanged.length,
         errors: this.metrics.errors.length,
         warnings: this.metrics.warnings.length,
@@ -250,7 +220,6 @@ class Analytics {
         totalSessions: 0,
         totalDuration: 0,
         averageDuration: 0,
-        totalTokens: 0,
         successRate: 0,
         topErrors: [],
         agentBreakdown: {}
@@ -260,8 +229,6 @@ class Analytics {
     const summary = {
       totalSessions: analytics.length,
       totalDuration: analytics.reduce((sum, a) => sum + (a.duration || 0), 0),
-      totalInputTokens: analytics.reduce((sum, a) => sum + (a.inputTokens || 0), 0),
-      totalOutputTokens: analytics.reduce((sum, a) => sum + (a.outputTokens || 0), 0),
       successfulSessions: analytics.filter(a => a.exitCode === 0).length,
       totalFilesChanged: analytics.reduce((sum, a) => sum + (a.filesChanged?.length || 0), 0),
       totalErrors: analytics.reduce((sum, a) => sum + (a.errors?.length || 0), 0),
@@ -269,7 +236,6 @@ class Analytics {
     };
 
     summary.averageDuration = summary.totalDuration / summary.totalSessions;
-    summary.totalTokens = summary.totalInputTokens + summary.totalOutputTokens;
     summary.successRate = (summary.successfulSessions / summary.totalSessions) * 100;
 
     // Top errors
@@ -291,14 +257,12 @@ class Analytics {
         agentBreakdown[a.agentName] = {
           sessions: 0,
           duration: 0,
-          tokens: 0,
           successRate: 0
         };
       }
       const agent = agentBreakdown[a.agentName];
       agent.sessions++;
       agent.duration += a.duration || 0;
-      agent.tokens += (a.inputTokens || 0) + (a.outputTokens || 0);
       if (a.exitCode === 0) agent.successfulSessions = (agent.successfulSessions || 0) + 1;
     });
 
@@ -306,7 +270,6 @@ class Analytics {
       const agent = agentBreakdown[agentName];
       agent.successRate = ((agent.successfulSessions || 0) / agent.sessions) * 100;
       agent.averageDuration = agent.duration / agent.sessions;
-      agent.averageTokens = agent.tokens / agent.sessions;
     });
 
     summary.agentBreakdown = agentBreakdown;

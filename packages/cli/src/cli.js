@@ -11,6 +11,7 @@ import Logger from './logging/logger.js';
 import Docker from './sandbox/docker.js';
 import Analytics from './analytics/analytics.js';
 import ProxyServer from './proxy/server.js';
+import proxyManager from './proxy/manager.js';
 import React from 'react';
 import { render } from 'ink';
 import Settings from './components/settings.js';
@@ -224,7 +225,7 @@ proxyCommand
   .option('-p, --port <number>', 'Port to run proxy server on', '8080')
   .action(async (options) => {
     const port = parseInt(options.port) || 8080;
-    const proxyServer = new ProxyServer(port);
+    const proxyServer = proxyManager.getProxyServer(port);
     
     try {
       await proxyServer.start();
@@ -241,7 +242,7 @@ proxyCommand
     // If no subcommand was provided, start the proxy
     if (command.args.length === 0) {
       const port = parseInt(options.port) || 8080;
-      const proxyServer = new ProxyServer(port);
+      const proxyServer = proxyManager.getProxyServer(port);
       
       try {
         await proxyServer.start();
@@ -382,7 +383,6 @@ program
       console.log(`Total Sessions: ${chalk.cyan(summary.totalSessions)}`);
       console.log(`Total Duration: ${chalk.cyan(Math.round(summary.totalDuration / 1000))}s`);
       console.log(`Average Duration: ${chalk.cyan(Math.round(summary.averageDuration / 1000))}s`);
-      console.log(`Total Tokens: ${chalk.cyan(summary.totalTokens.toLocaleString())}`);
       console.log(`Success Rate: ${chalk.cyan(summary.successRate.toFixed(1))}%`);
       console.log(`Files Changed: ${chalk.cyan(summary.totalFilesChanged)}`);
       console.log(`Total Errors: ${chalk.cyan(summary.totalErrors)}`);
@@ -396,7 +396,6 @@ program
           console.log(chalk.yellow(`${agentName}:`));
           console.log(`  Sessions: ${stats.sessions}`);
           console.log(`  Avg Duration: ${Math.round(stats.averageDuration / 1000)}s`);
-          console.log(`  Avg Tokens: ${Math.round(stats.averageTokens)}`);
           console.log(`  Success Rate: ${stats.successRate.toFixed(1)}%`);
         });
       }
@@ -417,10 +416,9 @@ program
         analytics.slice(0, 10).forEach(session => {
           const date = new Date(session.startTime).toLocaleString();
           const duration = Math.round((session.duration || 0) / 1000);
-          const tokens = (session.inputTokens || 0) + (session.outputTokens || 0);
           const status = session.exitCode === 0 ? chalk.green('✓') : chalk.red('✗');
           
-          console.log(`${status} ${chalk.cyan(session.agentName)} ${chalk.gray(date)} ${duration}s ${tokens} tokens`);
+          console.log(`${status} ${chalk.cyan(session.agentName)} ${chalk.gray(date)} ${duration}s`);
           
           if (session.filesChanged && session.filesChanged.length > 0) {
             console.log(chalk.gray(`   Files: ${session.filesChanged.slice(0, 3).join(', ')}${session.filesChanged.length > 3 ? '...' : ''}`));

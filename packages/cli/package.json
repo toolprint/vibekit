@@ -1,6 +1,6 @@
 {
-  "name": "@vibe-kit/cli",
-  "version": "1.0.0",
+  "name": "vibekit",
+  "version": "0.0.1-rc.1",
   "description": "CLI middleware for headless and TUI coding agents with logging and sandbox capabilities",
   "main": "dist/cli.js",
   "type": "module",

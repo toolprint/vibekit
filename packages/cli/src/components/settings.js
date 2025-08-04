@@ -3,6 +3,7 @@ import { render, Box, Text, useInput, useApp } from 'ink';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
+import { setupAliases } from '../utils/aliases.js';
 
 const Settings = () => {
   const [settings, setSettings] = useState({
@@ -14,6 +15,9 @@ const Settings = () => {
       enabled: true
     },
     sandbox: {
+      enabled: false
+    },
+    aliases: {
       enabled: false
     }
   });
@@ -64,6 +68,11 @@ const Settings = () => {
         ];
       case 'settings':
         return [
+          {
+            label: `Global Aliases: ${settings.aliases.enabled ? '✓ ON' : '✗ OFF'}`,
+            description: 'Create global "claude" and "gemini" commands (runs "vibekit claude/gemini")',
+            action: 'toggle-aliases'
+          },
           {
             label: `Sandbox Isolation: ${settings.sandbox.enabled ? '✓ ON' : '✗ OFF'}`,
             description: 'Enable or disable sandbox isolation for secure execution',
@@ -204,6 +213,21 @@ const Settings = () => {
             }
           };
           saveSettings(newSandboxSettings);
+          break;
+        case 'toggle-aliases':
+          const newAliasSettings = {
+            ...settings,
+            aliases: {
+              ...settings.aliases,
+              enabled: !settings.aliases.enabled
+            }
+          };
+          saveSettings(newAliasSettings);
+          
+          // Automatically setup aliases based on new setting
+          setupAliases(newAliasSettings.aliases.enabled).catch(error => {
+            console.error('Failed to setup aliases:', error.message);
+          });
           break;
         case 'exit':
           exit();

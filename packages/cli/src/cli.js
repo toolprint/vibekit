@@ -15,6 +15,7 @@ import proxyManager from './proxy/manager.js';
 import React from 'react';
 import { render } from 'ink';
 import Settings from './components/settings.js';
+import { setupAliases } from './utils/aliases.js';
 
 const program = new Command();
 
@@ -24,7 +25,8 @@ async function readSettings() {
   const defaultSettings = {
     sandbox: { enabled: false },
     proxy: { enabled: true, redactionEnabled: true },
-    analytics: { enabled: true }
+    analytics: { enabled: true },
+    aliases: { enabled: false }
   };
   
   try {
@@ -350,6 +352,86 @@ program
   .description('Manage vibekit settings and configurations')
   .action(async () => {
     render(React.createElement(Settings));
+  });
+
+program
+  .command('setup-aliases')
+  .description('Install or remove global aliases based on settings')
+  .action(async () => {
+    const settings = await readSettings();
+    await setupAliases(settings.aliases.enabled);
+  });
+
+program
+  .command('diagnose-aliases')
+  .description('Diagnose alias setup and conflicts')
+  .action(async () => {
+    const { checkAliasesInCurrentShell } = await import('./utils/aliases.js');
+    const settings = await readSettings();
+    
+    console.log(chalk.blue('🔍 VibeKit Alias Diagnosis'));
+    console.log(chalk.gray('─'.repeat(50)));
+    
+    console.log(`Settings enabled: ${settings.aliases.enabled ? chalk.green('✓ YES') : chalk.red('✗ NO')}`);
+    
+    // Check if vibekit command exists
+    try {
+      const { spawn } = await import('child_process');
+      const vibekitCheck = spawn('which', ['vibekit'], { stdio: 'pipe' });
+      let vibekitPath = '';
+      
+      vibekitCheck.stdout.on('data', (data) => {
+        vibekitPath += data.toString().trim();
+      });
+      
+      await new Promise((resolve) => {
+        vibekitCheck.on('close', (code) => {
+          if (code === 0 && vibekitPath) {
+            console.log(`VibeKit command: ${chalk.green('✓ FOUND')} at ${vibekitPath}`);
+          } else {
+            console.log(`VibeKit command: ${chalk.red('✗ NOT FOUND')}`);
+            console.log(chalk.yellow('  Try: npm install -g @vibe-kit/cli'));
+          }
+          resolve();
+        });
+      });
+    } catch (error) {
+      console.log(`VibeKit command: ${chalk.red('✗ ERROR')} - ${error.message}`);
+    }
+    
+    // Check current shell aliases
+    const shellWorking = await checkAliasesInCurrentShell();
+    console.log(`Shell aliases: ${shellWorking ? chalk.green('✓ WORKING') : chalk.red('✗ NOT WORKING')}`);
+    
+    if (!shellWorking) {
+      console.log(chalk.yellow('\n💡 To fix alias issues:'));
+      console.log(chalk.yellow('   1. Run: vibekit settings (enable aliases)'));
+      console.log(chalk.yellow('   2. Restart terminal or run: source ~/.zshrc'));
+      console.log(chalk.yellow('   3. Test with: claude --help'));
+    }
+    
+    // Show current aliases
+    try {
+      const { spawn } = await import('child_process');
+      const aliasCheck = spawn('bash', ['-c', 'alias | grep -E "(claude|gemini)"'], { stdio: 'pipe' });
+      let aliasOutput = '';
+      
+      aliasCheck.stdout.on('data', (data) => {
+        aliasOutput += data.toString();
+      });
+      
+      await new Promise((resolve) => {
+        aliasCheck.on('close', () => {
+          if (aliasOutput.trim()) {
+            console.log(chalk.blue('\n📋 Current aliases:'));
+            console.log(aliasOutput.trim());
+          }
+          resolve();
+        });
+      });
+    } catch (error) {
+      // Ignore alias check errors
+    }
   });
 
 program

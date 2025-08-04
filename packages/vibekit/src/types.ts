@@ -1,7 +1,8 @@
 import { ProviderType } from './constants/providers';
+import { AgentType } from './constants/agents';
 
 // AGENTS
-export type AgentType = "codex" | "claude" | "opencode" | "gemini" | "grok";
+export { AgentType };
 
 export type AgentMode = "ask" | "code";
 

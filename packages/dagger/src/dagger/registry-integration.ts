@@ -34,7 +34,8 @@ let RegistryManager: any = null;
 
 async function getDockerClient() {
   if (!DockerClient) {
-    const infraModule = await import("@vibe-kit/sdk/infra").catch(() => null);
+    const infraPath = '@vibe-kit/sdk/infra';
+    const infraModule = await import(infraPath).catch(() => null);
     if (infraModule) {
       DockerClient = infraModule.DockerClient;
     }
@@ -56,7 +57,8 @@ async function getDockerClient() {
 
 async function getConfigManager() {
   if (!ConfigManager) {
-    const infraModule = await import("@vibe-kit/sdk/infra").catch(() => null);
+    const infraPath = '@vibe-kit/sdk/infra';
+    const infraModule = await import(infraPath).catch(() => null);
     if (infraModule) {
       ConfigManager = infraModule.ConfigManager;
     }
@@ -77,7 +79,8 @@ async function getConfigManager() {
 
 async function getRegistryManager() {
   if (!DockerHubRegistry || !RegistryManager) {
-    const registryModule = await import("@vibe-kit/sdk/registry").catch(() => null);
+    const registryPath = '@vibe-kit/sdk/registry';
+    const registryModule = await import(registryPath).catch(() => null);
     if (registryModule) {
       DockerHubRegistry = registryModule.DockerHubRegistry;
       RegistryManager = registryModule.RegistryManager;

@@ -400,7 +400,8 @@ class ImageResolver {
 
   private async initializeSharedResolver(config: any) {
     try {
-      const registryModule = await import("@vibe-kit/sdk/registry").catch(() => null);
+      const modulePath = '@vibe-kit/sdk/registry';
+      const registryModule = await import(modulePath).catch(() => null);
       if (!registryModule) {
         config.logger.warn("Registry module not available, using fallback image resolution");
         return;
@@ -685,7 +686,8 @@ export async function prebuildAgentImages(
   
   // Try to use shared ImageResolver for pre-building
   try {
-    const registryModule = await import("@vibe-kit/sdk/registry").catch(() => null);
+    const modulePath = '@vibe-kit/sdk/registry';
+    const registryModule = await import(modulePath).catch(() => null);
     if (registryModule) {
       const { ImageResolver: SharedImageResolver, RegistryManager, DockerHubRegistry } = registryModule;
       

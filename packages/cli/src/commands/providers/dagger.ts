@@ -106,13 +106,20 @@ export async function installLocal(
     spinner.text = "Checking Docker registry configuration...";
 
     try {
-      // Import the Docker registry functions
-      const { checkDockerLogin, setupUserDockerRegistry } = await import(
-        "@vibe-kit/dagger"
+      // Import the shared registry functions
+      const { RegistryManager, DockerHubRegistry } = await import(
+        "@vibe-kit/sdk/registry"
       );
 
+      // Create registry manager with Docker Hub
+      const dockerHubRegistry = new DockerHubRegistry();
+      const registryManager = new RegistryManager({
+        defaultRegistry: 'dockerhub',
+      });
+      registryManager.registerRegistry('dockerhub', dockerHubRegistry);
+
       // Check if user is logged into Docker Hub
-      const loginInfo = await checkDockerLogin();
+      const loginInfo = await registryManager.checkLogin();
 
       if (loginInfo.isLoggedIn && loginInfo.username) {
         spinner.succeed(`Docker login confirmed: ${loginInfo.username}`);
@@ -168,7 +175,7 @@ export async function installLocal(
               ['claude', 'codex', 'opencode', 'gemini', 'grok'].includes(t)
             ) as any[] : undefined;
             
-            const setupResult = await setupUserDockerRegistry(selectedAgents);
+            const setupResult = await registryManager.setupRegistry(selectedAgents);
 
             if (setupResult.success) {
               registrySpinner.succeed("Docker registry setup completed");

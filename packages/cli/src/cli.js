@@ -63,10 +63,22 @@ program
     
     // Get proxy from global option, environment variable, or default if proxy enabled in settings
     let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    let proxyStarted = false;
     
-    // Use default proxy if enabled in settings but no explicit proxy provided
+    // Start proxy server if enabled in settings but no explicit proxy provided
     if (!proxy && settings.proxy.enabled) {
       proxy = 'http://localhost:8080';
+      
+      // Start proxy server if not already running
+      if (!proxyManager.isRunning()) {
+        try {
+          const proxyServer = proxyManager.getProxyServer(8080);
+          await proxyServer.start();
+          proxyStarted = true;
+        } catch (error) {
+          proxy = null;
+        }
+      }
     }
     
     // Set ANTHROPIC_BASE_URL to route Claude requests through proxy
@@ -98,8 +110,28 @@ program
     };
     const agent = new ClaudeAgent(logger, agentOptions);
     
+    // Setup cleanup handlers for proxy server
+    if (proxyStarted) {
+      const cleanup = () => {
+        if (proxyManager.isRunning()) {
+          proxyManager.stop();
+        }
+      };
+      
+      process.on('SIGINT', cleanup);
+      process.on('SIGTERM', cleanup);
+      process.on('exit', cleanup);
+    }
+    
     const args = command.args || [];
-    await agent.run(args);
+    try {
+      await agent.run(args);
+    } finally {
+      // Clean up proxy server if we started it
+      if (proxyStarted && proxyManager.isRunning()) {
+        proxyManager.stop();
+      }
+    }
   });
 
 program
@@ -116,10 +148,22 @@ program
     
     // Get proxy from global option, environment variable, or default if proxy enabled in settings
     let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    let proxyStarted = false;
     
-    // Use default proxy if enabled in settings but no explicit proxy provided
+    // Start proxy server if enabled in settings but no explicit proxy provided
     if (!proxy && settings.proxy.enabled) {
       proxy = 'http://localhost:8080';
+      
+      // Start proxy server if not already running
+      if (!proxyManager.isRunning()) {
+        try {
+          const proxyServer = proxyManager.getProxyServer(8080);
+          await proxyServer.start();
+          proxyStarted = true;
+        } catch (error) {
+          proxy = null;
+        }
+      }
     }
     
     // Determine sandbox type based on settings and options
@@ -144,8 +188,28 @@ program
     };
     const agent = new GeminiAgent(logger, agentOptions);
     
+    // Setup cleanup handlers for proxy server
+    if (proxyStarted) {
+      const cleanup = () => {
+        if (proxyManager.isRunning()) {
+          proxyManager.stop();
+        }
+      };
+      
+      process.on('SIGINT', cleanup);
+      process.on('SIGTERM', cleanup);
+      process.on('exit', cleanup);
+    }
+    
     const args = command.args || [];
-    await agent.run(args);
+    try {
+      await agent.run(args);
+    } finally {
+      // Clean up proxy server if we started it
+      if (proxyStarted && proxyManager.isRunning()) {
+        proxyManager.stop();
+      }
+    }
   });
 
 program

@@ -33,18 +33,15 @@ class ProxyServer {
               try {
                 patterns[patternObj.pattern.name] = new RegExp(patternObj.pattern.regex, 'gi');
               } catch (error) {
-                console.log(chalk.yellow(`[proxy] Warning: Invalid regex for ${patternObj.pattern.name}: ${error.message}`));
+                // Invalid regex pattern, skip silently
               }
             }
           });
         }
       }
       
-      console.log(chalk.green(`[proxy] Loaded ${Object.keys(patterns).length} sensitive data patterns`));
       return patterns;
     } catch (error) {
-      console.log(chalk.red(`[proxy] Error loading patterns: ${error.message}`));
-      console.log(chalk.yellow(`[proxy] Falling back to basic patterns`));
       return {
         emails: /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi,
         creditCards: /[0-9]{13,19}/g
@@ -66,24 +63,16 @@ class ProxyServer {
 
       // Start listening
       this.server.listen(this.port, () => {
-        console.log(chalk.green(`🔄 Vibekit Proxy Server running on http://localhost:${this.port}`));
-        console.log(chalk.blue(`📊 Logging all HTTP/HTTPS traffic (including SSE streams)`));
-        console.log(chalk.yellow(`🔗 Configure your application to use HTTP proxy: http://localhost:${this.port}`));
-        console.log(chalk.magenta(`🌊 For SSE support, ensure your requests use HTTP or configure HTTPS certificate handling`));
-        console.log(chalk.gray(`Press Ctrl+C to stop\n`));
         resolve();
       });
 
       this.server.on('error', (error) => {
-        console.error(chalk.red(`❌ Proxy server error: ${error.message}`));
         reject(error);
       });
 
       // Graceful shutdown
       process.on('SIGINT', () => {
-        console.log(chalk.yellow('\n📴 Shutting down proxy server...'));
         this.server.close(() => {
-          console.log(chalk.green('✅ Proxy server stopped'));
           process.exit(0);
         });
       });
@@ -97,9 +86,6 @@ class ProxyServer {
   handleHttpRequest(req, res) {
     this.requestCount++;
     const requestId = this.requestCount;
-    
-    console.log(chalk.cyan(`\n[${requestId}] 📤 HTTP ${req.method} ${req.url}`));
-    console.log(chalk.gray(`[${requestId}] Headers:`, JSON.stringify(req.headers, null, 2)));
 
     // Parse the target URL - handle relative URLs by prepending Anthropic API base
     let targetUrl;
@@ -112,7 +98,6 @@ class ProxyServer {
         targetUrl = new URL(req.url);
       }
     } catch (error) {
-      console.log(chalk.red(`[${requestId}] ❌ Invalid URL: ${req.url}`));
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Bad Request: Invalid URL');
       return;
@@ -133,7 +118,6 @@ class ProxyServer {
     delete options.headers['proxy-connection'];
     delete options.headers['proxy-authorization'];
 
-    console.log(chalk.blue(`[${requestId}] 🎯 Proxying to: ${targetUrl.hostname}:${options.port}`));
 
     // Choose http or https module
     const httpModule = targetUrl.protocol === 'https:' ? https : http;
@@ -145,10 +129,7 @@ class ProxyServer {
     });
 
     req.on('end', () => {
-      if (requestBody) {
-        console.log(chalk.magenta(`[${requestId}] 📝 Request Body:`));
-        console.log(requestBody);
-      }
+      // Request body captured silently
     });
 
     // Create sensitive data filter transform
@@ -174,7 +155,6 @@ class ProxyServer {
             Object.entries(sensitivePatterns).forEach(([type, pattern]) => {
               const matches = processChunk.match(pattern);
               if (matches) {
-                console.log(chalk.red(`[${requestId}] 🚨 Detected ${type}: ${matches.length} match(es) - redacting`));
                 processChunk = processChunk.replace(pattern, `[${type.toUpperCase()}_REDACTED]`);
               }
             });
@@ -191,7 +171,6 @@ class ProxyServer {
             Object.entries(sensitivePatterns).forEach(([type, pattern]) => {
               const matches = buffer.match(pattern);
               if (matches) {
-                console.log(chalk.red(`[${requestId}] 🚨 Detected ${type} in final buffer: ${matches.length} match(es) - redacting`));
                 buffer = buffer.replace(pattern, `[${type.toUpperCase()}_REDACTED]`);
               }
             });
@@ -204,14 +183,11 @@ class ProxyServer {
 
     // Make the proxied request
     const proxyReq = httpModule.request(options, (proxyRes) => {
-      console.log(chalk.green(`[${requestId}] 📥 Response ${proxyRes.statusCode} from ${targetUrl.hostname}`));
-      console.log(chalk.gray(`[${requestId}] Response Headers:`, JSON.stringify(proxyRes.headers, null, 2)));
 
       // Check if this is an SSE response
       const isSSE = proxyRes.headers['content-type']?.includes('text/event-stream');
       
       if (isSSE) {
-        console.log(chalk.magenta(`[${requestId}] 🌊 SSE Stream detected - listening for events...`));
         this.handleSSEResponse(requestId, proxyRes);
       }
 
@@ -228,16 +204,7 @@ class ProxyServer {
       });
 
       proxyRes.on('end', () => {
-        if (!isSSE && responseBody) {
-          console.log(chalk.yellow(`[${requestId}] 📄 Response Body:`));
-          console.log(responseBody);
-        }
-        
-        if (isSSE) {
-          console.log(chalk.magenta(`[${requestId}] 🌊 SSE Stream ended`));
-        }
-        
-        console.log(chalk.gray(`[${requestId}] ✅ Request completed\n`));
+        // Request completed silently
       });
 
       // Forward the response through sensitive data filter
@@ -248,7 +215,6 @@ class ProxyServer {
 
     // Handle proxy request errors
     proxyReq.on('error', (error) => {
-      console.log(chalk.red(`[${requestId}] ❌ Proxy error: ${error.message}`));
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end('Proxy Error: ' + error.message);
     });
@@ -261,15 +227,11 @@ class ProxyServer {
     this.requestCount++;
     const requestId = this.requestCount;
     
-    console.log(chalk.cyan(`\n[${requestId}] 🔒 HTTPS CONNECT to ${req.url}`));
-
     const { hostname, port } = this.parseHostPort(req.url);
-    console.log(chalk.blue(`[${requestId}] 🎯 Tunneling to: ${hostname}:${port}`));
 
     const serverSocket = new net.Socket();
 
     serverSocket.connect(port, hostname, () => {
-      console.log(chalk.green(`[${requestId}] ✅ HTTPS tunnel established`));
       
       // Send connection established response
       clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
@@ -279,14 +241,12 @@ class ProxyServer {
         serverSocket.write(head);
       }
       
-      // Log data flowing through the tunnel with enhanced detection
+      // Data flows through tunnel silently
       clientSocket.on('data', (data) => {
-        console.log(chalk.magenta(`[${requestId}] 📤 Client->Server: ${data.length} bytes`));
         this.analyzeTraffic(requestId, data, 'client->server');
       });
 
       serverSocket.on('data', (data) => {
-        console.log(chalk.yellow(`[${requestId}] 📥 Server->Client: ${data.length} bytes`));
         this.analyzeTraffic(requestId, data, 'server->client');
       });
 
@@ -295,17 +255,15 @@ class ProxyServer {
     });
 
     serverSocket.on('error', (error) => {
-      console.log(chalk.red(`[${requestId}] ❌ HTTPS tunnel error: ${error.message}`));
       clientSocket.end();
     });
 
     clientSocket.on('error', (error) => {
-      console.log(chalk.red(`[${requestId}] ❌ Client socket error: ${error.message}`));
       serverSocket.end();
     });
 
     serverSocket.on('end', () => {
-      console.log(chalk.gray(`[${requestId}] 🔚 HTTPS tunnel closed\n`));
+      // Tunnel closed silently
     });
   }
 
@@ -333,12 +291,10 @@ class ProxyServer {
     
     // Set up event listeners for SSE stream lifecycle
     proxyRes.on('close', () => {
-      console.log(chalk.magenta(`[${requestId}] 🌊 SSE connection closed`));
       this.sseBuffers.delete(requestId);
     });
     
     proxyRes.on('error', (error) => {
-      console.log(chalk.red(`[${requestId}] ❌ SSE stream error: ${error.message}`));
       this.sseBuffers.delete(requestId);
     });
   }
@@ -400,64 +356,13 @@ class ProxyServer {
       }
     });
     
-    // Log the parsed SSE event
-    console.log(chalk.blue(`[${requestId}] 📡 SSE Event:`));
-    console.log(chalk.cyan(`  Type: ${event.type}`));
-    if (event.id) console.log(chalk.cyan(`  ID: ${event.id}`));
-    if (event.retry) console.log(chalk.cyan(`  Retry: ${event.retry}ms`));
-    
-    // Display data with proper formatting
-    if (event.data) {
-      try {
-        // Try to parse as JSON for better formatting
-        const jsonData = JSON.parse(event.data);
-        console.log(chalk.yellow(`  Data (JSON):`));
-        console.log(chalk.gray(JSON.stringify(jsonData, null, 2)));
-      } catch {
-        // Display as text if not JSON
-        console.log(chalk.yellow(`  Data: ${this.truncateString(event.data, 300)}`));
-      }
-    }
-    
-    console.log(chalk.gray(`  ─────────────────────────────────────`));
+    // Parse SSE event silently
+    // Event data is processed but not logged
   }
 
   analyzeTraffic(requestId, data, direction) {
-    const dataStr = data.toString('utf8', 0, Math.min(data.length, 500));
-    
-    // Check if this looks like HTTP request/response
-    if (dataStr.includes('HTTP/1.1') || dataStr.includes('HTTP/2')) {
-      console.log(chalk.blue(`[${requestId}] 🔍 HTTP traffic detected in tunnel`));
-      
-      // Check for SSE-related headers
-      if (dataStr.includes('text/event-stream') || dataStr.includes('Accept: text/event-stream')) {
-        console.log(chalk.magenta(`[${requestId}] 🌊 SSE headers detected in encrypted tunnel`));
-        console.log(chalk.yellow(`[${requestId}] ⚠️  SSE content cannot be parsed due to HTTPS encryption`));
-        console.log(chalk.gray(`[${requestId}] 💡 Consider using HTTP endpoints for full SSE monitoring`));
-      }
-      
-      // Show readable HTTP headers if available
-      const lines = dataStr.split('\n');
-      const httpLine = lines.find(line => line.includes('HTTP/'));
-      if (httpLine) {
-        console.log(chalk.cyan(`[${requestId}] HTTP: ${httpLine.trim()}`));
-      }
-      
-      // Show some headers
-      const headers = lines.slice(1, 5).filter(line => line.includes(':')).map(h => h.trim());
-      if (headers.length > 0) {
-        console.log(chalk.gray(`[${requestId}] Headers: ${headers.join(', ')}`));
-      }
-    } else if (data.length < 100 && this.isPrintableData(dataStr)) {
-      // Show small printable data
-      console.log(chalk.gray(`[${requestId}] Data: ${this.truncateString(dataStr, 100)}`));
-    } else {
-      // Show first few bytes in hex for binary data
-      const hexBytes = Array.from(data.slice(0, 16))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join(' ');
-      console.log(chalk.gray(`[${requestId}] Binary data (hex): ${hexBytes}${data.length > 16 ? '...' : ''}`));
-    }
+    // Traffic analysis runs silently
+    // Data is processed but not logged
   }
 
   isPrintableData(str) {

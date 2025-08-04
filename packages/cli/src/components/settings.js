@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { setupAliases } from '../utils/aliases.js';
+import proxyManager from '../proxy/manager.js';
 
 const Settings = () => {
   const [settings, setSettings] = useState({
@@ -129,7 +130,7 @@ const Settings = () => {
     }
   };
 
-  useInput((input, key) => {
+  useInput(async (input, key) => {
     if (loading) return;
 
     if (key.upArrow || input === 'k') {
@@ -183,6 +184,19 @@ const Settings = () => {
             }
           };
           saveSettings(newProxySettings);
+          
+          // Auto-start proxy server if enabled and not already running
+          if (newProxySettings.proxy.enabled && !proxyManager.isRunning()) {
+            try {
+              const proxyServer = proxyManager.getProxyServer(8080);
+              await proxyServer.start();
+            } catch (error) {
+              console.error('\n❌ Failed to start proxy server:', error.message);
+            }
+          } else if (!newProxySettings.proxy.enabled && proxyManager.isRunning()) {
+            // Stop proxy server if disabled
+            proxyManager.stop();
+          }
           break;
         case 'toggle-redaction':
           const newRedactionSettings = {

@@ -218,7 +218,6 @@ class BaseAgent {
           cleanup();
           
           const duration = Date.now() - startTime;
-          console.log(chalk.blue(`[vibekit] Process exited with code ${code} (${duration}ms)`));
           
           // Finalize analytics
           const analyticsData = await analytics.finalize(code, duration);
@@ -251,7 +250,6 @@ class BaseAgent {
         
         child.on('close', async (code) => {
           const duration = Date.now() - startTime;
-          console.log(chalk.blue(`[vibekit] Process exited with code ${code} (${duration}ms)`));
           
           // Finalize analytics
           const analyticsData = await analytics.finalize(code, duration);
@@ -380,8 +378,6 @@ class BaseAgent {
 
         const duration = Date.now() - startTime;
         const code = exitCode !== undefined ? exitCode : (signal ? -1 : 0);
-        
-        console.log(chalk.blue(`[vibekit] Process exited with code ${code} (${duration}ms)`));
         
         // Finalize analytics with full data
         const analyticsData = await analytics.finalize(code, duration);

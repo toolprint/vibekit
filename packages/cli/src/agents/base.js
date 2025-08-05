@@ -288,31 +288,6 @@ class BaseAgent {
         settings: this.settings
       }] }, (item) => React.createElement(StatusDisplay, item)));
       
-      // Add dashboard opening functionality
-      const openDashboard = async () => {
-        try {
-          const dashboardUrl = 'http://localhost:3001';
-          console.log(`Opening dashboard: ${dashboardUrl}`);
-          
-          // Use dynamic import for open package
-          const { default: open } = await import('open');
-          await open(dashboardUrl);
-        } catch (error) {
-          console.error('❌ Failed to open dashboard:', error.message);
-        }
-      };
-
-      // Set up input handler for dashboard opening (Cmd+D or Ctrl+D)
-      const dashboardInputHandler = (data) => {
-        const input = data.toString();
-        // Check for Ctrl+D (ASCII code 4) 
-        if (input.charCodeAt(0) === 4) {
-          openDashboard();
-        }
-      };
-      
-      // Add temporary input listener for dashboard opening
-      process.stdin.on('data', dashboardInputHandler);
       
       // Unmount after a brief delay to prevent conflicts with child process
       setTimeout(() => {
@@ -394,7 +369,6 @@ class BaseAgent {
         // Cleanup function for non-interactive mode
         const cleanup = () => {
           process.stdin.removeListener('data', stdinHandler);
-          process.stdin.removeListener('data', dashboardInputHandler);
         };
 
         child.on('close', async (code) => {
@@ -448,9 +422,6 @@ class BaseAgent {
         }
         
         child.on('close', async (code) => {
-          // Cleanup dashboard input handler
-          process.stdin.removeListener('data', dashboardInputHandler);
-          
           const duration = Date.now() - startTime;
           
           // Detect file changes
@@ -480,9 +451,6 @@ class BaseAgent {
         });
 
         child.on('error', async (error) => {
-          // Cleanup dashboard input handler
-          process.stdin.removeListener('data', dashboardInputHandler);
-          
           console.error(chalk.red(`[vibekit] Process error: ${error.message}`));
           
           // Finalize analytics with error

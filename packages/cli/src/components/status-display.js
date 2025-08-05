@@ -16,7 +16,7 @@ const StatusDisplay = ({agentName, sandboxType, options = {}, settings = {}}) =>
   return (
     <Box flexDirection="column" marginTop={1}>
       <Text dimColor>
-        🖖 VibeKit | Sandbox: <Text color={sandboxStatus === 'ON' ? 'green' : sandboxStatus === 'UNAVAILABLE' ? 'yellow' : 'red'}>{sandboxStatus}</Text> | Proxy: <Text color={options.proxy ? 'green' : 'red'}>{proxyStatus}</Text> | Dashboard: <Text color="cyan">Press Ctrl+D to open</Text>
+        🖖 VibeKit | Sandbox: <Text color={sandboxStatus === 'ON' ? 'green' : sandboxStatus === 'UNAVAILABLE' ? 'yellow' : 'red'}>{sandboxStatus}</Text> | Proxy: <Text color={options.proxy ? 'green' : 'red'}>{proxyStatus}</Text> | Dashboard: <Text color="cyan">http://localhost:3001</Text>
       </Text>
       {sandboxStatus === 'UNAVAILABLE' && (
         <Box flexDirection="column" marginTop={1}>

@@ -289,33 +289,26 @@ class BaseAgent {
       }] }, (item) => React.createElement(StatusDisplay, item)));
       
       // Add dashboard opening functionality
-      const openDashboard = async () => {
+      const openDashboard = () => {
         try {
-          console.log('\n📊 Starting analytics dashboard server...');
+          const dashboardUrl = 'http://localhost:3001';
+          console.log(`Opening dashboard: ${dashboardUrl}`);
           
-          const { default: dashboardManager } = await import('../dashboard/manager.js');
-          const dashboardServer = dashboardManager.getDashboardServer(3001);
-          await dashboardServer.start();
-          const status = dashboardServer.getStatus();
-          
-          if (status.running && status.url) {
-            console.log(`Dashboard available at: ${status.url}`);
-            
-            // Open browser
-            const { exec } = await import('child_process');
-            const openCmd = process.platform === 'darwin' ? 'open' : 
-                           process.platform === 'win32' ? 'start' : 'xdg-open';
-            exec(`${openCmd} ${status.url}`);
-          }
+          // Open browser
+          const { exec } = require('child_process');
+          const openCmd = process.platform === 'darwin' ? 'open' : 
+                         process.platform === 'win32' ? 'start' : 'xdg-open';
+          exec(`${openCmd} ${dashboardUrl}`);
         } catch (error) {
-          console.error('❌ Failed to start dashboard server:', error.message);
+          console.error('❌ Failed to open dashboard:', error.message);
         }
       };
 
-      // Set up input handler for dashboard opening (press 'd')
+      // Set up input handler for dashboard opening (Cmd+D or Ctrl+D)
       const dashboardInputHandler = (data) => {
         const input = data.toString();
-        if (input === 'd' || input === 'D') {
+        // Check for Ctrl+D (ASCII code 4) 
+        if (input.charCodeAt(0) === 4) {
           openDashboard();
         }
       };

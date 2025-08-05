@@ -12,7 +12,7 @@ import Docker from './sandbox/docker.js';
 import Analytics from './analytics/analytics.js';
 import ProxyServer from './proxy/server.js';
 import proxyManager from './proxy/manager.js';
-import dashboardManager from './dashboard/manager.js';
+// Dashboard manager will be imported lazily when needed
 import React from 'react';
 import { render } from 'ink';
 import Settings from './components/settings.js';
@@ -20,8 +20,20 @@ import { setupAliases } from './utils/aliases.js';
 
 const program = new Command();
 
-// Function to read user settings
+// Settings cache to avoid repeated file I/O
+let settingsCache = null;
+let settingsCacheTime = 0;
+const SETTINGS_CACHE_TTL = 30000; // 30 seconds cache
+
+// Function to read user settings with caching
 async function readSettings() {
+  const now = Date.now();
+  
+  // Return cached settings if still valid
+  if (settingsCache && (now - settingsCacheTime) < SETTINGS_CACHE_TTL) {
+    return settingsCache;
+  }
+  
   const settingsPath = path.join(os.homedir(), '.vibekit', 'settings.json');
   const defaultSettings = {
     sandbox: { enabled: false },
@@ -33,13 +45,17 @@ async function readSettings() {
   try {
     if (await fs.pathExists(settingsPath)) {
       const userSettings = await fs.readJson(settingsPath);
-      return { ...defaultSettings, ...userSettings };
+      settingsCache = { ...defaultSettings, ...userSettings };
+    } else {
+      settingsCache = defaultSettings;
     }
   } catch (error) {
     // Use default settings if reading fails
+    settingsCache = defaultSettings;
   }
   
-  return defaultSettings;
+  settingsCacheTime = now;
+  return settingsCache;
 }
 
 program
@@ -54,8 +70,6 @@ program
   .option('--sandbox <type>', 'Sandbox type: none (default), docker', 'none')
   .option('--no-network', 'Disable network access (Docker only)')
   .option('--fresh-container', 'Use fresh Docker container instead of persistent one')
-  .option('--analytics-mode <mode>', 'Analytics capture mode: basic (default), full', 'basic')
-  .option('--no-pty', 'Disable PTY for interactive sessions (basic analytics only)')
   .allowUnknownOption()
   .allowExcessArguments()
   .action(async (options, command) => {
@@ -66,20 +80,11 @@ program
     let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     let proxyStarted = false;
     
-    // Start proxy server if enabled in settings but no explicit proxy provided
+    // Determine if we need to start proxy server later (lazy startup)
+    let shouldStartProxy = false;
     if (!proxy && settings.proxy.enabled) {
       proxy = 'http://localhost:8080';
-      
-      // Start proxy server if not already running
-      if (!proxyManager.isRunning()) {
-        try {
-          const proxyServer = proxyManager.getProxyServer(8080);
-          await proxyServer.start();
-          proxyStarted = true;
-        } catch (error) {
-          proxy = null;
-        }
-      }
+      shouldStartProxy = !proxyManager.isRunning();
     }
     
     // Set ANTHROPIC_BASE_URL to route Claude requests through proxy
@@ -87,7 +92,7 @@ program
       process.env.ANTHROPIC_BASE_URL = proxy;
     }
     
-    // Determine sandbox type based on settings and options
+    // Determine sandbox type based on settings and options (lazy Docker check)
     let sandboxType = options.sandbox;
     if (sandboxType === 'docker' && !settings.sandbox.enabled) {
       // If user explicitly selected docker but settings have sandbox disabled, use none
@@ -97,20 +102,13 @@ program
       sandboxType = settings.sandbox.enabled ? 'docker' : 'none';
     }
     
-    // Check Docker availability if sandbox is enabled
-    if (sandboxType === 'docker') {
-      const docker = new Docker(process.cwd(), logger);
-      const dockerAvailable = await docker.checkDockerInstallation();
-      if (!dockerAvailable) {
-        sandboxType = 'none';
-      }
-    }
+    // Docker availability will be checked lazily when actually needed in BaseAgent.runInDocker()
     
     const agentOptions = {
       sandbox: sandboxType,
-      analyticsMode: options.analyticsMode,
-      disablePty: options.noPty,
       proxy: proxy,
+      shouldStartProxy: shouldStartProxy,
+      proxyManager: proxyManager,
       settings: settings,
       sandboxOptions: {
         networkMode: options.noNetwork ? 'none' : 'bridge',
@@ -119,25 +117,23 @@ program
     };
     const agent = new ClaudeAgent(logger, agentOptions);
     
-    // Setup cleanup handlers for proxy server
-    if (proxyStarted) {
-      const cleanup = () => {
-        if (proxyManager.isRunning()) {
-          proxyManager.stop();
-        }
-      };
-      
-      process.on('SIGINT', cleanup);
-      process.on('SIGTERM', cleanup);
-      process.on('exit', cleanup);
-    }
+    // Setup cleanup handlers for proxy server (including lazy-started proxy)
+    const cleanup = () => {
+      if ((proxyStarted || agent.proxyStarted) && proxyManager.isRunning()) {
+        proxyManager.stop();
+      }
+    };
+    
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    process.on('exit', cleanup);
     
     const args = command.args || [];
     try {
       await agent.run(args);
     } finally {
-      // Clean up proxy server if we started it
-      if (proxyStarted && proxyManager.isRunning()) {
+      // Clean up proxy server if we or the agent started it
+      if ((proxyStarted || agent.proxyStarted) && proxyManager.isRunning()) {
         proxyManager.stop();
       }
     }
@@ -148,7 +144,6 @@ program
   .description('Run Gemini CLI (sandbox configurable in settings)')
   .option('--sandbox <type>', 'Sandbox type: none (default), docker', 'none')
   .option('--network', 'Allow network access (less secure)')
-  .option('--analytics-mode <mode>', 'Analytics capture mode: basic (default), full', 'basic')
   .allowUnknownOption()
   .allowExcessArguments()
   .action(async (options, command) => {
@@ -159,23 +154,14 @@ program
     let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     let proxyStarted = false;
     
-    // Start proxy server if enabled in settings but no explicit proxy provided
+    // Determine if we need to start proxy server later (lazy startup)
+    let shouldStartProxy = false;
     if (!proxy && settings.proxy.enabled) {
       proxy = 'http://localhost:8080';
-      
-      // Start proxy server if not already running
-      if (!proxyManager.isRunning()) {
-        try {
-          const proxyServer = proxyManager.getProxyServer(8080);
-          await proxyServer.start();
-          proxyStarted = true;
-        } catch (error) {
-          proxy = null;
-        }
-      }
+      shouldStartProxy = !proxyManager.isRunning();
     }
     
-    // Determine sandbox type based on settings and options
+    // Determine sandbox type based on settings and options (lazy Docker check)
     let sandboxType = options.sandbox;
     if (sandboxType === 'docker' && !settings.sandbox.enabled) {
       // If user explicitly selected docker but settings have sandbox disabled, use none
@@ -185,19 +171,13 @@ program
       sandboxType = settings.sandbox.enabled ? 'docker' : 'none';
     }
     
-    // Check Docker availability if sandbox is enabled
-    if (sandboxType === 'docker') {
-      const docker = new Docker(process.cwd(), logger);
-      const dockerAvailable = await docker.checkDockerInstallation();
-      if (!dockerAvailable) {
-        sandboxType = 'none';
-      }
-    }
+    // Docker availability will be checked lazily when actually needed in BaseAgent.runInDocker()
     
     const agentOptions = {
       sandbox: sandboxType,
-      analyticsMode: options.analyticsMode,
       proxy: proxy,
+      shouldStartProxy: shouldStartProxy,
+      proxyManager: proxyManager,
       settings: settings,
       sandboxOptions: {
         networkAccess: options.network === true
@@ -205,25 +185,23 @@ program
     };
     const agent = new GeminiAgent(logger, agentOptions);
     
-    // Setup cleanup handlers for proxy server
-    if (proxyStarted) {
-      const cleanup = () => {
-        if (proxyManager.isRunning()) {
-          proxyManager.stop();
-        }
-      };
-      
-      process.on('SIGINT', cleanup);
-      process.on('SIGTERM', cleanup);
-      process.on('exit', cleanup);
-    }
+    // Setup cleanup handlers for proxy server (including lazy-started proxy)
+    const cleanup = () => {
+      if ((proxyStarted || agent.proxyStarted) && proxyManager.isRunning()) {
+        proxyManager.stop();
+      }
+    };
+    
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    process.on('exit', cleanup);
     
     const args = command.args || [];
     try {
       await agent.run(args);
     } finally {
-      // Clean up proxy server if we started it
-      if (proxyStarted && proxyManager.isRunning()) {
+      // Clean up proxy server if we or the agent started it
+      if ((proxyStarted || agent.proxyStarted) && proxyManager.isRunning()) {
         proxyManager.stop();
       }
     }
@@ -440,6 +418,7 @@ dashboardCommand
   .option('--open', 'Open dashboard in browser automatically')
   .action(async (options) => {
     const port = parseInt(options.port) || 3001;
+    const { default: dashboardManager } = await import('./dashboard/manager.js');
     const dashboardServer = dashboardManager.getDashboardServer(port);
     
     try {
@@ -460,6 +439,7 @@ dashboardCommand
     // If no subcommand was provided, start the dashboard with default settings
     if (command.args.length === 0) {
       const port = 3001; // Default port when no subcommand is used
+      const { default: dashboardManager } = await import('./dashboard/manager.js');
       const dashboardServer = dashboardManager.getDashboardServer(port);
       
       try {
@@ -477,6 +457,7 @@ dashboardCommand
   .option('-p, --port <number>', 'Port to stop dashboard on', '3001')
   .action(async (options) => {
     const port = parseInt(options.port) || 3001;
+    const { default: dashboardManager } = await import('./dashboard/manager.js');
     dashboardManager.stop(port);
     console.log(chalk.green(`✅ Dashboard stopped on port ${port}`));
   });

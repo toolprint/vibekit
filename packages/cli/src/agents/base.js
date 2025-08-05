@@ -19,23 +19,40 @@ class BaseAgent {
     this.sandboxType = options.sandbox || 'none';
     this.sandboxOptions = options.sandboxOptions || {};
     
-    // Analytics options
-    this.analyticsMode = options.analyticsMode || 'basic'; // 'basic' or 'full'
-    this.disablePty = options.disablePty || false;
+    // Analytics options - always capture full analytics with optimized snapshotting
     
     // Proxy options
     this.proxy = options.proxy;
+    this.shouldStartProxy = options.shouldStartProxy || false;
+    this.proxyManager = options.proxyManager;
+    this.proxyStarted = false;
     
     // Settings for display
     this.settings = options.settings || {};
   }
 
 
+  // Lazy proxy startup
+  async startProxyIfNeeded() {
+    if (this.shouldStartProxy && this.proxyManager && !this.proxyStarted) {
+      try {
+        const proxyServer = this.proxyManager.getProxyServer(8080);
+        await proxyServer.start();
+        this.proxyStarted = true;
+      } catch (error) {
+        console.log(chalk.yellow('⚠️  Failed to start proxy server, continuing without proxy'));
+      }
+    }
+  }
+
   async run(args) {
     await this.logger.log('info', `Starting ${this.agentName} agent`, { 
       args, 
       sandboxType: this.sandboxType 
     });
+
+    // Start proxy lazily if needed
+    await this.startProxyIfNeeded();
 
     try {
       switch (this.sandboxType) {
@@ -62,6 +79,13 @@ class BaseAgent {
 
   async runInDocker(args) {
     const dockerSandbox = new Docker(process.cwd(), this.logger, this.sandboxOptions);
+    
+    // Check Docker availability lazily (only when actually needed)
+    const dockerAvailable = await dockerSandbox.checkDockerInstallation();
+    if (!dockerAvailable) {
+      console.log(chalk.yellow('⚠️  Docker not available, falling back to direct execution'));
+      return await this.runDirect(args);
+    }
     
     try {
       const startTime = Date.now();
@@ -124,26 +148,50 @@ class BaseAgent {
   async captureFileSnapshot(dir = process.cwd()) {
     const snapshot = new Map();
     
-    const walkDir = async (dirPath, relativePath = '') => {
+    // Skip expensive directories that rarely contain user-modified code
+    const skipDirs = new Set([
+      'node_modules', '.git', '.next', 'dist', 'build', '.cache', 
+      'coverage', '.nyc_output', 'tmp', 'temp', '.vscode', '.idea',
+      '__pycache__', '.pytest_cache', 'venv', 'env', '.env',
+      'target', 'bin', 'obj', '.gradle', '.maven'
+    ]);
+    
+    // Only track common source code file extensions
+    const trackExtensions = new Set([
+      '.js', '.jsx', '.ts', '.tsx', '.vue', '.svelte',
+      '.py', '.rb', '.php', '.go', '.rs', '.java', '.kt',
+      '.c', '.cpp', '.h', '.hpp', '.cs', '.swift',
+      '.html', '.css', '.scss', '.sass', '.less',
+      '.json', '.yaml', '.yml', '.xml', '.md', '.txt',
+      '.sh', '.bash', '.zsh', '.fish', '.ps1',
+      '.sql', '.graphql', '.proto', '.dockerfile'
+    ]);
+    
+    const walkDir = async (dirPath, relativePath = '', depth = 0) => {
+      // Limit depth to prevent excessive traversal
+      if (depth > 8) return;
+      
       try {
         const items = await fs.readdir(dirPath);
         
         for (const item of items) {
           if (item.startsWith('.') && item !== '.gitignore') continue;
+          if (skipDirs.has(item)) continue;
           
           const itemPath = path.join(dirPath, item);
           const relativeItemPath = path.join(relativePath, item);
           const stat = await fs.stat(itemPath);
           
           if (stat.isDirectory()) {
-            await walkDir(itemPath, relativeItemPath);
+            await walkDir(itemPath, relativeItemPath, depth + 1);
           } else {
-            try {
-              const content = await fs.readFile(itemPath, 'utf8');
-              const hash = crypto.createHash('md5').update(content).digest('hex');
-              snapshot.set(relativeItemPath, hash);
-            } catch (error) {
-              // Skip files that can't be read (binary, permissions, etc.)
+            // Only track files with relevant extensions
+            const ext = path.extname(item).toLowerCase();
+            if (trackExtensions.has(ext) || item === 'Dockerfile' || item.endsWith('.env')) {
+              // Use file stats (mtime + size) instead of reading content for speed
+              // This is much faster and catches most meaningful changes
+              const fingerprint = `${stat.mtime.getTime()}-${stat.size}`;
+              snapshot.set(relativeItemPath, fingerprint);
             }
           }
         }
@@ -188,7 +236,7 @@ class BaseAgent {
     // Capture the command being executed
     analytics.captureCommand(command, args);
     
-    // Capture file snapshot before execution for change tracking
+    // Always capture optimized file snapshot for full analytics
     let beforeSnapshot;
     const captureSnapshot = async () => {
       try {
@@ -201,7 +249,7 @@ class BaseAgent {
     // Determine if this is likely an interactive session
     const isInteractive = args.length === 0 && process.stdin.isTTY;
     
-    // PTY functionality removed - using standard child process for all sessions
+    // Using standard child process for all sessions
     
     return new Promise(async (resolve, reject) => {
       // Capture initial file snapshot

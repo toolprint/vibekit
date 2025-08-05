@@ -28,7 +28,7 @@ const data = {
   footerLinks: [
     {
       title: "Github",
-      url: "https://github.com/vibekit/vibekit",
+      url: "https://github.com/superagent-ai/vibekit",
       icon: Github,
     },
     {

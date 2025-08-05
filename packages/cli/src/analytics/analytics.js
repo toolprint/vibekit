@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
+import { collectSystemInfo } from './system-info.js';
 
 class Analytics {
   constructor(agentName, logger) {
@@ -33,6 +34,9 @@ class Analytics {
       // Error tracking
       errors: [],
       warnings: [],
+      
+      // System information
+      systemInfo: null,
     };
     
     // Stream buffers for analysis
@@ -45,6 +49,14 @@ class Analytics {
 
   async initializeAnalytics() {
     await fs.ensureDir(this.analyticsDir);
+    
+    // Collect system info at session start
+    try {
+      this.metrics.systemInfo = await collectSystemInfo();
+    } catch (error) {
+      this.logger.log('warn', 'Failed to collect system info', { error: error.message });
+      this.metrics.systemInfo = null;
+    }
   }
 
   captureInput(data) {
@@ -164,7 +176,10 @@ class Analytics {
         filesChanged: this.metrics.filesChanged.length,
         errors: this.metrics.errors.length,
         warnings: this.metrics.warnings.length,
-        exitCode: this.metrics.exitCode
+        exitCode: this.metrics.exitCode,
+        machineId: this.metrics.systemInfo?.machineId,
+        nodeVersion: this.metrics.systemInfo?.nodeVersion,
+        projectLanguage: this.metrics.systemInfo?.projectLanguage
       });
       
       return this.metrics;
@@ -222,7 +237,11 @@ class Analytics {
         averageDuration: 0,
         successRate: 0,
         topErrors: [],
-        agentBreakdown: {}
+        agentBreakdown: {},
+        platformBreakdown: {},
+        nodeVersionBreakdown: {},
+        projectLanguageBreakdown: {},
+        terminalBreakdown: {}
       };
     }
 
@@ -273,6 +292,23 @@ class Analytics {
     });
 
     summary.agentBreakdown = agentBreakdown;
+
+    // System environment breakdowns
+    const createBreakdown = (field) => {
+      const breakdown = {};
+      analytics.forEach(a => {
+        const value = a.systemInfo?.[field];
+        if (value) {
+          breakdown[value] = (breakdown[value] || 0) + 1;
+        }
+      });
+      return breakdown;
+    };
+
+    summary.machineBreakdown = createBreakdown('machineId');
+    summary.nodeVersionBreakdown = createBreakdown('nodeVersion');
+    summary.projectLanguageBreakdown = createBreakdown('projectLanguage');
+    summary.terminalBreakdown = createBreakdown('terminal');
 
     return summary;
   }

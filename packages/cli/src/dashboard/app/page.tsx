@@ -21,7 +21,50 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AnalyticsSession, AnalyticsSummary } from "@/lib/types";
+
+// Define proper types for Recharts tooltip
+interface TooltipPayload {
+  dataKey: string;
+  value: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
 import { Loader } from "lucide-react";
+
+// Custom tooltip component that respects theme
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  const getAgentDisplayName = (agentKey: string) => {
+    const displayNames: Record<string, string> = {
+      claude: "claude-code",
+      gemini: "gemini-cli",
+    };
+    return displayNames[agentKey.toLowerCase()] || agentKey;
+  };
+
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-background border border-border rounded-md p-3 shadow-lg">
+        <p className="text-foreground font-medium mb-2">{label}</p>
+        {payload.map((entry: TooltipPayload, index: number) => (
+          <p key={index} className="text-xs text-foreground flex items-center gap-2">
+            <span 
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-xs font-medium">{getAgentDisplayName(entry.dataKey)}:</span>{' '}
+            <span className="text-xs font-medium">{entry.value}</span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 // Utility functions moved here to avoid Node.js dependencies in client
 function formatDuration(ms: number): string {
@@ -171,7 +214,7 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium uppercase">
               Total Sessions
             </CardTitle>
           </CardHeader>
@@ -184,7 +227,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <CardTitle className="text-sm font-medium uppercase">Success Rate</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -197,7 +240,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium uppercase">
               Average Duration
             </CardTitle>
           </CardHeader>
@@ -213,22 +256,32 @@ export default function Dashboard() {
       {/* Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Sessions Over Time</CardTitle>
+          <CardTitle className="text-sm font-medium uppercase">Sessions Over Time</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={timeSeriesData}>
               <defs>
                 {Object.keys(summary.agentBreakdown).map((agent, index) => {
-                  const colors = [
-                    "#8884d8",
-                    "#82ca9d",
-                    "#ffc658",
-                    "#ff7c7c",
-                    "#8dd1e1",
-                    "#d084d0",
-                  ];
-                  const color = colors[index % colors.length];
+                  const getAgentColor = (agentName: string, fallbackIndex: number) => {
+                    const agentColors: Record<string, string> = {
+                      claude: "#ff6b35", // Orange color for Claude
+                      gemini: "#4285f4", // Google blue for Gemini
+                    };
+                    if (agentColors[agentName.toLowerCase()]) {
+                      return agentColors[agentName.toLowerCase()];
+                    }
+                    const fallbackColors = [
+                      "#8884d8",
+                      "#82ca9d", 
+                      "#ffc658",
+                      "#ff7c7c",
+                      "#8dd1e1",
+                      "#d084d0",
+                    ];
+                    return fallbackColors[fallbackIndex % fallbackColors.length];
+                  };
+                  const color = getAgentColor(agent, index);
                   return (
                     <linearGradient
                       key={agent}
@@ -246,17 +299,27 @@ export default function Dashboard() {
               </defs>
               <XAxis dataKey="date" axisLine={false} tickLine={false} />
               <YAxis axisLine={false} tickLine={false} />
-              <Tooltip />
+              <Tooltip content={<CustomTooltip />} />
               {Object.keys(summary.agentBreakdown).map((agent, index) => {
-                const colors = [
-                  "#8884d8",
-                  "#82ca9d",
-                  "#ffc658",
-                  "#ff7c7c",
-                  "#8dd1e1",
-                  "#d084d0",
-                ];
-                const color = colors[index % colors.length];
+                const getAgentColor = (agentName: string, fallbackIndex: number) => {
+                  const agentColors: Record<string, string> = {
+                    claude: "#ff6b35", // Orange color for Claude
+                    gemini: "#4285f4", // Google blue for Gemini
+                  };
+                  if (agentColors[agentName.toLowerCase()]) {
+                    return agentColors[agentName.toLowerCase()];
+                  }
+                  const fallbackColors = [
+                    "#8884d8",
+                    "#82ca9d", 
+                    "#ffc658",
+                    "#ff7c7c",
+                    "#8dd1e1",
+                    "#d084d0",
+                  ];
+                  return fallbackColors[fallbackIndex % fallbackColors.length];
+                };
+                const color = getAgentColor(agent, index);
                 return (
                   <Area
                     key={agent}
@@ -276,24 +339,51 @@ export default function Dashboard() {
       {/* Sessions Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Sessions</CardTitle>
+          <CardTitle className="text-sm font-medium uppercase">Recent Sessions</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Agent</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Files Changed</TableHead>
-                <TableHead>Start Time</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Agent</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Status</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Duration</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Files Changed</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Machine</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Project</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Git</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Start Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recentSessions.map((session) => (
                 <TableRow key={session.sessionId}>
                   <TableCell>
-                    <Badge variant="outline">{session.agentName}</Badge>
+                    <Badge variant="outline" className="flex items-center gap-1.5">
+                      {session.agentName.toLowerCase() === 'claude' && (
+                        <img
+                          src="/claude-color.png"
+                          alt="Claude"
+                          className="w-3 h-3"
+                        />
+                      )}
+                      {session.agentName.toLowerCase() === 'gemini' && (
+                        <img
+                          src="/gemini-color.png"
+                          alt="Gemini"
+                          className="w-3 h-3"
+                        />
+                      )}
+                      <span className="text-xs font-medium">
+                        {(() => {
+                          const displayNames: Record<string, string> = {
+                            claude: "claude-code",
+                            gemini: "gemini-cli",
+                          };
+                          return displayNames[session.agentName.toLowerCase()] || session.agentName;
+                        })()}
+                      </span>
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -306,6 +396,36 @@ export default function Dashboard() {
                   </TableCell>
                   <TableCell>{formatDuration(session.duration || 0)}</TableCell>
                   <TableCell>{session.filesChanged.length}</TableCell>
+                  <TableCell>
+                    <span className="text-xs font-mono">
+                      {session.systemInfo?.machineId || 'Unknown'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs font-medium">
+                        {session.systemInfo?.projectName || 'Unknown'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {session.systemInfo?.projectLanguage || 'Unknown'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs font-mono">
+                        {session.systemInfo?.gitBranch || 'No git'}
+                      </span>
+                      {session.systemInfo?.gitStatus && (
+                        <Badge 
+                          variant={session.systemInfo.gitStatus === 'clean' ? 'default' : 'secondary'}
+                          className="text-xs px-1 py-0 h-4"
+                        >
+                          {session.systemInfo.gitStatus}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {new Date(session.startTime).toLocaleString()}
                   </TableCell>

@@ -1,3 +1,26 @@
+export interface SystemInfo {
+  // Essential System Info
+  machineId: string;         // unique machine identifier
+  arch: string;              // os.arch()
+  release: string;           // os.release()
+  totalMemory: number;       // os.totalmem()
+  cpuCores: number;          // os.cpus().length
+  
+  // Development Environment
+  nodeVersion: string;       // process.version
+  shell?: string;            // process.env.SHELL
+  terminal?: string;         // process.env.TERM_PROGRAM
+  gitVersion?: string;       // git --version
+  
+  // Project Context
+  projectName?: string;      // project name from package.json, etc.
+  projectLanguage?: string;  // detected from package.json, etc.
+  projectType?: string;      // npm, cargo, gradle, etc.
+  gitBranch?: string;        // current git branch
+  gitStatus?: 'clean' | 'dirty'; // git working tree status
+  projectFileCount?: number; // approximate file count
+}
+
 export interface AnalyticsSession {
   sessionId: string;
   agentName: string;
@@ -17,6 +40,7 @@ export interface AnalyticsSession {
   filesDeleted: string[];
   errors: string[];
   warnings: string[];
+  systemInfo: SystemInfo;
 }
 
 export interface AnalyticsSummary {
@@ -36,4 +60,9 @@ export interface AnalyticsSummary {
     successRate: number;
     averageDuration: number;
   }>;
+  // System environment breakdown
+  machineBreakdown: Record<string, number>;
+  nodeVersionBreakdown: Record<string, number>;
+  projectLanguageBreakdown: Record<string, number>;
+  terminalBreakdown: Record<string, number>;
 }

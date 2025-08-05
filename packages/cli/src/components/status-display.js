@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {Text, Box} from 'ink';
-import dashboardManager from '../dashboard/manager.js';
 
 const StatusDisplay = ({agentName, sandboxType, options = {}, settings = {}}) => {
-  // Get actual dashboard status
-  const dashboardStatus = dashboardManager.getStatus(3001);
+  const [dashboardStatus, setDashboardStatus] = useState({ running: false, url: null });
+  
+  useEffect(() => {
+    // Load dashboard manager lazily
+    import('../dashboard/manager.js').then(({ default: dashboardManager }) => {
+      setDashboardStatus(dashboardManager.getStatus(3001));
+    }).catch(() => {
+      // If import fails, use default status
+      setDashboardStatus({ running: false, url: null });
+    });
+  }, []);
   const dashboardDisplay = dashboardStatus.running 
     ? `${dashboardStatus.url}` 
     : 'Not running (vibekit dashboard to start)';

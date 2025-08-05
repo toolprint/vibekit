@@ -4,7 +4,7 @@ import path from 'path';
 import Docker from '../sandbox/docker.js';
 import StatusDisplay from '../components/status-display.js';
 import React from 'react';
-import { render } from 'ink';
+import { render, Static } from 'ink';
 import Analytics from '../analytics/analytics.js';
 
 class BaseAgent {
@@ -134,16 +134,13 @@ class BaseAgent {
     }
     
     return new Promise((resolve, reject) => {
-      // Show startup status
-      const { unmount } = render(React.createElement(StatusDisplay, {
+      // Show startup status using Static component to avoid conflicts
+      render(React.createElement(Static, { items: [{ 
         agentName: this.agentName,
         sandboxType: this.sandboxType,
         options: { proxy: this.proxy },
         settings: this.settings
-      }));
-      
-      // Unmount after a short delay to let it render
-      setTimeout(() => unmount(), 100);
+      }] }, (item) => React.createElement(StatusDisplay, item)));
       
       let spawnOptions;
       
@@ -300,16 +297,13 @@ class BaseAgent {
     }
 
     return new Promise((resolve, reject) => {
-      // Show startup status
-      const { unmount } = render(React.createElement(StatusDisplay, {
+      // Show startup status using Static component to avoid conflicts
+      render(React.createElement(Static, { items: [{ 
         agentName: this.agentName,
         sandboxType: this.sandboxType,
         options: { proxy: this.proxy },
         settings: this.settings
-      }));
-      
-      // Unmount after a short delay to let it render
-      setTimeout(() => unmount(), 100);
+      }] }, (item) => React.createElement(StatusDisplay, item)));
       
       // Get terminal size
       const cols = process.stdout.columns || 80;

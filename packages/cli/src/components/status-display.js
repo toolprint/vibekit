@@ -1,21 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import {Text, Box} from 'ink';
+import {Text, Box, useInput} from 'ink';
 
 const StatusDisplay = ({agentName, sandboxType, options = {}, settings = {}}) => {
-  const [dashboardStatus, setDashboardStatus] = useState({ running: false, url: null });
-  
-  useEffect(() => {
-    // Load dashboard manager lazily
-    import('../dashboard/manager.js').then(({ default: dashboardManager }) => {
-      setDashboardStatus(dashboardManager.getStatus(3001));
-    }).catch(() => {
-      // If import fails, use default status
-      setDashboardStatus({ running: false, url: null });
-    });
-  }, []);
-  const dashboardDisplay = dashboardStatus.running 
-    ? `${dashboardStatus.url}` 
-    : 'NOT RUNNING';
+  const openDashboard = async () => {
+    try {
+      console.log('\n📊 Starting analytics dashboard server...');
+      
+      const { default: dashboardManager } = await import('../dashboard/manager.js');
+      const dashboardServer = dashboardManager.getDashboardServer(3001);
+      await dashboardServer.start();
+      const status = dashboardServer.getStatus();
+      
+      if (status.running && status.url) {
+        console.log(`Dashboard available at: ${status.url}`);
+        
+        // Open browser
+        const { exec } = await import('child_process');
+        const openCmd = process.platform === 'darwin' ? 'open' : 
+                       process.platform === 'win32' ? 'start' : 'xdg-open';
+        exec(`${openCmd} ${status.url}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to start dashboard server:', error.message);
+    }
+  };
+
+  useInput((input, key) => {
+    if (input === 'd' || input === 'D') {
+      openDashboard();
+    }
+  });
   
   // Use actual sandboxType to show real status, not just settings
   const getSandboxStatus = () => {
@@ -30,7 +43,7 @@ const StatusDisplay = ({agentName, sandboxType, options = {}, settings = {}}) =>
   return (
     <Box flexDirection="column" marginTop={1}>
       <Text dimColor>
-        🖖 VibeKit | Sandbox: <Text color={sandboxStatus === 'ON' ? 'green' : sandboxStatus === 'UNAVAILABLE' ? 'yellow' : 'red'}>{sandboxStatus}</Text> | Proxy: <Text color={options.proxy ? 'green' : 'red'}>{proxyStatus}</Text> | Dashboard: <Text color={dashboardStatus.running ? 'green' : 'gray'}>{dashboardDisplay}</Text>
+        🖖 VibeKit | Sandbox: <Text color={sandboxStatus === 'ON' ? 'green' : sandboxStatus === 'UNAVAILABLE' ? 'yellow' : 'red'}>{sandboxStatus}</Text> | Proxy: <Text color={options.proxy ? 'green' : 'red'}>{proxyStatus}</Text> | Dashboard: <Text color="cyan">Press 'd' to open</Text>
       </Text>
       {sandboxStatus === 'UNAVAILABLE' && (
         <Box flexDirection="column" marginTop={1}>

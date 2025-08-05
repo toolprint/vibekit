@@ -55,7 +55,8 @@ class Docker {
 
   async checkDockerInstallation() {
     return new Promise((resolve) => {
-      const child = spawn('docker', ['--version'], { stdio: 'ignore' });
+      // Check if Docker daemon is running by trying to ping it
+      const child = spawn('docker', ['info'], { stdio: 'ignore' });
       child.on('close', (code) => {
         resolve(code === 0);
       });

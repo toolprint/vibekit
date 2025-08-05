@@ -91,11 +91,18 @@ program
     if (sandboxType === 'docker' && !settings.sandbox.enabled) {
       // If user explicitly selected docker but settings have sandbox disabled, use none
       sandboxType = 'none';
-    } else if (!options.sandbox || options.sandbox === 'docker') {
-      // If no explicit option or default docker, use settings preference
+    } else if (!options.sandbox || options.sandbox === 'none' || options.sandbox === 'docker') {
+      // If no explicit option, none, or default docker, use settings preference
       sandboxType = settings.sandbox.enabled ? 'docker' : 'none';
-      if (!settings.sandbox.enabled) {
-        }
+    }
+    
+    // Check Docker availability if sandbox is enabled
+    if (sandboxType === 'docker') {
+      const docker = new Docker(process.cwd(), logger);
+      const dockerAvailable = await docker.checkDockerInstallation();
+      if (!dockerAvailable) {
+        sandboxType = 'none';
+      }
     }
     
     const agentOptions = {
@@ -172,11 +179,18 @@ program
     if (sandboxType === 'docker' && !settings.sandbox.enabled) {
       // If user explicitly selected docker but settings have sandbox disabled, use none
       sandboxType = 'none';
-    } else if (!options.sandbox || options.sandbox === 'docker') {
-      // If no explicit option or default docker, use settings preference
+    } else if (!options.sandbox || options.sandbox === 'none' || options.sandbox === 'docker') {
+      // If no explicit option, none, or default docker, use settings preference
       sandboxType = settings.sandbox.enabled ? 'docker' : 'none';
-      if (!settings.sandbox.enabled) {
-        }
+    }
+    
+    // Check Docker availability if sandbox is enabled
+    if (sandboxType === 'docker') {
+      const docker = new Docker(process.cwd(), logger);
+      const dockerAvailable = await docker.checkDockerInstallation();
+      if (!dockerAvailable) {
+        sandboxType = 'none';
+      }
     }
     
     const agentOptions = {

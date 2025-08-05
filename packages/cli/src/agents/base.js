@@ -63,8 +63,10 @@ class BaseAgent {
     
     try {
       const startTime = Date.now();
-      const command = this.getAgentCommand();
-      const result = await dockerSandbox.runCommand(command, args);
+      // Run vibekit wrapper inside container to show status display
+      const command = 'vibekit';
+      const vibekitArgs = [this.agentName, '--sandbox', 'none', ...args];
+      const result = await dockerSandbox.runCommand(command, vibekitArgs);
       const duration = Date.now() - startTime;
 
       await this.logger.log('info', `${this.agentName} agent completed in Docker`, { 
@@ -135,12 +137,22 @@ class BaseAgent {
     
     return new Promise((resolve, reject) => {
       // Show startup status using Static component to avoid conflicts
-      render(React.createElement(Static, { items: [{ 
+      const { rerender, unmount } = render(React.createElement(Static, { items: [{ 
+        key: 'status-display',
         agentName: this.agentName,
         sandboxType: this.sandboxType,
         options: { proxy: this.proxy },
         settings: this.settings
       }] }, (item) => React.createElement(StatusDisplay, item)));
+      
+      // Unmount after a brief delay to prevent conflicts with child process
+      setTimeout(() => {
+        try {
+          unmount();
+        } catch (error) {
+          // Ignore unmount errors
+        }
+      }, 100);
       
       let spawnOptions;
       
@@ -298,12 +310,22 @@ class BaseAgent {
 
     return new Promise((resolve, reject) => {
       // Show startup status using Static component to avoid conflicts
-      render(React.createElement(Static, { items: [{ 
+      const { rerender, unmount } = render(React.createElement(Static, { items: [{ 
+        key: 'status-display-pty',
         agentName: this.agentName,
         sandboxType: this.sandboxType,
         options: { proxy: this.proxy },
         settings: this.settings
       }] }, (item) => React.createElement(StatusDisplay, item)));
+      
+      // Unmount after a brief delay to prevent conflicts with child process
+      setTimeout(() => {
+        try {
+          unmount();
+        } catch (error) {
+          // Ignore unmount errors
+        }
+      }, 100);
       
       // Get terminal size
       const cols = process.stdout.columns || 80;

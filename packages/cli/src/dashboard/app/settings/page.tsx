@@ -8,19 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Settings, Shield, BarChart3, Link, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -270,7 +261,8 @@ export default function SettingsPage() {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Create global "claude" and "gemini" commands
+                  Create global &quot;claude&quot; and &quot;gemini&quot;
+                  commands
                 </p>
               </div>
               <Switch

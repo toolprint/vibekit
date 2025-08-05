@@ -1,6 +1,6 @@
 {
   "name": "vibekit",
-  "version": "0.0.1-rc.1",
+  "version": "0.0.1-rc.2",
   "description": "Open-source analytics and security middleware for coding agents.",
   "main": "dist/cli.js",
   "type": "module",
@@ -29,7 +29,6 @@
     "fs-extra": "^11.1.1",
     "ink": "^6.1.0",
     "js-yaml": "^4.1.0",
-    "node-pty": "^1.0.0",
     "react": "^19.1.1",
     "redact-pii": "^3.4.0"
   },

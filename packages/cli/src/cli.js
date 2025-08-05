@@ -12,6 +12,7 @@ import Docker from './sandbox/docker.js';
 import Analytics from './analytics/analytics.js';
 import ProxyServer from './proxy/server.js';
 import proxyManager from './proxy/manager.js';
+import dashboardManager from './dashboard/manager.js';
 import React from 'react';
 import { render } from 'ink';
 import Settings from './components/settings.js';
@@ -425,6 +426,59 @@ proxyCommand
       console.error(chalk.red('Failed to kill proxy server:'), error.message);
       process.exit(1);
     }
+  });
+
+// Dashboard commands
+const dashboardCommand = program
+  .command('dashboard')
+  .description('Manage analytics dashboard');
+
+dashboardCommand
+  .command('start')
+  .description('Start analytics dashboard server')
+  .option('-p, --port <number>', 'Port to run dashboard on', '3001')
+  .option('--open', 'Open dashboard in browser automatically')
+  .action(async (options) => {
+    const port = parseInt(options.port) || 3001;
+    const dashboardServer = dashboardManager.getDashboardServer(port);
+    
+    try {
+      await dashboardServer.start();
+      
+      if (options.open) {
+        await dashboardServer.openInBrowser();
+      }
+    } catch (error) {
+      console.error(chalk.red('Failed to start dashboard:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Default action for 'dashboard' without subcommand - start the server  
+dashboardCommand
+  .action(async (options, command) => {
+    // If no subcommand was provided, start the dashboard with default settings
+    if (command.args.length === 0) {
+      const port = 3001; // Default port when no subcommand is used
+      const dashboardServer = dashboardManager.getDashboardServer(port);
+      
+      try {
+        await dashboardServer.start();
+      } catch (error) {
+        console.error(chalk.red('Failed to start dashboard:'), error.message);
+        process.exit(1);
+      }
+    }
+  });
+
+dashboardCommand
+  .command('stop')
+  .description('Stop analytics dashboard server')
+  .option('-p, --port <number>', 'Port to stop dashboard on', '3001')
+  .action(async (options) => {
+    const port = parseInt(options.port) || 3001;
+    dashboardManager.stop(port);
+    console.log(chalk.green(`✅ Dashboard stopped on port ${port}`));
   });
 
 program

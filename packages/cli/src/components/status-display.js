@@ -1,9 +1,13 @@
 import React from 'react';
 import {Text, Box} from 'ink';
+import dashboardManager from '../dashboard/manager.js';
 
 const StatusDisplay = ({agentName, sandboxType, options = {}, settings = {}}) => {
-  const dashboardPort = options.dashboardPort || Math.floor(Math.random() * 1000) + 3000;
-  const dashboardUrl = `http://localhost:${dashboardPort}`;
+  // Get actual dashboard status
+  const dashboardStatus = dashboardManager.getStatus(3001);
+  const dashboardDisplay = dashboardStatus.running 
+    ? `${dashboardStatus.url}` 
+    : 'Not running (vibekit dashboard to start)';
   
   // Use actual sandboxType to show real status, not just settings
   const getSandboxStatus = () => {
@@ -18,7 +22,7 @@ const StatusDisplay = ({agentName, sandboxType, options = {}, settings = {}}) =>
   return (
     <Box flexDirection="column" marginTop={1}>
       <Text dimColor>
-        🖖 VibeKit | Sandbox: <Text color={sandboxStatus === 'ON' ? 'green' : sandboxStatus === 'UNAVAILABLE' ? 'yellow' : 'red'}>{sandboxStatus}</Text> | Proxy: <Text color={options.proxy ? 'green' : 'red'}>{proxyStatus}</Text> | Dashboard: <Text color="blue">{dashboardUrl}</Text>
+        🖖 VibeKit | Sandbox: <Text color={sandboxStatus === 'ON' ? 'green' : sandboxStatus === 'UNAVAILABLE' ? 'yellow' : 'red'}>{sandboxStatus}</Text> | Proxy: <Text color={options.proxy ? 'green' : 'red'}>{proxyStatus}</Text> | Dashboard: <Text color={dashboardStatus.running ? 'green' : 'gray'}>{dashboardDisplay}</Text>
       </Text>
       {sandboxStatus === 'UNAVAILABLE' && (
         <Box flexDirection="column" marginTop={1}>

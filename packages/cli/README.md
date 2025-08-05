@@ -48,6 +48,10 @@ vibekit claude "Fix the bug in src/app.js"
 vibekit logs
 vibekit logs --agent claude --lines 100
 
+# Open analytics dashboard
+vibekit dashboard                     # Start dashboard and open in browser
+vibekit status                        # View dashboard status
+
 # Sync changes from sandbox back to your project
 vibekit sync
 
@@ -91,6 +95,27 @@ Enable debug logging:
 ```bash
 VIBEKIT_DEBUG=1 vibekit claude
 ```
+
+### Analytics Dashboard
+
+Vibekit includes a built-in analytics dashboard that provides real-time insights into your coding sessions:
+
+```bash
+# Start dashboard and open in browser
+vibekit dashboard
+
+# Check dashboard status
+vibekit status
+```
+
+**Dashboard Features:**
+- 📊 **Session Analytics** - Track coding session duration and productivity
+- 🔍 **Command History** - View all executed commands and their outcomes  
+- ⚡ **Real-time Updates** - Live monitoring of agent activity
+- 📈 **Performance Metrics** - Analyze agent response times and success rates
+- 🎯 **Project Insights** - Understand file modification patterns
+
+The dashboard runs on `http://localhost:3001` by default and provides a clean, modern interface for monitoring your AI-assisted coding workflows.
 
 ## Configuration
 

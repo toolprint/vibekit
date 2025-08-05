@@ -289,16 +289,14 @@ class BaseAgent {
       }] }, (item) => React.createElement(StatusDisplay, item)));
       
       // Add dashboard opening functionality
-      const openDashboard = () => {
+      const openDashboard = async () => {
         try {
           const dashboardUrl = 'http://localhost:3001';
           console.log(`Opening dashboard: ${dashboardUrl}`);
           
-          // Open browser
-          const { exec } = require('child_process');
-          const openCmd = process.platform === 'darwin' ? 'open' : 
-                         process.platform === 'win32' ? 'start' : 'xdg-open';
-          exec(`${openCmd} ${dashboardUrl}`);
+          // Use dynamic import for open package
+          const { default: open } = await import('open');
+          await open(dashboardUrl);
         } catch (error) {
           console.error('❌ Failed to open dashboard:', error.message);
         }

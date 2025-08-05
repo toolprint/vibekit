@@ -8,6 +8,7 @@ export interface AnalyticsSession {
   startTime: number;
   endTime: number | null;
   duration: number | null;
+  status?: 'active' | 'terminated';
   inputBytes: number;
   outputBytes: number;
   commands: Array<{
@@ -21,10 +22,12 @@ export interface AnalyticsSession {
   filesDeleted: string[];
   errors: string[];
   warnings: string[];
+  systemInfo?: any;
 }
 
 export interface AnalyticsSummary {
   totalSessions: number;
+  activeSessions: number;
   totalDuration: number;
   averageDuration: number;
   successfulSessions: number;
@@ -84,6 +87,7 @@ export function generateSummary(analytics: AnalyticsSession[]): AnalyticsSummary
   if (analytics.length === 0) {
     return {
       totalSessions: 0,
+      activeSessions: 0,
       totalDuration: 0,
       averageDuration: 0,
       successfulSessions: 0,
@@ -98,6 +102,7 @@ export function generateSummary(analytics: AnalyticsSession[]): AnalyticsSummary
 
   const summary = {
     totalSessions: analytics.length,
+    activeSessions: analytics.filter(a => a.status === 'active').length,
     totalDuration: analytics.reduce((sum, a) => sum + (a.duration || 0), 0),
     successfulSessions: analytics.filter(a => a.exitCode === 0).length,
     totalFilesChanged: analytics.reduce((sum, a) => sum + (a.filesChanged?.length || 0), 0),

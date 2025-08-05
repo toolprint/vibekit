@@ -1,10 +1,11 @@
 "use client";
 
 import type * as React from "react";
-import { ChartSpline, Github, BookOpen, Palette } from "lucide-react";
+import { ChartSpline, Github, BookOpen, Palette, Info } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { ThemeToggle } from "@/components/theme-toggle";
+import packageJson from "../../../package.json";
 import {
   Sidebar,
   SidebarContent,
@@ -15,6 +16,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const data = {
   navMain: [
@@ -42,12 +49,19 @@ const data = {
       icon: Palette,
       isThemeToggle: true,
     },
+    {
+      title: `v${packageJson.version}`,
+      url: "#",
+      icon: Info,
+      isVersion: true,
+    },
   ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <TooltipProvider>
+      <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -74,6 +88,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem key={link.title}>
               {link.isThemeToggle ? (
                 <ThemeToggle />
+              ) : link.isVersion ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton>
+                      <link.icon className="text-muted-foreground" />
+                      <span className="text-muted-foreground">{link.title}</span>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>VibeKit Version {packageJson.version}</p>
+                  </TooltipContent>
+                </Tooltip>
               ) : (
                 <SidebarMenuButton asChild>
                   <a href={link.url} target="_blank" rel="noopener noreferrer">
@@ -87,6 +113,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
-    </Sidebar>
+      </Sidebar>
+    </TooltipProvider>
   );
 }

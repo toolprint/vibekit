@@ -27,6 +27,7 @@ export interface AnalyticsSession {
   startTime: number;
   endTime: number | null;
   duration: number | null;
+  status?: 'active' | 'terminated';
   inputBytes: number;
   outputBytes: number;
   commands: Array<{
@@ -45,6 +46,7 @@ export interface AnalyticsSession {
 
 export interface AnalyticsSummary {
   totalSessions: number;
+  activeSessions: number;
   totalDuration: number;
   averageDuration: number;
   successfulSessions: number;

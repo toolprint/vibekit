@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  CartesianGrid,
 } from "recharts";
 import {
   Table,
@@ -34,7 +35,12 @@ interface CustomTooltipProps {
   payload?: TooltipPayload[];
   label?: string;
 }
-import { Loader } from "lucide-react";
+import { Loader, GitCommit, GitBranch } from "lucide-react";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Custom tooltip component that respects theme
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
@@ -111,6 +117,12 @@ export default function Dashboard() {
     }
 
     fetchData();
+    
+    // Set up auto-refresh every 20 seconds
+    const interval = setInterval(fetchData, 20000);
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -211,7 +223,20 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium uppercase">
+              Active Sessions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{summary.activeSessions}</div>
+            <p className="text-xs text-muted-foreground">
+              Currently running
+            </p>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium uppercase">
@@ -256,7 +281,15 @@ export default function Dashboard() {
       {/* Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium uppercase">Sessions Over Time</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium uppercase">Sessions Over Time</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-muted-foreground">
+                {summary.activeSessions} active
+              </span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -297,6 +330,7 @@ export default function Dashboard() {
                   );
                 })}
               </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={1} />
               <XAxis dataKey="date" axisLine={false} tickLine={false} />
               <YAxis axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
@@ -346,17 +380,17 @@ export default function Dashboard() {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-sm font-medium uppercase">Agent</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Status</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Duration</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Files Changed</TableHead>
-                <TableHead className="text-sm font-medium uppercase">Machine</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Project</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Git</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Start Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentSessions.map((session) => (
-                <TableRow key={session.sessionId}>
+              {recentSessions.map((session, index) => (
+                <TableRow key={`${session.sessionId}-${session.startTime}-${index}`}>
                   <TableCell>
                     <Badge variant="outline" className="flex items-center gap-1.5">
                       {session.agentName.toLowerCase() === 'claude' && (
@@ -373,7 +407,7 @@ export default function Dashboard() {
                           className="w-3 h-3"
                         />
                       )}
-                      <span className="text-xs font-medium">
+                      <span className="text-sm font-medium">
                         {(() => {
                           const displayNames: Record<string, string> = {
                             claude: "claude-code",
@@ -384,30 +418,41 @@ export default function Dashboard() {
                       </span>
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={session.status === 'active' ? 'default' : 'secondary'}
+                      className={`text-sm ${session.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' : ''}`}
+                    >
+                      {session.status || 'terminated'}
+                    </Badge>
+                  </TableCell>
                   <TableCell>{formatDuration(session.duration || 0)}</TableCell>
                   <TableCell>{session.filesChanged.length}</TableCell>
                   <TableCell>
-                    <span className="text-xs font-mono">
-                      {session.systemInfo?.machineId || 'Unknown'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs font-medium">
+                    <span className="text-sm font-medium">
                       {session.systemInfo?.projectName || 'Unknown'}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono">
                         {session.systemInfo?.gitBranch || 'No git'}
                       </span>
                       {session.systemInfo?.gitStatus && (
-                        <Badge 
-                          variant={session.systemInfo.gitStatus === 'clean' ? 'default' : 'secondary'}
-                          className="text-xs px-1 py-0 h-4"
-                        >
-                          {session.systemInfo.gitStatus}
-                        </Badge>
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <div className="cursor-pointer">
+                              {session.systemInfo.gitStatus === 'clean' ? (
+                                <GitCommit className="w-4 h-4 text-green-600" />
+                              ) : (
+                                <GitBranch className="w-4 h-4 text-muted-foreground" />
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{session.systemInfo.gitStatus === 'clean' ? 'All changes committed' : 'Uncommitted changes'}</p>
+                          </TooltipContent>
+                        </UITooltip>
                       )}
                     </div>
                   </TableCell>

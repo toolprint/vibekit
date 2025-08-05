@@ -231,7 +231,27 @@ class BaseAgent {
 
   createChildProcess(command, args, options = {}) {
     const startTime = Date.now();
-    const analytics = new Analytics(this.agentName, this.logger);
+    
+    // Always capture optimized file snapshot for full analytics
+    let beforeSnapshot;
+    let currentSnapshot;
+    
+    // File change callback for periodic updates
+    const fileChangeCallback = async () => {
+      if (!beforeSnapshot) return null;
+      
+      try {
+        const newSnapshot = await this.captureFileSnapshot();
+        const changes = await this.detectFileChanges(currentSnapshot || beforeSnapshot, newSnapshot);
+        currentSnapshot = newSnapshot;
+        return changes;
+      } catch (error) {
+        console.warn('Failed to detect file changes during periodic check:', error.message);
+        return null;
+      }
+    };
+    
+    const analytics = new Analytics(this.agentName, this.logger, fileChangeCallback);
     
     // Start periodic logging (every minute by default, configurable via options)
     const logInterval = options.analyticsInterval || 60000; // 60 seconds default
@@ -240,11 +260,11 @@ class BaseAgent {
     // Capture the command being executed
     analytics.captureCommand(command, args);
     
-    // Always capture optimized file snapshot for full analytics
-    let beforeSnapshot;
+    // Capture initial file snapshot
     const captureSnapshot = async () => {
       try {
         beforeSnapshot = await this.captureFileSnapshot();
+        currentSnapshot = beforeSnapshot;
       } catch (error) {
         console.warn('Failed to capture file snapshot:', error.message);
       }

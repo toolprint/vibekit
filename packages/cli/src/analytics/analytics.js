@@ -4,11 +4,12 @@ import os from 'os';
 import { collectSystemInfo } from './system-info.js';
 
 class Analytics {
-  constructor(agentName, logger) {
+  constructor(agentName, logger, fileChangeCallback = null) {
     this.agentName = agentName;
     this.logger = logger;
     this.sessionId = Date.now().toString();
     this.startTime = Date.now();
+    this.fileChangeCallback = fileChangeCallback;
     
     // Analytics data
     this.metrics = {
@@ -17,6 +18,7 @@ class Analytics {
       startTime: this.startTime,
       endTime: null,
       duration: null,
+      status: 'active', // active, terminated
       
       // Input/Output metrics
       inputBytes: 0,
@@ -158,6 +160,19 @@ class Analytics {
     const currentTime = Date.now();
     const currentDuration = currentTime - this.startTime;
     
+    // Check for file changes if callback is provided
+    if (this.fileChangeCallback) {
+      try {
+        const fileChanges = await this.fileChangeCallback();
+        if (fileChanges) {
+          this.captureFileChanges(fileChanges.changes);
+          this.captureFileOperations(fileChanges.created, fileChanges.deleted);
+        }
+      } catch (error) {
+        this.logger.log('warn', 'Failed to check file changes during periodic update', { error: error.message });
+      }
+    }
+    
     const sessionUpdate = {
       ...this.metrics,
       currentTime,
@@ -214,6 +229,7 @@ class Analytics {
     this.metrics.endTime = Date.now();
     this.metrics.duration = duration || (this.metrics.endTime - this.metrics.startTime);
     this.metrics.exitCode = exitCode;
+    this.metrics.status = 'terminated';
     
     // Final token count refinement from buffers
     this.refineTokenCounts();
@@ -237,7 +253,13 @@ class Analytics {
         existingData = JSON.parse(content);
       }
       
-      existingData.push(this.metrics);
+      // Find existing session and update it, or add new one
+      const existingIndex = existingData.findIndex(s => s.sessionId === this.metrics.sessionId);
+      if (existingIndex >= 0) {
+        existingData[existingIndex] = this.metrics;
+      } else {
+        existingData.push(this.metrics);
+      }
       
       await fs.writeFile(analyticsFile, JSON.stringify(existingData, null, 2));
       
@@ -302,11 +324,17 @@ class Analytics {
     return allAnalytics.sort((a, b) => b.startTime - a.startTime);
   }
 
+  // Static method to get active sessions count
+  static getActiveSessions(analytics) {
+    return analytics.filter(session => session.status === 'active').length;
+  }
+
   // Static method to generate analytics summary
   static generateSummary(analytics) {
     if (analytics.length === 0) {
       return {
         totalSessions: 0,
+        activeSessions: 0,
         totalDuration: 0,
         averageDuration: 0,
         successRate: 0,
@@ -321,6 +349,7 @@ class Analytics {
 
     const summary = {
       totalSessions: analytics.length,
+      activeSessions: analytics.filter(a => a.status === 'active').length,
       totalDuration: analytics.reduce((sum, a) => sum + (a.duration || 0), 0),
       successfulSessions: analytics.filter(a => a.exitCode === 0).length,
       totalFilesChanged: analytics.reduce((sum, a) => sum + (a.filesChanged?.length || 0), 0),

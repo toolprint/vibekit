@@ -42,7 +42,6 @@ export async function installGlobalAliases() {
     }
   }
   
-  console.log('✓ VibeKit aliases installed. Restart your terminal or run `source ~/.zshrc` to use them.');
 }
 
 // Remove all conflicting aliases (more robust than uninstallGlobalAliases)
@@ -106,7 +105,7 @@ export async function removeAllConflictingAliases() {
 // Legacy function for backwards compatibility
 export async function uninstallGlobalAliases() {
   await removeAllConflictingAliases();
-  console.log('✓ VibeKit aliases removed. Restart your terminal to apply changes.');
+
 }
 
 // Check if aliases are properly set up in current shell

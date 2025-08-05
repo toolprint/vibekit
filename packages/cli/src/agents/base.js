@@ -23,6 +23,9 @@ class BaseAgent {
     
     // Proxy options
     this.proxy = options.proxy;
+    
+    // Settings for display
+    this.settings = options.settings || {};
   }
 
 
@@ -135,7 +138,8 @@ class BaseAgent {
       const { unmount } = render(React.createElement(StatusDisplay, {
         agentName: this.agentName,
         sandboxType: this.sandboxType,
-        options: { proxy: this.proxy }
+        options: { proxy: this.proxy },
+        settings: this.settings
       }));
       
       // Unmount after a short delay to let it render
@@ -300,7 +304,8 @@ class BaseAgent {
       const { unmount } = render(React.createElement(StatusDisplay, {
         agentName: this.agentName,
         sandboxType: this.sandboxType,
-        options: { proxy: this.proxy }
+        options: { proxy: this.proxy },
+        settings: this.settings
       }));
       
       // Unmount after a short delay to let it render

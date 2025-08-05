@@ -103,6 +103,7 @@ program
       analyticsMode: options.analyticsMode,
       disablePty: options.noPty,
       proxy: proxy,
+      settings: settings,
       sandboxOptions: {
         networkMode: options.noNetwork ? 'none' : 'bridge',
         usePersistent: !options.freshContainer // Use persistent unless explicitly disabled
@@ -182,6 +183,7 @@ program
       sandbox: sandboxType,
       analyticsMode: options.analyticsMode,
       proxy: proxy,
+      settings: settings,
       sandboxOptions: {
         networkAccess: options.network === true
       }

@@ -44,6 +44,7 @@ class Analytics {
     this.outputBuffer = '';
     
     this.analyticsDir = path.join(os.homedir(), '.vibekit', 'analytics');
+    this.periodicInterval = null;
     this.initializeAnalytics();
   }
 
@@ -136,7 +137,80 @@ class Analytics {
     this.metrics.filesDeleted = [...new Set([...this.metrics.filesDeleted, ...deleted])];
   }
 
+  startPeriodicLogging(intervalMs = 60000) {
+    if (this.periodicInterval) {
+      return;
+    }
+    
+    this.periodicInterval = setInterval(async () => {
+      await this.updateSession();
+    }, intervalMs);
+  }
+
+  stopPeriodicLogging() {
+    if (this.periodicInterval) {
+      clearInterval(this.periodicInterval);
+      this.periodicInterval = null;
+    }
+  }
+
+  async updateSession() {
+    const currentTime = Date.now();
+    const currentDuration = currentTime - this.startTime;
+    
+    const sessionUpdate = {
+      ...this.metrics,
+      currentTime,
+      duration: currentDuration,
+      endTime: null,
+      exitCode: null
+    };
+    
+    this.refineTokenCounts();
+    
+    return this.saveSessionUpdate(sessionUpdate);
+  }
+
+  async saveSessionUpdate(sessionData) {
+    const date = new Date().toISOString().split('T')[0];
+    const analyticsFile = path.join(this.analyticsDir, `${this.agentName}-${date}.json`);
+    
+    try {
+      let existingData = [];
+      if (await fs.pathExists(analyticsFile)) {
+        const content = await fs.readFile(analyticsFile, 'utf8');
+        existingData = JSON.parse(content);
+      }
+      
+      // Find existing session and update it, or add new one
+      const existingIndex = existingData.findIndex(s => s.sessionId === sessionData.sessionId);
+      if (existingIndex >= 0) {
+        existingData[existingIndex] = sessionData;
+      } else {
+        existingData.push(sessionData);
+      }
+      
+      await fs.writeFile(analyticsFile, JSON.stringify(existingData, null, 2));
+      
+      // Log session update
+      await this.logger.log('debug', 'Session analytics updated', {
+        sessionId: sessionData.sessionId,
+        duration: sessionData.duration,
+        inputBytes: sessionData.inputBytes,
+        outputBytes: sessionData.outputBytes,
+        filesChanged: sessionData.filesChanged.length
+      });
+      
+      return sessionData;
+    } catch (error) {
+      console.error('Failed to save session update:', error.message);
+      return null;
+    }
+  }
+
   finalize(exitCode, duration) {
+    this.stopPeriodicLogging();
+    
     this.metrics.endTime = Date.now();
     this.metrics.duration = duration || (this.metrics.endTime - this.metrics.startTime);
     this.metrics.exitCode = exitCode;

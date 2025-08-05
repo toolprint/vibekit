@@ -233,6 +233,10 @@ class BaseAgent {
     const startTime = Date.now();
     const analytics = new Analytics(this.agentName, this.logger);
     
+    // Start periodic logging (every minute by default, configurable via options)
+    const logInterval = options.analyticsInterval || 60000; // 60 seconds default
+    analytics.startPeriodicLogging(logInterval);
+    
     // Capture the command being executed
     analytics.captureCommand(command, args);
     

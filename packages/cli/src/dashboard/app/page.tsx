@@ -346,7 +346,6 @@ export default function Dashboard() {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-sm font-medium uppercase">Agent</TableHead>
-                <TableHead className="text-sm font-medium uppercase">Status</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Duration</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Files Changed</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Machine</TableHead>
@@ -385,15 +384,6 @@ export default function Dashboard() {
                       </span>
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        session.exitCode === 0 ? "default" : "destructive"
-                      }
-                    >
-                      {session.exitCode === 0 ? "Success" : "Failed"}
-                    </Badge>
-                  </TableCell>
                   <TableCell>{formatDuration(session.duration || 0)}</TableCell>
                   <TableCell>{session.filesChanged.length}</TableCell>
                   <TableCell>
@@ -402,14 +392,9 @@ export default function Dashboard() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-xs font-medium">
-                        {session.systemInfo?.projectName || 'Unknown'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {session.systemInfo?.projectLanguage || 'Unknown'}
-                      </span>
-                    </div>
+                    <span className="text-xs font-medium">
+                      {session.systemInfo?.projectName || 'Unknown'}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-0.5">

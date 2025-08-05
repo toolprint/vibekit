@@ -15,7 +15,7 @@ const StatusDisplay = ({agentName, sandboxType, options = {}, settings = {}}) =>
   }, []);
   const dashboardDisplay = dashboardStatus.running 
     ? `${dashboardStatus.url}` 
-    : 'Not running (vibekit dashboard to start)';
+    : 'NOT RUNNING';
   
   // Use actual sandboxType to show real status, not just settings
   const getSandboxStatus = () => {

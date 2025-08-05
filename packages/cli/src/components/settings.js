@@ -5,6 +5,7 @@ import path from 'path';
 import os from 'os';
 import { setupAliases } from '../utils/aliases.js';
 import proxyManager from '../proxy/manager.js';
+import dashboardManager from '../dashboard/manager.js';
 
 const Settings = () => {
   const [settings, setSettings] = useState({
@@ -70,7 +71,7 @@ const Settings = () => {
       case 'settings':
         return [
           {
-            label: `Global Aliases: ${settings.aliases.enabled ? '✓ ON' : '✗ OFF'}`,
+            label: `Global Aliases: ${settings.aliases.enabled ? '✓ ON (requires restart)' : '✗ OFF'}`,
             description: 'Create global "claude" and "gemini" commands (runs "vibekit claude/gemini")',
             action: 'toggle-aliases'
           },
@@ -162,18 +163,25 @@ const Settings = () => {
           // Exit settings and start analytics dashboard server
           exit();
           console.log('\n📊 Starting analytics dashboard server...');
-          console.log('Opening http://localhost:3000 in your browser...');
           
-          // Start dashboard server and open browser
-          import('child_process').then(({ spawn, exec }) => {
-            // Open browser
-            const openCmd = process.platform === 'darwin' ? 'open' : 
-                           process.platform === 'win32' ? 'start' : 'xdg-open';
-            exec(`${openCmd} http://localhost:3000`);
+          try {
+            const dashboardServer = dashboardManager.getDashboardServer(3001);
+            await dashboardServer.start();
+            const status = dashboardServer.getStatus();
             
-            // Start dashboard server (placeholder for now)
-            console.log('Dashboard server would start here on port 3000');
-          });
+            if (status.running && status.url) {
+              console.log(`Dashboard available at: ${status.url}`);
+              
+              // Open browser
+              import('child_process').then(({ exec }) => {
+                const openCmd = process.platform === 'darwin' ? 'open' : 
+                               process.platform === 'win32' ? 'start' : 'xdg-open';
+                exec(`${openCmd} ${status.url}`);
+              });
+            }
+          } catch (error) {
+            console.error('❌ Failed to start dashboard server:', error.message);
+          }
           break;
         case 'toggle-proxy':
           const newProxySettings = {
@@ -297,8 +305,11 @@ const Settings = () => {
             {index === selectedIndex ? '❯ ' : '  '}
             {item.label.includes('✓ ON') ? (
               <>
-                {item.label.replace('✓ ON', '')}
+                {item.label.replace(/✓ ON.*/, '')}
                 <Text color="green">✓ ON</Text>
+                {item.label.includes('(requires restart)') && (
+                  <Text color="gray"> (requires restart)</Text>
+                )}
               </>
             ) : item.label.includes('✗ OFF') ? (
               <>

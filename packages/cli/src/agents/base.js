@@ -6,6 +6,8 @@ import StatusDisplay from '../components/status-display.js';
 import React from 'react';
 import { render, Static } from 'ink';
 import Analytics from '../analytics/analytics.js';
+import fs from 'fs-extra';
+import crypto from 'crypto';
 
 class BaseAgent {
   constructor(agentName, logger, options = {}) {
@@ -119,6 +121,66 @@ class BaseAgent {
     throw new Error('executeAgent must be implemented by subclass');
   }
 
+  async captureFileSnapshot(dir = process.cwd()) {
+    const snapshot = new Map();
+    
+    const walkDir = async (dirPath, relativePath = '') => {
+      try {
+        const items = await fs.readdir(dirPath);
+        
+        for (const item of items) {
+          if (item.startsWith('.') && item !== '.gitignore') continue;
+          
+          const itemPath = path.join(dirPath, item);
+          const relativeItemPath = path.join(relativePath, item);
+          const stat = await fs.stat(itemPath);
+          
+          if (stat.isDirectory()) {
+            await walkDir(itemPath, relativeItemPath);
+          } else {
+            try {
+              const content = await fs.readFile(itemPath, 'utf8');
+              const hash = crypto.createHash('md5').update(content).digest('hex');
+              snapshot.set(relativeItemPath, hash);
+            } catch (error) {
+              // Skip files that can't be read (binary, permissions, etc.)
+            }
+          }
+        }
+      } catch (error) {
+        // Skip directories that can't be read
+      }
+    };
+
+    await walkDir(dir);
+    return snapshot;
+  }
+
+  async detectFileChanges(beforeSnapshot, afterSnapshot) {
+    const changes = [];
+    const created = [];
+    const deleted = [];
+
+    // Check for new and modified files
+    for (const [filePath, hash] of afterSnapshot) {
+      if (!beforeSnapshot.has(filePath)) {
+        created.push(filePath);
+        changes.push(filePath);
+      } else if (beforeSnapshot.get(filePath) !== hash) {
+        changes.push(filePath);
+      }
+    }
+
+    // Check for deleted files
+    for (const [filePath] of beforeSnapshot) {
+      if (!afterSnapshot.has(filePath)) {
+        deleted.push(filePath);
+      }
+    }
+
+    return { changes, created, deleted };
+  }
+
   createChildProcess(command, args, options = {}) {
     const startTime = Date.now();
     const analytics = new Analytics(this.agentName, this.logger);
@@ -126,12 +188,25 @@ class BaseAgent {
     // Capture the command being executed
     analytics.captureCommand(command, args);
     
+    // Capture file snapshot before execution for change tracking
+    let beforeSnapshot;
+    const captureSnapshot = async () => {
+      try {
+        beforeSnapshot = await this.captureFileSnapshot();
+      } catch (error) {
+        console.warn('Failed to capture file snapshot:', error.message);
+      }
+    };
+    
     // Determine if this is likely an interactive session
     const isInteractive = args.length === 0 && process.stdin.isTTY;
     
     // PTY functionality removed - using standard child process for all sessions
     
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      // Capture initial file snapshot
+      await captureSnapshot();
+      
       // Show startup status using Static component to avoid conflicts
       const { rerender, unmount } = render(React.createElement(Static, { items: [{ 
         key: 'status-display',
@@ -228,13 +303,29 @@ class BaseAgent {
           
           const duration = Date.now() - startTime;
           
+          // Detect file changes
+          let fileChanges = { changes: [], created: [], deleted: [] };
+          if (beforeSnapshot) {
+            try {
+              const afterSnapshot = await this.captureFileSnapshot();
+              fileChanges = await this.detectFileChanges(beforeSnapshot, afterSnapshot);
+              
+              // Capture file operations in analytics
+              analytics.captureFileChanges(fileChanges.changes);
+              analytics.captureFileOperations(fileChanges.created, fileChanges.deleted);
+            } catch (error) {
+              console.warn('Failed to detect file changes:', error.message);
+            }
+          }
+          
           // Finalize analytics
           const analyticsData = await analytics.finalize(code, duration);
           
           resolve({
             code,
             duration,
-            analytics: analyticsData
+            analytics: analyticsData,
+            changes: fileChanges.changes
           });
         });
 
@@ -260,13 +351,29 @@ class BaseAgent {
         child.on('close', async (code) => {
           const duration = Date.now() - startTime;
           
+          // Detect file changes
+          let fileChanges = { changes: [], created: [], deleted: [] };
+          if (beforeSnapshot) {
+            try {
+              const afterSnapshot = await this.captureFileSnapshot();
+              fileChanges = await this.detectFileChanges(beforeSnapshot, afterSnapshot);
+              
+              // Capture file operations in analytics
+              analytics.captureFileChanges(fileChanges.changes);
+              analytics.captureFileOperations(fileChanges.created, fileChanges.deleted);
+            } catch (error) {
+              console.warn('Failed to detect file changes:', error.message);
+            }
+          }
+          
           // Finalize analytics
           const analyticsData = await analytics.finalize(code, duration);
           
           resolve({
             code,
             duration,
-            analytics: analyticsData
+            analytics: analyticsData,
+            changes: fileChanges.changes
           });
         });
 

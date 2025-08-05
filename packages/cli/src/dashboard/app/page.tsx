@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AnalyticsSession, AnalyticsSummary } from "@/lib/types";
+import { Loader } from "lucide-react";
 
 // Utility functions moved here to avoid Node.js dependencies in client
 function formatDuration(ms: number): string {
@@ -72,9 +73,9 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          <p className="mt-4 text-muted-foreground">Loading analytics...</p>
+        <div className="text-center flex items-center gap-2 justify-center">
+          <Loader className="animate-spin size-4 text-primary" />
+          <p className="text-sm text-muted-foreground">Loading analytics...</p>
         </div>
       </div>
     );
@@ -108,7 +109,8 @@ export default function Dashboard() {
   const generateTimeSeriesData = () => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const today = new Date();
-    const last7Days = [];
+    type DayData = { date: string; [key: string]: string | number };
+    const last7Days: DayData[] = [];
 
     // Create data structure for last 7 days
     for (let i = 6; i >= 0; i--) {
@@ -144,7 +146,9 @@ export default function Dashboard() {
           last7Days[dayIndex] &&
           last7Days[dayIndex].hasOwnProperty(agentKey)
         ) {
-          last7Days[dayIndex][agentKey]++;
+          const currentValue = last7Days[dayIndex][agentKey];
+          last7Days[dayIndex][agentKey] =
+            (typeof currentValue === "number" ? currentValue : 0) + 1;
         }
       }
     });

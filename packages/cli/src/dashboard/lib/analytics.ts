@@ -121,13 +121,21 @@ export function generateSummary(analytics: AnalyticsSession[]): AnalyticsSummary
     .map(([error, count]) => ({ error, count }));
 
   // Agent breakdown
-  const agentBreakdown: Record<string, any> = {};
+  const agentBreakdown: Record<string, {
+    sessions: number;
+    duration: number;
+    successfulSessions: number;
+    successRate: number;
+    averageDuration: number;
+  }> = {};
   analytics.forEach(a => {
     if (!agentBreakdown[a.agentName]) {
       agentBreakdown[a.agentName] = {
         sessions: 0,
         duration: 0,
-        successfulSessions: 0
+        successfulSessions: 0,
+        successRate: 0,
+        averageDuration: 0
       };
     }
     const agent = agentBreakdown[a.agentName];

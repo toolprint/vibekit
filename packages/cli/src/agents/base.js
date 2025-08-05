@@ -288,6 +288,41 @@ class BaseAgent {
         settings: this.settings
       }] }, (item) => React.createElement(StatusDisplay, item)));
       
+      // Add dashboard opening functionality
+      const openDashboard = async () => {
+        try {
+          console.log('\n📊 Starting analytics dashboard server...');
+          
+          const { default: dashboardManager } = await import('../dashboard/manager.js');
+          const dashboardServer = dashboardManager.getDashboardServer(3001);
+          await dashboardServer.start();
+          const status = dashboardServer.getStatus();
+          
+          if (status.running && status.url) {
+            console.log(`Dashboard available at: ${status.url}`);
+            
+            // Open browser
+            const { exec } = await import('child_process');
+            const openCmd = process.platform === 'darwin' ? 'open' : 
+                           process.platform === 'win32' ? 'start' : 'xdg-open';
+            exec(`${openCmd} ${status.url}`);
+          }
+        } catch (error) {
+          console.error('❌ Failed to start dashboard server:', error.message);
+        }
+      };
+
+      // Set up input handler for dashboard opening (press 'd')
+      const dashboardInputHandler = (data) => {
+        const input = data.toString();
+        if (input === 'd' || input === 'D') {
+          openDashboard();
+        }
+      };
+      
+      // Add temporary input listener for dashboard opening
+      process.stdin.on('data', dashboardInputHandler);
+      
       // Unmount after a brief delay to prevent conflicts with child process
       setTimeout(() => {
         try {
@@ -368,6 +403,7 @@ class BaseAgent {
         // Cleanup function for non-interactive mode
         const cleanup = () => {
           process.stdin.removeListener('data', stdinHandler);
+          process.stdin.removeListener('data', dashboardInputHandler);
         };
 
         child.on('close', async (code) => {
@@ -421,6 +457,9 @@ class BaseAgent {
         }
         
         child.on('close', async (code) => {
+          // Cleanup dashboard input handler
+          process.stdin.removeListener('data', dashboardInputHandler);
+          
           const duration = Date.now() - startTime;
           
           // Detect file changes
@@ -450,6 +489,9 @@ class BaseAgent {
         });
 
         child.on('error', async (error) => {
+          // Cleanup dashboard input handler
+          process.stdin.removeListener('data', dashboardInputHandler);
+          
           console.error(chalk.red(`[vibekit] Process error: ${error.message}`));
           
           // Finalize analytics with error

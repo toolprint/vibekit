@@ -173,6 +173,19 @@ class Analytics {
       }
     }
     
+    // Update git status to reflect current state
+    if (this.metrics.systemInfo) {
+      try {
+        const { collectSystemInfo } = await import('./system-info.js');
+        const updatedSystemInfo = await collectSystemInfo();
+        // Only update git-related fields to avoid overwriting other system info
+        this.metrics.systemInfo.gitStatus = updatedSystemInfo.gitStatus;
+        this.metrics.systemInfo.gitBranch = updatedSystemInfo.gitBranch;
+      } catch (error) {
+        this.logger.log('warn', 'Failed to update git status during periodic update', { error: error.message });
+      }
+    }
+    
     const sessionUpdate = {
       ...this.metrics,
       currentTime,
@@ -223,13 +236,25 @@ class Analytics {
     }
   }
 
-  finalize(exitCode, duration) {
+  async finalize(exitCode, duration) {
     this.stopPeriodicLogging();
     
     this.metrics.endTime = Date.now();
     this.metrics.duration = duration || (this.metrics.endTime - this.metrics.startTime);
     this.metrics.exitCode = exitCode;
     this.metrics.status = 'terminated';
+    
+    // Update git status one final time before saving
+    if (this.metrics.systemInfo) {
+      try {
+        const { collectSystemInfo } = await import('./system-info.js');
+        const updatedSystemInfo = await collectSystemInfo();
+        this.metrics.systemInfo.gitStatus = updatedSystemInfo.gitStatus;
+        this.metrics.systemInfo.gitBranch = updatedSystemInfo.gitBranch;
+      } catch (error) {
+        this.logger.log('warn', 'Failed to update git status during session finalization', { error: error.message });
+      }
+    }
     
     // Final token count refinement from buffers
     this.refineTokenCounts();

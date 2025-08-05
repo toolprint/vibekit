@@ -1,11 +1,12 @@
 "use client";
 
 import type * as React from "react";
-import { ChartSpline, Github, BookOpen, Palette, Info } from "lucide-react";
+import { ChartSpline, LucideGithub as Github, BookOpen, Palette, Info, Settings } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import { NavMain } from "@/components/nav-main";
 import { ThemeToggle } from "@/components/theme-toggle";
-import packageJson from "../../../package.json";
+import packageJson from "../package.json";
 import {
   Sidebar,
   SidebarContent,
@@ -23,13 +24,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const data = {
+const getNavData = (pathname: string) => ({
   navMain: [
     {
       title: "Usage",
-      url: "#",
+      url: "/",
       icon: ChartSpline,
-      isActive: true,
+      isActive: pathname === "/",
+    },
+    {
+      title: "Settings",
+      url: "/settings",
+      icon: Settings,
+      isActive: pathname === "/settings",
     },
   ],
   footerLinks: [
@@ -56,9 +63,11 @@ const data = {
       isVersion: true,
     },
   ],
-};
+});
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname();
+  const data = getNavData(pathname);
   return (
     <TooltipProvider>
       <Sidebar collapsible="icon" {...props}>

@@ -1,0 +1,92 @@
+"use client";
+
+import type * as React from "react";
+import { ChartSpline, Github, BookOpen, Palette } from "lucide-react";
+
+import { NavMain } from "@/components/nav-main";
+import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+
+const data = {
+  navMain: [
+    {
+      title: "Usage",
+      url: "#",
+      icon: ChartSpline,
+      isActive: true,
+    },
+  ],
+  footerLinks: [
+    {
+      title: "Github",
+      url: "https://github.com/vibekit/vibekit",
+      icon: Github,
+    },
+    {
+      title: "Documentation",
+      url: "https://docs.vibekit.com",
+      icon: BookOpen,
+    },
+    {
+      title: "Theme",
+      url: "#",
+      icon: Palette,
+      isThemeToggle: true,
+    },
+  ],
+};
+
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  return (
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton>
+              <div className="bg-muted flex aspect-square size-4 items-center justify-center rounded-lg">
+                <span className="text-lg">🖖</span>
+              </div>
+              <div
+                className="grid flex-1 text-left leading-tight"
+                style={{ fontFamily: "helvetica, sans-serif" }}
+              >
+                <span className="truncate text-md font-bold">VibeKit</span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <NavMain items={data.navMain} />
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          {data.footerLinks.map((link) => (
+            <SidebarMenuItem key={link.title}>
+              {link.isThemeToggle ? (
+                <ThemeToggle />
+              ) : (
+                <SidebarMenuButton asChild>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    <link.icon />
+                    <span>{link.title}</span>
+                  </a>
+                </SidebarMenuButton>
+              )}
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+}

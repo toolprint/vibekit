@@ -2,9 +2,11 @@
 
 <img width="500px" src="./assets/vibekit-hero.png" />
 
-### Run coding agents in a secure sandbox
+# VibeKit
 
-A simple SDK for safely running Codex, Claude, Gemini CLI, and SST Opencode in your app or workflow.
+### VibeKit is the safety layer for your coding agent
+
+Monitor, analyze, and secure your Claude, Gemini, Codex, and other coding agents with real-time insights, sensitive data redaction, and comprehensive session tracking.
 
 ---
 
@@ -13,56 +15,51 @@ A simple SDK for safely running Codex, Claude, Gemini CLI, and SST Opencode in y
 ---
 </div>
 
-## 🧠 What is VibeKit?
-
-VibeKit is an SDK for running powerful coding agents like **Claude Code**, **OpenAI Codex**, **Gemini CLI**, and **SST Opencode** in secure, customizable sandboxes. You can generate and execute real code safely, stream output to your UI, and run everything in the cloud — with full isolation and flexibility. Local execution coming soon.
-
-One SDK. Any coding agent. Any sandbox.
-
 ## 🚀 Quick Start
 
+Install the VibeKit CLI globally:
+
 ```bash
-npm i @vibe-kit/sdk
+npm install -g vibekit
 ```
 
-```javascript
-import { VibeKit } from "@vibe-kit/sdk";
-import { createE2BProvider } from "@vibe-kit/e2b";
+Run claude code with enhanced security and tracking
 
-const e2bProvider = createE2BProvider({
-  apiKey: process.env.E2B_API_KEY!,
-  templateId: "vibekit-claude",
-});
-
-const vibeKit = new VibeKit()
-  .withAgent({
-    type: "claude",
-    provider: "anthropic",
-    apiKey: process.env.ANTHROPIC_API_KEY!,
-    model: "claude-sonnet-4-20250514",
-  })
-  .withSandbox(e2bProvider);
+```bash
+vibekit claude
 ```
 
-## ⚡️ Features
+## ⚡️ Key Features
 
-🧠 Drop-in SDK for Claude Code, OpenAI Codex, Gemini CLI, and SST Opencode 
-🔒 Secure sandboxing for safe code execution  
-🌐 Cloud-based execution (local support coming soon)  
-🔁 GitHub automation: branches, commits, PRs  
-💬 Prompt history and context continuity  
-📡 Streamed output for real-time UIs  
-🔍 OpenTelemetry support for tracing and metrics  
-🧰 Compatible with any sandbox runtime
-⚡ Execute arbitrary commands in sandbox environments
+🐳 **Local sandbox** - Runs agent output in isolated Docker containers — zero risk to your local setup
+🔒 **Built-in redaction** - Auto-removes secrets, api keys, and other sensitive data completions
+📊 **Observability** - Complete visibility into agent operations with real-time logs, traces, and metrics
+🌐 **Universal agent support** - Works with Claude Code, Gemini CLI, Grok CLI, Codex CLI, OpenCode, and more
+🔄 **Model override** - Swap the model behind any agent CLI — e.g. run Gemini 2.5 Pro inside Claude Code
+💻 **Works offline & locally** - No cloud dependencies or internet required — works entirely on your machine
 
-## 📦 Supported Sandbox Runtimes
+## 📦 Related Packages
 
-Currently supports E2B, Daytona, Northflank, Cloudflare and Dagger, with other providers coming soon.
+Looking to integrate VibeKit into your application? Check out these packages:
 
-## 🧪 Use Cases
+### [📚 VibeKit SDK](https://github.com/superagent-ai/vibekit/tree/main/packages/sdk)
+Run coding agents in secure sandboxes with full control and monitoring.
 
-Build internal debugging tools, ship AI-powered features, scaffold new ideas, automate repetitive coding tasks, and test LLM output safely in production or prototyping environments.
+```bash
+npm install @vibe-kit/sdk
+```
+
+Perfect for building applications that need to execute AI-generated code safely.
+
+### [🔐 VibeKit Auth](https://github.com/superagent-ai/vibekit/tree/main/packages/auth) 
+Use your MAX subscriptions in AI Apps.
+
+```bash
+npm install @vibe-kit/auth
+```
+
+Handle authentication flows for your VibeKit-powered applications.
+
 
 ## 🤝 Contributing
 

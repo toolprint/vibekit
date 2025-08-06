@@ -26,7 +26,6 @@ export ANTHROPIC_API_KEY="sk-ant-api03-..."
 export OPENAI_API_KEY="sk-..."
 export GOOGLE_API_KEY="AIza..."
 export GROQ_API_KEY="gsk_..."
-```
 
 ### Priority Order
 
@@ -49,7 +48,6 @@ Example:
 ```bash
 export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
 export GITHUB_REPOSITORY="myorg/myrepo"
-```
 
 ### Token Permissions
 
@@ -71,7 +69,6 @@ Example:
 ```bash
 export VIBEKIT_PREFER_REGISTRY_IMAGES="true"
 export DOCKER_USERNAME="myusername"
-```
 
 ### Northflank
 
@@ -94,21 +91,6 @@ export DOCKER_USERNAME="myusername"
 | `E2B_API_KEY` | E2B API key | None |
 | `E2B_TEAM_ID` | E2B team identifier | None |
 
-## Telemetry
-
-### Configuration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VIBEKIT_TELEMETRY_ENABLED` | Enable telemetry collection | `false` |
-| `VIBEKIT_TELEMETRY_SESSION_ID` | Custom session ID for telemetry | Auto-generated |
-| `VIBEKIT_TELEMETRY_ENDPOINT` | Telemetry endpoint URL | VibeKit default |
-
-Example:
-```bash
-export VIBEKIT_TELEMETRY_ENABLED="true"
-export VIBEKIT_TELEMETRY_SESSION_ID="my-session-123"
-```
 
 ## Default Settings
 
@@ -125,7 +107,6 @@ Example:
 export VIBEKIT_DEFAULT_CPU="4"
 export VIBEKIT_DEFAULT_MEMORY="4096"
 export VIBEKIT_DEFAULT_DISK="50"
-```
 
 ### Behavior Settings
 
@@ -150,7 +131,6 @@ Example:
 export VIBEKIT_DEBUG="true"
 export VIBEKIT_LOG_LEVEL="debug"
 export VIBEKIT_LOG_FILE="/tmp/vibekit.log"
-```
 
 ## Using .env Files
 
@@ -183,7 +163,6 @@ VIBEKIT_DEFAULT_MEMORY=4096
 
 # Debug
 VIBEKIT_DEBUG=true
-```
 
 ### Security Best Practices
 
@@ -203,7 +182,6 @@ export VIBEKIT_INIT_PROVIDERS="Dagger,E2B"
 export VIBEKIT_INIT_AGENTS="claude,codex"
 export VIBEKIT_INIT_CPU="4"
 export VIBEKIT_INIT_MEMORY="4096"
-```
 
 ### vibekit local create
 
@@ -214,7 +192,6 @@ export VIBEKIT_WORKING_DIR="/app"
 
 # Set default environment variables
 export VIBEKIT_ENV_VARS="NODE_ENV=development,PORT=3000"
-```
 
 ## Precedence Rules
 
@@ -236,7 +213,6 @@ ANTHROPIC_API_KEY=new-key
 
 # Command line (highest priority)
 vibekit local create --api-key "newest-key"
-```
 
 ## Validation
 
@@ -252,15 +228,12 @@ echo $ANTHROPIC_API_KEY
 
 # In environment
 vibekit local exec -e my-env -c "env | grep API"
-```
 
 ### Required Variables
 
 Commands will fail with clear messages if required variables are missing:
-```
 ❌ No API key found for claude agent. 
 Set ANTHROPIC_API_KEY environment variable or use --api-key
-```
 
 ## Troubleshooting
 
@@ -276,7 +249,6 @@ cat .env
 # Test loading
 source .env
 echo $ANTHROPIC_API_KEY
-```
 
 ### Permission Issues
 
@@ -286,7 +258,6 @@ chmod 600 .env
 
 # Check ownership
 ls -l .env
-```
 
 ### Debugging Variable Loading
 
@@ -296,7 +267,6 @@ export VIBEKIT_DEBUG=true
 
 # Run command to see variable loading
 vibekit local create --name test
-```
 
 ## Best Practices
 
@@ -309,7 +279,6 @@ ANTHROPIC_API_KEY=your-anthropic-key-here
 OPENAI_API_KEY=your-openai-key-here
 GITHUB_TOKEN=your-github-token-here
 GITHUB_REPOSITORY=owner/repo
-```
 
 ### 2. Separate Environments
 
@@ -322,7 +291,6 @@ VIBEKIT_DEBUG=true
 # .env.production
 VIBEKIT_DEFAULT_AGENT=claude
 VIBEKIT_DEBUG=false
-```
 
 ### 3. Security Script
 
@@ -339,7 +307,6 @@ for file in $files; do
     fi
   fi
 done
-```
 
 ## Related Topics
 

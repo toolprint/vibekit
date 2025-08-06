@@ -34,8 +34,11 @@ logs
 # claude
 .claude
 
-# VibeKit
+# vibekit
 .vibekit
+
+# grok
+.grok
 
 # Misc
 .cache/

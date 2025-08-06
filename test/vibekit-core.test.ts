@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { VibeKit } from '../packages/vibekit/src/index.js';
+import { VibeKit } from '../packages/sdk/src/index.js';
 
 // Mock provider for testing
 const createMockProvider = () => ({

@@ -139,7 +139,7 @@ class Analytics {
     this.metrics.filesDeleted = [...new Set([...this.metrics.filesDeleted, ...deleted])];
   }
 
-  startPeriodicLogging(intervalMs = 60000) {
+  startPeriodicLogging(intervalMs = 20000) {
     if (this.periodicInterval) {
       return;
     }
@@ -434,6 +434,8 @@ class Analytics {
     };
 
     summary.machineBreakdown = createBreakdown('machineId');
+    summary.hostnameBreakdown = createBreakdown('hostname');
+    summary.platformBreakdown = createBreakdown('platform');
     summary.nodeVersionBreakdown = createBreakdown('nodeVersion');
     summary.projectLanguageBreakdown = createBreakdown('projectLanguage');
     summary.terminalBreakdown = createBreakdown('terminal');

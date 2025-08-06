@@ -35,12 +35,7 @@ interface CustomTooltipProps {
   payload?: TooltipPayload[];
   label?: string;
 }
-import { Loader, GitBranch } from "lucide-react";
-import {
-  Tooltip as UITooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Loader } from "lucide-react";
 
 // Custom tooltip component that respects theme
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
@@ -385,6 +380,7 @@ export default function Dashboard() {
                 <TableHead className="text-sm font-medium uppercase">Files Changed</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Project</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Git</TableHead>
+                <TableHead className="text-sm font-medium uppercase">Hostname</TableHead>
                 <TableHead className="text-sm font-medium uppercase">Start Time</TableHead>
               </TableRow>
             </TableHeader>
@@ -434,23 +430,14 @@ export default function Dashboard() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono">
-                        {session.systemInfo?.gitBranch || 'No git'}
-                      </span>
-                      {session.systemInfo?.gitStatus && session.systemInfo.gitStatus !== 'clean' && (
-                        <UITooltip>
-                          <TooltipTrigger asChild>
-                            <div className="cursor-pointer">
-                              <GitBranch className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Uncommitted changes</p>
-                          </TooltipContent>
-                        </UITooltip>
-                      )}
-                    </div>
+                    <span className="text-sm font-mono">
+                      {session.systemInfo?.gitBranch || 'No git'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm font-mono">
+                      {session.systemInfo?.hostname || 'Unknown'}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {new Date(session.startTime).toLocaleString()}

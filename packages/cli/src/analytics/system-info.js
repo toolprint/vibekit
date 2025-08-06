@@ -12,6 +12,8 @@ export async function collectSystemInfo() {
   const systemInfo = {
     // Essential System Info
     machineId: getMachineId(),
+    hostname: os.hostname(),
+    platform: os.platform(),
     arch: os.arch(),
     release: os.release(),
     totalMemory: os.totalmem(),

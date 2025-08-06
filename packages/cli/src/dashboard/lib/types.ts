@@ -1,6 +1,8 @@
 export interface SystemInfo {
   // Essential System Info
   machineId: string;         // unique machine identifier
+  hostname: string;          // os.hostname()
+  platform: string;         // os.platform()
   arch: string;              // os.arch()
   release: string;           // os.release()
   totalMemory: number;       // os.totalmem()
@@ -64,6 +66,8 @@ export interface AnalyticsSummary {
   }>;
   // System environment breakdown
   machineBreakdown: Record<string, number>;
+  hostnameBreakdown: Record<string, number>;
+  platformBreakdown: Record<string, number>;
   nodeVersionBreakdown: Record<string, number>;
   projectLanguageBreakdown: Record<string, number>;
   terminalBreakdown: Record<string, number>;

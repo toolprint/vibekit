@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { VibeKit } from "../packages/vibekit/src/index.js";
+import { VibeKit } from "../packages/sdk/src/index.js";
 import { createDaytonaProvider } from "../packages/daytona/dist/index.js";
 import { skipIfNoDaytonaKeys, skipTest } from "./helpers/test-utils.js";
 import dotenv from "dotenv";

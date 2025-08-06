@@ -30,10 +30,6 @@ export interface VibeKitOptions {
     token: string;
     repository: string;
   };
-  telemetry?: {
-    enabled: boolean;
-    sessionId?: string;
-  };
   workingDirectory?: string;
   secrets?: Record<string, string>;
   sandboxId?: string;
@@ -42,7 +38,6 @@ export interface VibeKitOptions {
 export class VibeKit extends EventEmitter {
   private options: Partial<VibeKitOptions> = {};
   private agent?: any;
-  private telemetryService?: any;
 
   constructor() {
     super();
@@ -69,10 +64,6 @@ export class VibeKit extends EventEmitter {
     return this;
   }
 
-  withTelemetry(config: { enabled: boolean; sessionId?: string }): this {
-    this.options.telemetry = config;
-    return this;
-  }
 
   withWorkingDirectory(path: string): this {
     this.options.workingDirectory = path;
@@ -141,22 +132,11 @@ export class VibeKit extends EventEmitter {
       sandboxProvider: this.options.sandbox,
       secrets: this.options.secrets,
       workingDirectory: this.options.workingDirectory,
-      telemetry: this.options.telemetry?.enabled
-        ? { isEnabled: true, sessionId: this.options.telemetry.sessionId }
-        : undefined,
       sandboxId: this.options.sandboxId,
     };
 
     this.agent = new AgentClass(agentConfig);
 
-    // Initialize telemetry if enabled
-    if (this.options.telemetry?.enabled) {
-      const { TelemetryService } = await import("../services/telemetry");
-      this.telemetryService = new TelemetryService(
-        { isEnabled: true },
-        this.options.telemetry.sessionId
-      );
-    }
   }
 
   async generateCode({

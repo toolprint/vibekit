@@ -11,7 +11,6 @@ export type {
   ModelProvider,
   SandboxProvider,
   SandboxInstance,
-  TelemetryConfig,
   Conversation,
 } from "./types";
 
@@ -41,11 +40,6 @@ export const createGrokAgent = async () => {
   return GrokAgent;
 };
 
-export const createTelemetryService = async () => {
-  const { TelemetryService } = await import("./services/telemetry");
-  return TelemetryService;
-};
-
 // Authentication is handled separately via @vibe-kit/auth package
 // Users should get tokens from auth package and pass them as API keys
 
@@ -54,5 +48,4 @@ export type { ClaudeConfig, ClaudeResponse } from "./types";
 export type { CodexConfig, CodexResponse } from "./types";
 export type { OpenCodeConfig, OpenCodeResponse } from "./types";
 export type { GeminiConfig } from "./types";
-export type { TelemetryData } from "./services/telemetry";
 export type { BaseAgentConfig, PullRequestResult } from "./agents/base";

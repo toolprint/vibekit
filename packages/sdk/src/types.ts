@@ -62,25 +62,6 @@ export type SecretsConfig = {
   [key: string]: string;
 };
 
-// TELEMETRY
-export type TelemetryConfig = {
-  /** Enable or disable telemetry */
-  isEnabled: boolean;
-  /** OTLP HTTP endpoint for traces (e.g., "https://api.honeycomb.io/v1/traces") */
-  endpoint?: string;
-  /** Service name for resource attributes (defaults to "vibekit") */
-  serviceName?: string;
-  /** Service version for resource attributes (defaults to "1.0.0") */
-  serviceVersion?: string;
-  /** Additional headers for OTLP HTTP requests */
-  headers?: Record<string, string>;
-  /** Request timeout in milliseconds (defaults to 5000) */
-  timeout?: number;
-  /** Sampling ratio from 0.0 to 1.0 (defaults to 1.0 for 100% sampling) */
-  samplingRatio?: number;
-  /** Additional resource attributes to include in telemetry data */
-  resourceAttributes?: Record<string, string>;
-};
 
 export type VibeKitConfig = {
   agent: {
@@ -90,7 +71,6 @@ export type VibeKitConfig = {
   environment: EnvironmentConfig;
   secrets?: SecretsConfig;
   github?: GithubConfig;
-  telemetry?: TelemetryConfig;
   sessionId?: string;
   /** Working directory inside the sandbox (defaults to "/var/vibe0") */
   workingDirectory?: string;
@@ -145,7 +125,6 @@ export interface CodexConfig {
   secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
-  telemetry?: TelemetryConfig;
   workingDirectory?: string;
 }
 
@@ -171,7 +150,6 @@ export interface ClaudeConfig {
   secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
-  telemetry?: TelemetryConfig;
   workingDirectory?: string;
 }
 
@@ -196,7 +174,6 @@ export interface OpenCodeConfig {
   secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
-  telemetry?: TelemetryConfig;
   workingDirectory?: string;
 }
 
@@ -221,7 +198,6 @@ export interface GeminiConfig {
   secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
-  telemetry?: TelemetryConfig;
   workingDirectory?: string;
 }
 
@@ -246,15 +222,8 @@ export interface GrokConfig {
   secrets?: SecretsConfig;
   model?: string;
   sandboxId?: string;
-  telemetry?: TelemetryConfig;
   workingDirectory?: string;
   baseUrl?: string; // for custom xAI API endpoints
-  localMCP?: {
-    enabled: boolean;
-    environment?: any;
-    serverType?: "stdio" | "transport";
-    autoStart?: boolean;
-  };
 }
 
 export interface GrokResponse {

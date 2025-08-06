@@ -64,13 +64,11 @@ async generateCode({
 ### Codex Agent
 - **Streaming Support:** Full streaming support with real-time updates
 - **Sandbox Environment:** Executes code in isolated E2B sandbox
-- **Telemetry:** Comprehensive tracking of generation, streaming, and errors
 - **Mode Support:** Both "ask" and "code" modes fully supported
 
 ### Claude Agent
 - **Streaming Support:** Limited - provides start/end notifications only
 - **Execution:** Direct API calls without sandbox environment
-- **Telemetry:** Basic tracking of generation start/end and errors
 - **Mode Support:** Both modes supported with fallback behavior
 
 ## Examples
@@ -152,14 +150,8 @@ try {
 }
 ```
 
-## Telemetry
 
-When telemetry is enabled, the method automatically tracks:
 
-- **Generation start/end events**
-- **Streaming data** (for supported agents)
-- **Error events** with context
-- **Performance metrics** like response times and data sizes
 
 ## Notes
 

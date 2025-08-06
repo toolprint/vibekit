@@ -1,7 +1,3 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateObject } from "ai";
 import { z } from "zod";
 import { ModelProvider } from "../types";
 
@@ -12,69 +8,91 @@ export interface ModelConfig {
   baseUrl?: string; // for custom providers like OpenAI compatible
 }
 
-function createProvider(config: ModelConfig) {
+async function createProvider(config: ModelConfig) {
   switch (config.provider) {
-    case "anthropic":
+    case "anthropic": {
+      const { createAnthropic } = await import("@ai-sdk/anthropic");
       return createAnthropic({ apiKey: config.apiKey });
-    case "openai":
+    }
+    case "openai": {
+      const { createOpenAI } = await import("@ai-sdk/openai");
       return createOpenAI({ apiKey: config.apiKey });
-    case "openrouter":
+    }
+    case "openrouter": {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       return createOpenAICompatible({
         name: "openrouter",
         apiKey: config.apiKey,
         baseURL: "https://openrouter.ai/api/v1",
       });
-    case "azure":
+    }
+    case "azure": {
       if (!config.baseUrl) {
         throw new Error("baseUrl is required for Azure provider");
       }
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       return createOpenAICompatible({
         name: "azure",
         apiKey: config.apiKey,
         baseURL: config.baseUrl,
       });
-    case "gemini":
+    }
+    case "gemini": {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       return createOpenAICompatible({
         name: "gemini",
         apiKey: config.apiKey,
         baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
       });
-    case "ollama":
+    }
+    case "ollama": {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       return createOpenAICompatible({
         name: "ollama",
         apiKey: config.apiKey || "ollama", // Ollama often doesn't require a real key
         baseURL: config.baseUrl || "http://localhost:11434/v1",
       });
-    case "mistral":
+    }
+    case "mistral": {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       return createOpenAICompatible({
         name: "mistral",
         apiKey: config.apiKey,
         baseURL: "https://api.mistral.ai/v1",
       });
-    case "deepseek":
+    }
+    case "deepseek": {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       return createOpenAICompatible({
         name: "deepseek",
         apiKey: config.apiKey,
         baseURL: "https://api.deepseek.com/v1",
       });
-    case "xai":
+    }
+    case "xai": {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       return createOpenAICompatible({
         name: "xai",
         apiKey: config.apiKey,
         baseURL: "https://api.x.ai/v1",
       });
-    case "groq":
+    }
+    case "groq": {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       return createOpenAICompatible({
         name: "groq",
         apiKey: config.apiKey,
         baseURL: "https://api.groq.com/openai/v1",
       });
-    case "arceeai":
+    }
+    case "arceeai": {
+      const { createOpenAICompatible } = await import("@ai-sdk/openai-compatible");
       return createOpenAICompatible({
         name: "arceeai",
         apiKey: config.apiKey,
         baseURL: "https://api.arcee.ai/v1",
       });
+    }
     default:
       throw new Error(`Unsupported provider: ${config.provider}`);
   }
@@ -117,9 +135,10 @@ export async function generatePRMetadata(
   prompt: string
 ) {
   const _prompt = `You are tasked to create title and body for a pull request based on the following task:\n${prompt}\n\npatch:\n\n${patch}`;
-  const provider = createProvider(modelConfig);
+  const provider = await createProvider(modelConfig);
   const model = modelConfig.model || getDefaultModel(modelConfig.provider);
 
+  const { generateObject } = await import("ai");
   const { object } = await generateObject({
     model: provider(model),
     prompt: _prompt,
@@ -144,9 +163,10 @@ export async function generateCommitMessage(
   prompt: string
 ) {
   const _prompt = `You are tasked to create a commit message based on the following task:\n${prompt}\n\npatch:\n\n${patch}`;
-  const provider = createProvider(modelConfig);
+  const provider = await createProvider(modelConfig);
   const model = modelConfig.model || getDefaultModel(modelConfig.provider);
 
+  const { generateObject } = await import("ai");
   const { object } = await generateObject({
     model: provider(model),
     prompt: _prompt,

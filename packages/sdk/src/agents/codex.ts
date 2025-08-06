@@ -26,7 +26,6 @@ export class CodexAgent extends BaseAgent {
       sandboxProvider: config.sandboxProvider,
       secrets: config.secrets,
       sandboxId: config.sandboxId,
-      telemetry: config.telemetry,
       workingDirectory: config.workingDirectory,
     };
 
@@ -63,11 +62,9 @@ export class CodexAgent extends BaseAgent {
     let _prompt = `${instruction}\n\nUser: ${escapedPrompt}`;
 
     return {
-      command: `codex --full-auto${
+      command: `codex exec --full-auto --skip-git-repo-check${
         this.model ? ` --model ${this.model}` : ""
-      }${
-        this.provider ? ` --provider ${this.provider}` : ""
-      } --quiet "${_prompt}"`,
+      } "${_prompt}"`,
       errorPrefix: "Codex",
       labelName: "codex",
       labelColor: "ededed",
@@ -135,11 +132,9 @@ export class CodexAgent extends BaseAgent {
     const originalGetCommandConfig = this.getCommandConfig.bind(this);
     this.getCommandConfig = (p: string, m?: "ask" | "code") => ({
       ...originalGetCommandConfig(p, m),
-      command: `codex --full-auto${
+      command: `codex exec --full-auto --skip-git-repo-check${
         this.model ? ` --model ${this.model}` : ""
-      }${
-        this.provider ? ` --provider ${this.provider}` : ""
-      } --quiet "${_prompt}"`,
+      } "${_prompt}"`,
     });
 
     const result = await super.generateCode(

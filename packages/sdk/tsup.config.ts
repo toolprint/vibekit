@@ -1,22 +1,16 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  // Main package and agents (with TypeScript declarations)
+  // Single main entry point to avoid duplication
   entry: {
     index: "src/index.ts",
-    "agents/base": "src/agents/base.ts",
-    "agents/claude": "src/agents/claude.ts",
-    "agents/codex": "src/agents/codex.ts",
-    "agents/gemini": "src/agents/gemini.ts",
-    "agents/opencode": "src/agents/opencode.ts",
-    "agents/utils": "src/agents/utils.ts",
-    "services/index": "src/services/index.ts",
-    "registry/index": "src/registry/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,
   clean: true,
-  splitting: false,
-  sourcemap: true,
+  splitting: true, // Enable code splitting for tree shaking
+  sourcemap: false,
   outDir: "dist",
+  treeshake: true, // Enable tree shaking
+  // No external dependencies needed - everything is bundled
 });

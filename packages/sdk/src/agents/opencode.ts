@@ -26,7 +26,6 @@ export class OpenCodeAgent extends BaseAgent {
       sandboxProvider: config.sandboxProvider,
       secrets: config.secrets,
       sandboxId: config.sandboxId,
-      telemetry: config.telemetry,
       workingDirectory: config.workingDirectory,
     };
 
@@ -63,9 +62,9 @@ export class OpenCodeAgent extends BaseAgent {
     let _prompt = `${instruction}\n\nUser: ${escapedPrompt}`;
 
     return {
-      command: `opencode run${
+      command: `echo "${_prompt}" | opencode run${
         this.model ? ` --model ${this.provider}/${this.model} --print-logs` : ""
-      } "${_prompt}"`,
+      }`,
       errorPrefix: "OpenCode",
       labelName: "opencode",
       labelColor: "00D2FF",
@@ -134,9 +133,9 @@ export class OpenCodeAgent extends BaseAgent {
     const originalGetCommandConfig = this.getCommandConfig.bind(this);
     this.getCommandConfig = (p: string, m?: "ask" | "code") => ({
       ...originalGetCommandConfig(p, m),
-      command: `opencode run${
+      command: `echo "${_prompt}" | opencode run${
         this.model ? ` --model ${this.provider}/${this.model} --print-logs` : ""
-      } "${_prompt}"`,
+      }`,
     });
 
     const result = await super.generateCode(

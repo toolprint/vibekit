@@ -28,7 +28,6 @@ export class ClaudeAgent extends BaseAgent {
       sandboxProvider: config.sandboxProvider,
       secrets: config.secrets,
       sandboxId: config.sandboxId,
-      telemetry: config.telemetry,
       workingDirectory: config.workingDirectory,
     };
 

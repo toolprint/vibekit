@@ -2,9 +2,7 @@
 
 <img width="500px" src="./assets/vibekit-hero.png" />
 
-# VibeKit
-
-### VibeKit is the safety layer for your coding agent
+# VibeKit is the safety layer for your coding agent
 
 Monitor, analyze, and secure your Claude, Gemini, Codex, and other coding agents with real-time insights, sensitive data redaction, and comprehensive session tracking.
 

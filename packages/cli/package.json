@@ -11,6 +11,7 @@
     "build": "tsup",
     "dev": "tsup src/cli.js --watch",
     "start": "node dist/cli.js",
+    "type-check": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

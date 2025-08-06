@@ -71,7 +71,7 @@ const Settings = () => {
       case 'settings':
         return [
           {
-            label: `Global Aliases: ${settings.aliases.enabled ? '✓ ON (requires restart)' : '✗ OFF'}`,
+            label: `Connect IDE: ${settings.aliases.enabled ? '✓ ON (requires restart)' : '✗ OFF'}`,
             description: 'Create global "claude" and "gemini" commands (runs "vibekit claude/gemini")',
             action: 'toggle-aliases'
           },

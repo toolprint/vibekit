@@ -3,6 +3,7 @@
 import type * as React from "react";
 import { ChartSpline, LucideGithub as Github, BookOpen, Palette, Info, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 import { NavMain } from "@/components/nav-main";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -74,16 +75,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              <div className="bg-muted flex aspect-square size-4 items-center justify-center rounded-lg">
-                <span className="text-lg">🖖</span>
-              </div>
-              <div
-                className="grid flex-1 text-left leading-tight"
-                style={{ fontFamily: "helvetica, sans-serif" }}
-              >
-                <span className="truncate text-md font-bold">VibeKit</span>
-              </div>
+            <SidebarMenuButton asChild>
+              <Link href="/">
+                <div className="bg-muted flex aspect-square size-4 items-center justify-center rounded-lg">
+                  <span className="text-lg">🖖</span>
+                </div>
+                <div
+                  className="grid flex-1 text-left leading-tight"
+                  style={{ fontFamily: "helvetica, sans-serif" }}
+                >
+                  <span className="truncate text-md font-bold">VibeKit</span>
+                </div>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

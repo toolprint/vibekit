@@ -194,7 +194,7 @@ export default function SettingsPage() {
               <div className="space-y-0.5">
                 <Label htmlFor="redaction-enabled">Data Redaction</Label>
                 <p className="text-sm text-muted-foreground">
-                  Redact sensitive data in proxy logs
+                  Redact secrets, API keys, and sensitive data from coding agent output
                 </p>
               </div>
               <Switch
@@ -238,12 +238,12 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Aliases Settings */}
+        {/* Connect IDE Settings */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Link className="h-5 w-5" />
-              <CardTitle>Global Aliases</CardTitle>
+              <CardTitle>Connect IDE</CardTitle>
             </div>
             <CardDescription>
               Create global command aliases for easier access
@@ -253,7 +253,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="aliases-enabled">Enable Aliases</Label>
+                  <Label htmlFor="aliases-enabled">Enable IDE Integration</Label>
                   {settings.aliases.enabled && (
                     <Badge variant="secondary" className="text-xs">
                       Requires restart

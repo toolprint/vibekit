@@ -35,7 +35,7 @@ interface CustomTooltipProps {
   payload?: TooltipPayload[];
   label?: string;
 }
-import { Loader, GitCommit, GitBranch } from "lucide-react";
+import { Loader, GitBranch } from "lucide-react";
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -438,19 +438,15 @@ export default function Dashboard() {
                       <span className="text-sm font-mono">
                         {session.systemInfo?.gitBranch || 'No git'}
                       </span>
-                      {session.systemInfo?.gitStatus && (
+                      {session.systemInfo?.gitStatus && session.systemInfo.gitStatus !== 'clean' && (
                         <UITooltip>
                           <TooltipTrigger asChild>
                             <div className="cursor-pointer">
-                              {session.systemInfo.gitStatus === 'clean' ? (
-                                <GitCommit className="w-4 h-4 text-green-600" />
-                              ) : (
-                                <GitBranch className="w-4 h-4 text-muted-foreground" />
-                              )}
+                              <GitBranch className="w-4 h-4 text-muted-foreground" />
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>{session.systemInfo.gitStatus === 'clean' ? 'All changes committed' : 'Uncommitted changes'}</p>
+                            <p>Uncommitted changes</p>
                           </TooltipContent>
                         </UITooltip>
                       )}

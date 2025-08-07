@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
+import { fileURLToPath } from 'url';
 import ClaudeAgent from './agents/claude.js';
 import GeminiAgent from './agents/gemini.js';
 import Logger from './logging/logger.js';
@@ -17,6 +18,9 @@ import React from 'react';
 import { render } from 'ink';
 import Settings from './components/settings.js';
 import { setupAliases } from './utils/aliases.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
 
 const program = new Command();
 
@@ -61,7 +65,7 @@ async function readSettings() {
 program
   .name('vibekit')
   .description('CLI middleware for headless and TUI coding agents')
-  .version('1.0.0')
+  .version(pkg.version)
   .option('--proxy <url>', 'HTTP/HTTPS proxy URL for all agents (e.g., http://proxy.example.com:8080)');
 
 program

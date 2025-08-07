@@ -4,7 +4,7 @@
 
 # VibeKit is the safety layer for your coding agent
 
-Monitor, analyze, and secure your Claude, Gemini, Codex, and other coding agents with real-time insights, sensitive data redaction, and comprehensive session tracking.
+Run Claude Code, Gemini, Codex — or any coding agent — in a clean, isolated sandbox with sensitive data redaction and observability baked in.
 
 ---
 

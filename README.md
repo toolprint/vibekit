@@ -37,8 +37,6 @@ vibekit claude
 
 🌐 **Universal agent support** - Works with Claude Code, Gemini CLI, Grok CLI, Codex CLI, OpenCode, and more
 
-🔄 **Model override** - Swap the model behind any agent CLI — e.g. run Gemini 2.5 Pro inside Claude Code
-
 💻 **Works offline & locally** - No cloud dependencies or internet required — works entirely on your machine
 
 ## 📦 Related Packages

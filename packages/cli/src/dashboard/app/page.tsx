@@ -45,6 +45,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
       claude: "claude-code",
       gemini: "gemini-cli",
       cursor: "cursor",
+      opencode: "opencode",
     };
     return displayNames[agentKey.toLowerCase()] || agentKey;
   };
@@ -300,6 +301,7 @@ export default function Dashboard() {
                       gemini: "#4285f4", // Google blue for Gemini
                       codex: "#6b7280", // Grey color for Codex (works in light/dark)
                       cursor: "#374151", // Dark grey/black-ish color for Cursor (works in light/dark)
+                      opencode: "#333333", // Dark black color for OpenCode
                     };
                     if (agentColors[agentName.toLowerCase()]) {
                       return agentColors[agentName.toLowerCase()];
@@ -341,6 +343,7 @@ export default function Dashboard() {
                     gemini: "#4285f4", // Google blue for Gemini
                     codex: "#6b7280", // Grey color for Codex (works in light/dark)
                     cursor: "#374151", // Dark grey/black-ish color for Cursor (works in light/dark)
+                    opencode: "#333333", // Dark black color for OpenCode
                   };
                   if (agentColors[agentName.toLowerCase()]) {
                     return agentColors[agentName.toLowerCase()];
@@ -433,6 +436,15 @@ export default function Dashboard() {
                           className="w-3 h-3"
                         />
                       )}
+                      {session.agentName.toLowerCase() === 'opencode' && (
+                        <Image
+                          src="/opencode.webp"
+                          alt="OpenCode"
+                          width={12}
+                          height={12}
+                          className="w-3 h-3"
+                        />
+                      )}
                       <span className="text-sm font-medium">
                         {(() => {
                           const displayNames: Record<string, string> = {
@@ -440,6 +452,7 @@ export default function Dashboard() {
                             gemini: "gemini-cli",
                             codex: "codex",
                             cursor: "cursor",
+                            opencode: "opencode",
                           };
                           return displayNames[session.agentName.toLowerCase()] || session.agentName;
                         })()}

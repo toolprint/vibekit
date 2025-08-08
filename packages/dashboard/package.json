@@ -1,6 +1,6 @@
 {
   "name": "@vibe-kit/dashboard",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Analytics dashboard for VibeKit CLI middleware",
   "private": false,
   "publishConfig": {
@@ -20,6 +20,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

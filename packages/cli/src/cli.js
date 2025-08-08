@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import ClaudeAgent from './agents/claude.js';
 import GeminiAgent from './agents/gemini.js';
 import CodexAgent from './agents/codex.js';
+import CursorAgent from './agents/cursor.js';
 import Logger from './logging/logger.js';
 import Analytics from './analytics/analytics.js';
 import ProxyServer from './proxy/server.js';
@@ -219,6 +220,62 @@ program
       }
     };
     const agent = new CodexAgent(logger, agentOptions);
+    
+    // Setup cleanup handlers for proxy server (including lazy-started proxy)
+    const cleanup = () => {
+      if ((proxyStarted || agent.proxyStarted) && proxyManager.isRunning()) {
+        proxyManager.stop();
+      }
+    };
+    
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    process.on('exit', cleanup);
+    
+    const args = command.args || [];
+    try {
+      await agent.run(args);
+    } finally {
+      // Clean up proxy server if we or the agent started it
+      if ((proxyStarted || agent.proxyStarted) && proxyManager.isRunning()) {
+        proxyManager.stop();
+      }
+    }
+  });
+
+program
+  .command('cursor-agent')
+  .description('Run Cursor Agent')
+  .option('-s, --sandbox', 'Enable sandbox mode')
+  .option('--sandbox-type <type>', 'Sandbox type: docker, podman, none')
+  .allowUnknownOption()
+  .allowExcessArguments()
+  .action(async (options, command) => {
+    const logger = new Logger('cursor');
+    const settings = await readSettings();
+    
+    // Get proxy from global option, environment variable, or default if proxy enabled in settings
+    let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    let proxyStarted = false;
+    
+    // Determine if we need to start proxy server later (lazy startup)
+    let shouldStartProxy = false;
+    if (!proxy && settings.proxy.enabled) {
+      proxy = 'http://localhost:8080';
+      shouldStartProxy = !proxyManager.isRunning();
+    }
+    
+    const agentOptions = {
+      proxy: proxy,
+      shouldStartProxy: shouldStartProxy,
+      proxyManager: proxyManager,
+      settings: settings,
+      sandboxOptions: {
+        sandbox: options.sandbox,
+        sandboxType: options.sandboxType
+      }
+    };
+    const agent = new CursorAgent(logger, agentOptions);
     
     // Setup cleanup handlers for proxy server (including lazy-started proxy)
     const cleanup = () => {

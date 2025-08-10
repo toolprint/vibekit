@@ -24,7 +24,7 @@
   "icons": {
     "library": "lucide"
   },
-  "favicon": "/mark.png",
+  "favicon": "/favicon.png",
   "navigation": {
     "tabs": [
       {

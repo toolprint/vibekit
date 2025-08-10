@@ -856,11 +856,12 @@ program
     }
   });
 
+// Show settings screen with welcome banner when just 'vibekit' is typed
 if (process.argv.length === 2) {
-  program.help();
+  render(React.createElement(Settings, { showWelcome: true }));
+} else {
+  program.parseAsync(process.argv).catch(error => {
+    console.error(chalk.red('Error:'), error.message);
+    process.exit(1);
+  });
 }
-
-program.parseAsync(process.argv).catch(error => {
-  console.error(chalk.red('Error:'), error.message);
-  process.exit(1);
-});

@@ -51,6 +51,13 @@ class ProxyServer {
 
   start() {
     return new Promise((resolve, reject) => {
+      // Check if server is already running
+      if (this.server && this.server.listening) {
+        console.log(chalk.yellow(`⚠️  Proxy server is already running on port ${this.port}`));
+        resolve();
+        return;
+      }
+
       // Create HTTP proxy server
       this.server = http.createServer((req, res) => {
         this.handleHttpRequest(req, res);
@@ -67,7 +74,13 @@ class ProxyServer {
       });
 
       this.server.on('error', (error) => {
-        reject(error);
+        // Check if error is EADDRINUSE (port already in use)
+        if (error.code === 'EADDRINUSE') {
+          console.log(chalk.yellow(`⚠️  Port ${this.port} is already in use. Proxy server may already be running.`));
+          resolve(); // Don't reject, just resolve to avoid error
+        } else {
+          reject(error);
+        }
       });
 
       // Graceful shutdown

@@ -6,6 +6,7 @@ import os from 'os';
 import { setupAliases } from '../utils/aliases.js';
 import proxyManager from '../proxy/manager.js';
 import dashboardManager from '../dashboard/manager.js';
+import CFonts from 'cfonts';
 
 const Settings = ({ showWelcome = false }) => {
   const [settings, setSettings] = useState({
@@ -27,6 +28,7 @@ const Settings = ({ showWelcome = false }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentMenu, setCurrentMenu] = useState('main'); // 'main', 'analytics', 'proxy', 'sandbox', 'ide'
+  const [logoRendered, setLogoRendered] = useState(false);
   const { exit } = useApp();
 
   const settingsPath = path.join(os.homedir(), '.vibekit', 'settings.json');
@@ -158,6 +160,24 @@ const Settings = ({ showWelcome = false }) => {
 
     loadSettings();
   }, [settingsPath]);
+
+  useEffect(() => {
+    if (showWelcome && !logoRendered) {
+      // Render the cfonts logo directly to stdout
+      CFonts.say('VIBEKIT', {
+        font: 'tiny',
+        align: 'center',
+        colors: ['gray'],
+        background: 'transparent',
+        letterSpacing: 1,
+        lineHeight: 0,  // Minimize line height
+        space: false,  // Disable extra space around the logo
+        maxLength: '0',
+        env: 'node'
+      });
+      setLogoRendered(true);
+    }
+  }, [showWelcome, logoRendered]);
 
   const saveSettings = async (newSettings) => {
     try {
@@ -376,19 +396,9 @@ const Settings = ({ showWelcome = false }) => {
     <Box flexDirection="column" padding={1} alignItems={showWelcome ? "center" : undefined}>
       {showWelcome && (
         <>
-          <Text> </Text>
-          <Box justifyContent="center">
-            <Text>🖖</Text>
-          </Box>
-          <Text> </Text>
-          <Box justifyContent="center">
-            <Text bold color="cyanBright" inverse> VIBEKIT </Text>
-          </Box>
-          <Text> </Text>
-          <Box justifyContent="center">
+          <Box justifyContent="center" marginBottom={2}>
             <Text color="gray">The safety and observability layer for your coding agent</Text>
           </Box>
-          <Text> </Text>
         </>
       )}
       
@@ -438,7 +448,7 @@ const Settings = ({ showWelcome = false }) => {
             <Text> </Text>
             <Box flexDirection="column" alignItems="center" marginTop={1}>
               <Text color="gray" dimColor>Quick Commands:</Text>
-              <Box flexDirection="column">
+              <Box flexDirection="column" marginTop={1}>
                 <Text color="gray" dimColor>  vibekit claude        Run Claude Code CLI</Text>
                 <Text color="gray" dimColor>  vibekit gemini        Run Gemini CLI</Text>
                 <Text color="gray" dimColor>  vibekit codex         Run Codex CLI</Text>

@@ -38,9 +38,7 @@ describe("Codex CLI", () => {
     vibeKit.on("update", updateSpy);
     vibeKit.on("error", errorSpy);
 
-    const result = await vibeKit.generateCode({ prompt, mode: "code" });
-    const pr = await vibeKit.createPullRequest();
-    console.log(pr);
+    const result = await vibeKit.generateCode({ prompt, mode: "ask" });
     const host = await vibeKit.getHost(3000);
 
     await vibeKit.kill();

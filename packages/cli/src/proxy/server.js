@@ -3,6 +3,7 @@ import https from 'https';
 import net from 'net';
 import { URL } from 'url';
 import chalk from 'chalk';
+import { initializeSensitivePatterns } from '../utils/redaction.js';
 
 class ProxyServer {
   constructor(port = 8080) {
@@ -11,56 +12,14 @@ class ProxyServer {
     this.requestCount = 0;
     this.responseBuffers = new Map();
     this.sseContentAccumulators = new Map(); // Track accumulated content per request
-    this.sensitivePatterns = this.initializeSensitivePatterns();
-  }
-
-  initializeSensitivePatterns() {
-    return [
-      /sk-proj-[A-Za-z0-9_-]+/g,
-      /sk-ant-[A-Za-z0-9_-]+/g,
-      /sk-or-[A-Za-z0-9_-]+/g,
-      /sk-[A-Za-z0-9_-]{20,}/g, 
-      /ghp_[A-Za-z0-9_-]+/g,
-      /AKIA[0-9A-Z]+/g,
-      /e2b_[A-Za-z0-9]+/g,
-      /dtn_[A-Za-z0-9]+/g,
-      /xai-[A-Za-z0-9_-]+/g,
-      /AIzaSy[A-Za-z0-9_-]+/g,
-      /gsk_[A-Za-z0-9_-]+/g,
-      /\b[A-Za-z0-9+/]{32,}={0,2}\b/g
-    ];
-  }
-  
-  makePatternMoreGeneral(regexString) {
-    // Make specific patterns more general to catch complete keys
-    let general = regexString;
-    
-    // Replace exact length quantifiers with more flexible ones
-    general = general.replace(/\{\d+\}/g, '+');  // {32} → +
-    general = general.replace(/\{\d+,\d+\}/g, '+'); // {32,64} → +
-    general = general.replace(/\{\d+,\}/g, '+'); // {32,} → +
-    
-    // Make character classes more inclusive
-    general = general.replace(/\[A-Za-z0-9\]/g, '[A-Za-z0-9_-]'); // Add common chars
-    general = general.replace(/\[a-zA-Z0-9\]/g, '[A-Za-z0-9_-]');
-    general = general.replace(/\[0-9a-f\]/g, '[A-Za-z0-9_-]'); // Hex → general
-    
-    // Remove overly restrictive word boundaries at the end
-    general = general.replace(/\\b\s*$/g, '');
-    
-    // Ensure we match to end of token
-    if (!general.includes('+') && !general.includes('*')) {
-      general = general + '+';
-    }
-    
-    return general;
+    this.sensitivePatterns = initializeSensitivePatterns();
   }
 
   redactSensitiveContent(content) {
     let redactedContent = content;
     
     this.sensitivePatterns.forEach(pattern => {
-      redactedContent = redactedContent.replace(pattern, '[REDACTED]');
+      redactedContent = redactedContent.replace(pattern, 'REDACTED');
     });
     
     return redactedContent;
@@ -265,7 +224,6 @@ class ProxyServer {
                   };
                   
                   const redactedEvent = `event: content_block_delta\ndata: ${JSON.stringify(redactedEventData)}\n\n`;
-                  console.log(chalk.green(`[Chunk ${requestId} - ${this.sensitivePatterns.length} patterns]`), redactedChunk);
                   res.write(redactedEvent);
                 }
               } else if (event.type === 'content_block_stop') {

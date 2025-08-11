@@ -125,7 +125,7 @@ const Settings = ({ showWelcome = false }) => {
       case 'ide':
         return [
           {
-            label: `Global Aliases: ${settings.aliases.enabled ? '✓ ON' : '✗ OFF'}`,
+            label: `Global Aliases: ${settings.aliases.enabled ? '✓ ON (requires restart)' : '✗ OFF (requires restart)'}`,
             description: 'Create global "claude", "gemini" and "codex" commands',
             action: 'toggle-aliases'
           },
@@ -397,7 +397,7 @@ const Settings = ({ showWelcome = false }) => {
       {showWelcome && (
         <>
           <Box justifyContent="center" marginBottom={2}>
-            <Text color="gray">The safety and observability layer for your coding agent</Text>
+            <Text color="gray">The safety layer for coding agents</Text>
           </Box>
         </>
       )}
@@ -420,13 +420,16 @@ const Settings = ({ showWelcome = false }) => {
                     {item.label.replace(/✓ ON.*/, '')}
                     <Text color="green">✓ ON</Text>
                     {item.label.includes('(requires restart)') && (
-                      <Text color="gray"> (requires restart)</Text>
+                      <Text color="gray" dimColor> (requires restart)</Text>
                     )}
                   </>
                 ) : item.label.includes('✗ OFF') ? (
                   <>
-                    {item.label.replace('✗ OFF', '')}
+                    {item.label.replace(/✗ OFF.*/, '')}
                     <Text color="red">✗ OFF</Text>
+                    {item.label.includes('(requires restart)') && (
+                      <Text color="gray" dimColor> (requires restart)</Text>
+                    )}
                   </>
                 ) : (
                   item.label

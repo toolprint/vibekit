@@ -16,32 +16,44 @@ class ProxyServer {
 
   initializeSensitivePatterns() {
     return [
-      // Broader patterns to match complete API keys starting from prefixes
-      // OpenAI API keys (sk-proj format) - match everything after sk-proj-
       /sk-proj-[A-Za-z0-9_-]+/g,
-      // Anthropic API keys - match everything after sk-ant-
       /sk-ant-[A-Za-z0-9_-]+/g,
-      // OpenRouter API keys - match everything after sk-or-
       /sk-or-[A-Za-z0-9_-]+/g,
-      // Other OpenAI keys (sk- format) - broader match
-      /sk-[A-Za-z0-9_-]{20,}/g,
-      // GitHub tokens
+      /sk-[A-Za-z0-9_-]{20,}/g, 
       /ghp_[A-Za-z0-9_-]+/g,
-      // AWS access keys
       /AKIA[0-9A-Z]+/g,
-      // E2B API keys
       /e2b_[A-Za-z0-9]+/g,
-      // Daytona API keys
       /dtn_[A-Za-z0-9]+/g,
-      // XAI/Grok API keys
       /xai-[A-Za-z0-9_-]+/g,
-      // Google/Gemini API keys
       /AIzaSy[A-Za-z0-9_-]+/g,
-      // Groq API keys
       /gsk_[A-Za-z0-9_-]+/g,
-      // Generic long alphanumeric strings
       /\b[A-Za-z0-9+/]{32,}={0,2}\b/g
     ];
+  }
+  
+  makePatternMoreGeneral(regexString) {
+    // Make specific patterns more general to catch complete keys
+    let general = regexString;
+    
+    // Replace exact length quantifiers with more flexible ones
+    general = general.replace(/\{\d+\}/g, '+');  // {32} → +
+    general = general.replace(/\{\d+,\d+\}/g, '+'); // {32,64} → +
+    general = general.replace(/\{\d+,\}/g, '+'); // {32,} → +
+    
+    // Make character classes more inclusive
+    general = general.replace(/\[A-Za-z0-9\]/g, '[A-Za-z0-9_-]'); // Add common chars
+    general = general.replace(/\[a-zA-Z0-9\]/g, '[A-Za-z0-9_-]');
+    general = general.replace(/\[0-9a-f\]/g, '[A-Za-z0-9_-]'); // Hex → general
+    
+    // Remove overly restrictive word boundaries at the end
+    general = general.replace(/\\b\s*$/g, '');
+    
+    // Ensure we match to end of token
+    if (!general.includes('+') && !general.includes('*')) {
+      general = general + '+';
+    }
+    
+    return general;
   }
 
   redactSensitiveContent(content) {
@@ -253,7 +265,7 @@ class ProxyServer {
                   };
                   
                   const redactedEvent = `event: content_block_delta\ndata: ${JSON.stringify(redactedEventData)}\n\n`;
-                  console.log(chalk.green(`[Redacted Chunk ${requestId}]`), redactedChunk);
+                  console.log(chalk.green(`[Chunk ${requestId} - ${this.sensitivePatterns.length} patterns]`), redactedChunk);
                   res.write(redactedEvent);
                 }
               } else if (event.type === 'content_block_stop') {

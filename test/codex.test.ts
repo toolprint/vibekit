@@ -12,7 +12,7 @@ describe("Codex CLI", () => {
       return skipTest();
     }
 
-    const prompt = "Hi there";
+    const prompt = "Replace the README with the text 'HELLO WORLD'";
 
     const e2bProvider = createE2BProvider({
       apiKey: process.env.E2B_API_KEY!,
@@ -26,6 +26,10 @@ describe("Codex CLI", () => {
         apiKey: process.env.OPENAI_API_KEY!,
         model: "codex-mini-latest",
       })
+      .withGithub({
+        token: process.env.GH_TOKEN || process.env.GITHUB_TOKEN!,
+        repository: process.env.GH_REPOSITORY || "superagent-ai/signals",
+      })
       .withSandbox(e2bProvider);
 
     const updateSpy = vi.fn();
@@ -34,7 +38,9 @@ describe("Codex CLI", () => {
     vibeKit.on("update", updateSpy);
     vibeKit.on("error", errorSpy);
 
-    const result = await vibeKit.generateCode({ prompt, mode: "ask" });
+    const result = await vibeKit.generateCode({ prompt, mode: "code" });
+    const pr = await vibeKit.createPullRequest();
+    console.log(pr);
     const host = await vibeKit.getHost(3000);
 
     await vibeKit.kill();
@@ -43,5 +49,5 @@ describe("Codex CLI", () => {
     expect(host).toBeDefined();
     expect(updateSpy).toHaveBeenCalled();
     expect(errorSpy).not.toHaveBeenCalled();
-  }, 60000);
+  }, 600000);
 });

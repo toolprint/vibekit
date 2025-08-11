@@ -457,7 +457,7 @@ const Settings = ({ showWelcome = false }) => {
                 <Text color="gray" dimColor>  vibekit codex         Run Codex CLI</Text>
                 <Text color="gray" dimColor>  vibekit cursor-agent  Run Cursor Agent</Text>
                 <Text color="gray" dimColor>  vibekit opencode      Run OpenCode CLI</Text>
-                <Text color="gray" dimColor>  vibekit settings      Configure settings</Text>
+                <Text color="gray" dimColor>  vibekit              Configure settings</Text>
                 <Text color="gray" dimColor>  vibekit dashboard     Open analytics dashboard</Text>
               </Box>
             </Box>

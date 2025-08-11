@@ -164,57 +164,78 @@ export default function Dashboard() {
 
   // Generate time series data from recent sessions
   const generateTimeSeriesData = () => {
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const today = new Date();
     type DayData = { date: string; [key: string]: string | number };
     const last7Days: DayData[] = [];
 
-    // Create data structure for last 7 days
+    // Create data structure for last 7 days with actual dates
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      const dayName = days[date.getDay()];
+      const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
 
       last7Days.push({
-        date: dayName,
-        claude: 0,
-        gemini: 0,
-        codex: 0,
-        cursor: 0,
-        grok: 0,
-        opencode: 0,
-        ...Object.keys(summary.agentBreakdown).reduce((acc, agent) => {
-          acc[agent.toLowerCase()] = 0;
-          return acc;
-        }, {} as Record<string, number>),
+        date: dateStr,
       });
     }
 
-    // Populate with actual session data
+    // Group sessions by date
+    const sessionsByDate = new Map<string, Record<string, number>>();
+    
     recentSessions.forEach((session) => {
       const sessionDate = new Date(session.startTime);
+      const dateStr = `${sessionDate.getMonth() + 1}/${sessionDate.getDate()}`;
+      
+      // Check if this date is within our 7-day window
       const daysDiff = Math.floor(
         (today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-
+      
       if (daysDiff >= 0 && daysDiff < 7) {
-        const dayIndex = 6 - daysDiff;
-        const agentKey = session.agentName.toLowerCase();
-        if (
-          last7Days[dayIndex] &&
-          last7Days[dayIndex].hasOwnProperty(agentKey)
-        ) {
-          const currentValue = last7Days[dayIndex][agentKey];
-          last7Days[dayIndex][agentKey] =
-            (typeof currentValue === "number" ? currentValue : 0) + 1;
+        if (!sessionsByDate.has(dateStr)) {
+          sessionsByDate.set(dateStr, {});
         }
+        
+        const agentKey = session.agentName.toLowerCase();
+        const dayData = sessionsByDate.get(dateStr)!;
+        dayData[agentKey] = (dayData[agentKey] || 0) + 1;
       }
+    });
+
+    // Get all unique agents across all days
+    const allAgents = new Set<string>();
+    sessionsByDate.forEach(dayData => {
+      Object.keys(dayData).forEach(agent => allAgents.add(agent));
+    });
+
+    // Merge the session data with our date structure, ensuring all agents have values for all days
+    last7Days.forEach(dayData => {
+      const sessionsForDay = sessionsByDate.get(dayData.date) || {};
+      
+      // Initialize all agents to 0 for this day
+      allAgents.forEach(agent => {
+        dayData[agent] = 0;
+      });
+      
+      // Override with actual session counts
+      Object.assign(dayData, sessionsForDay);
     });
 
     return last7Days;
   };
 
   const timeSeriesData = generateTimeSeriesData();
+
+  // Get all unique agents from the chart data (not just summary breakdown)
+  const allAgentsInData = new Set<string>();
+  timeSeriesData.forEach(dayData => {
+    Object.keys(dayData).forEach(key => {
+      if (key !== 'date' && typeof dayData[key] === 'number') {
+        allAgentsInData.add(key);
+      }
+    });
+  });
+  const agentsToRender = Array.from(allAgentsInData);
 
   return (
     <div className="px-6 space-y-6">
@@ -298,7 +319,7 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={timeSeriesData}>
               <defs>
-                {Object.keys(summary.agentBreakdown).map((agent, index) => {
+                {agentsToRender.map((agent, index) => {
                   const getAgentColor = (agentName: string, fallbackIndex: number) => {
                     const agentColors: Record<string, string> = {
                       claude: "#ff6b35", // Orange color for Claude
@@ -337,10 +358,18 @@ export default function Dashboard() {
                 })}
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={1} />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} />
+              <XAxis 
+                dataKey="date" 
+                axisLine={false} 
+                tickLine={false}
+                interval={0}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
               <YAxis axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              {Object.keys(summary.agentBreakdown).map((agent, index) => {
+              {agentsToRender.map((agent, index) => {
                 const getAgentColor = (agentName: string, fallbackIndex: number) => {
                   const agentColors: Record<string, string> = {
                     claude: "#ff6b35", // Orange color for Claude

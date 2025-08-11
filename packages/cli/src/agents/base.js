@@ -313,24 +313,24 @@ class BaseAgent {
     // Capture the command being executed
     analytics.captureCommand(command, args);
     
-    // Capture initial file snapshot
-    const captureSnapshot = async () => {
-      try {
-        beforeSnapshot = await this.captureFileSnapshot();
-        currentSnapshot = beforeSnapshot;
-      } catch (error) {
-        console.warn('Failed to capture file snapshot:', error.message);
-      }
-    };
-    
     // Determine if this is likely an interactive session
     const isInteractive = args.length === 0 && process.stdin.isTTY;
     
     // Using standard child process for all sessions
     
     return new Promise(async (resolve, reject) => {
-      // Capture initial file snapshot
-      await captureSnapshot();
+      // Capture initial file snapshot asynchronously (don't block spawn)
+      const captureSnapshot = async () => {
+        try {
+          beforeSnapshot = await this.captureFileSnapshot();
+          currentSnapshot = beforeSnapshot;
+        } catch (error) {
+          console.warn('Failed to capture file snapshot:', error.message);
+        }
+      };
+      
+      // Start snapshot capture in background - don't await
+      captureSnapshot();
       
       let spawnOptions;
       

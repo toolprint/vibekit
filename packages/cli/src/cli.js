@@ -663,12 +663,6 @@ dashboardCommand
     }
   });
 
-program
-  .command('settings')
-  .description('Manage vibekit settings and configurations')
-  .action(async () => {
-    render(React.createElement(Settings));
-  });
 
 program
   .command('setup-aliases')
@@ -721,7 +715,7 @@ program
     
     if (!shellWorking) {
       console.log(chalk.yellow('\n💡 To fix alias issues:'));
-      console.log(chalk.yellow('   1. Run: vibekit settings (enable aliases)'));
+      console.log(chalk.yellow('   1. Run: vibekit (enable aliases)'));
       console.log(chalk.yellow('   2. Restart terminal or run: source ~/.zshrc'));
       console.log(chalk.yellow('   3. Test with: claude --help'));
     }
@@ -856,7 +850,7 @@ program
     }
   });
 
-// Show settings screen with welcome banner when just 'vibekit' is typed
+// Show welcome screen when just 'vibekit' is typed
 if (process.argv.length === 2) {
   render(React.createElement(Settings, { showWelcome: true }));
 } else {

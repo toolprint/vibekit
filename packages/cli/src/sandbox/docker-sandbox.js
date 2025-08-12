@@ -205,9 +205,34 @@ export class DockerSandbox {
     // Mount project directory
     containerArgs.push('-v', `${this.projectRoot}:/workspace`);
 
-    // Add any additional container arguments (e.g., for credentials) BEFORE image name
+    // Add any additional container arguments (e.g., for OAuth credentials) BEFORE image name
     if (options.additionalContainerArgs && Array.isArray(options.additionalContainerArgs)) {
       containerArgs.push(...options.additionalContainerArgs);
+    }
+
+    // Mount authentication files if they exist (always enabled for persistence)
+    // This works alongside OAuth injection to provide hybrid authentication:
+    // 1. Files are mounted for base authentication and persistence
+    // 2. OAuth credentials (via additionalContainerArgs above) enhance the mounted files
+    const homeDir = os.homedir();
+    const claudeAuthFile = path.join(homeDir, '.claude.json');
+    const anthropicDir = path.join(homeDir, '.anthropic');
+    const configDir = path.join(homeDir, '.config');
+
+    // Mount Claude auth file if it exists (read-write so Claude can update it)
+    if (await fs.pathExists(claudeAuthFile)) {
+      containerArgs.push('-v', `${claudeAuthFile}:/root/.claude.json`);
+    }
+
+    // Mount .anthropic directory if it exists
+    if (await fs.pathExists(anthropicDir)) {
+      containerArgs.push('-v', `${anthropicDir}:/root/.anthropic`);
+    }
+
+    // Mount .config directory if it exists (for potential Claude config)
+    const claudeConfigDir = path.join(configDir, 'claude');
+    if (await fs.pathExists(claudeConfigDir)) {
+      containerArgs.push('-v', `${claudeConfigDir}:/root/.config/claude`);
     }
 
     // Add security options

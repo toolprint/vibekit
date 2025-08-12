@@ -219,10 +219,16 @@ export class DockerSandbox {
     const anthropicDir = path.join(homeDir, '.anthropic');
     const configDir = path.join(homeDir, '.config');
 
-    // Mount Claude auth file if it exists (read-write so Claude can update it)
-    if (await fs.pathExists(claudeAuthFile)) {
-      containerArgs.push('-v', `${claudeAuthFile}:/root/.claude.json`);
-    }
+    // Note: We intentionally do NOT mount ~/.claude.json directly because:
+    // 1. Mounting the user's file directly causes issues with first time Claude initialization
+    //    and it wants to create it, but we can override settings as well using --settings
+    //    so it merges with values we extract from the user's .claude.json
+    // 2. Additionally, all the project data from the host would be included, which isn't
+    //    accessible from the sandbox and thus would make no sense and even provide
+    //    additional attack vectors to parts of the filesystem in the sandbox that should
+    //    not be configured to do so.
+    // Instead, OAuth credentials, settings, and user-scope MCP server configs are 
+    // extracted from the host file and injected via environment variables above.
 
     // Mount .anthropic directory if it exists
     if (await fs.pathExists(anthropicDir)) {

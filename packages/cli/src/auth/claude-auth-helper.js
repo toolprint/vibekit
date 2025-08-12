@@ -1,6 +1,9 @@
 import chalk from 'chalk';
 import { ClaudeAuth } from '@vibe-kit/auth/node';
 import crypto from 'crypto';
+import fs from 'fs-extra';
+import path from 'path';
+import os from 'os';
 
 /**
  * Claude-specific authentication helper.
@@ -67,8 +70,8 @@ export class ClaudeAuthHelper {
         return null;
       }
       
-      // Generate settings for onboarding bypass
-      const settings = this.generateClaudeSettings(tokenData);
+      // Generate settings for onboarding bypass (now includes MCP servers from host)
+      const settings = await this.generateClaudeSettings(tokenData);
       
       return {
         oauthToken: token,
@@ -105,23 +108,113 @@ export class ClaudeAuthHelper {
    * @returns {Object} Command modification object
    */
   static createClaudeWrapper(credentials, args) {
-    // Create bash wrapper that sets up config file and runs Claude
+    // Create bash wrapper that deep merges our settings into /root/.claude.json
     const settingsJson = JSON.stringify(credentials.settings);
-    const completeConfig = JSON.stringify(credentials.settings);
-    const claudeCommand = `echo '${completeConfig}' > /root/.claude.json && claude --settings '${settingsJson}' ${args.join(' ')}`;
+    const mergeScript = `
+      # Write our settings to temp file
+      echo '${settingsJson}' > /tmp/vibekit-settings.json
+      
+      # Create merge script using Node.js (available in Claude container)
+      cat > /tmp/merge-settings.js << 'MERGE_EOF'
+const fs = require('fs');
+const path = '/root/.claude.json';
+const tempPath = '/tmp/vibekit-settings.json';
+
+// Deep merge function
+function deepMerge(target, source) {
+  const result = { ...target };
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      result[key] = deepMerge(result[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
+try {
+  // Read existing config or start with empty object
+  let existingConfig = {};
+  if (fs.existsSync(path)) {
+    existingConfig = JSON.parse(fs.readFileSync(path, 'utf8'));
+  }
+  
+  // Read our settings
+  const newSettings = JSON.parse(fs.readFileSync(tempPath, 'utf8'));
+  
+  // Deep merge and write back
+  const mergedConfig = deepMerge(existingConfig, newSettings);
+  fs.writeFileSync(path, JSON.stringify(mergedConfig, null, 2));
+  
+  console.log('[vibekit] Settings merged successfully');
+} catch (error) {
+  console.error('[vibekit] Settings merge failed:', error.message);
+  process.exit(1);
+}
+MERGE_EOF
+
+      # Run merge script then start claude
+      node /tmp/merge-settings.js && claude ${args.join(' ')}
+    `;
     
     return {
       command: 'bash',
-      args: ['-c', claudeCommand]
+      args: ['-c', mergeScript.trim()]
     };
   }
   
   /**
+   * Extract MCP server configurations from host .claude.json file
+   * @returns {Object} MCP server configurations or empty object
+   */
+  static async extractHostMcpServers() {
+    try {
+      const homeDir = os.homedir();
+      const claudeAuthFile = path.join(homeDir, '.claude.json');
+      
+      console.log(chalk.blue(`[auth] 🔍 Looking for MCP servers in: ${claudeAuthFile}`));
+      
+      if (await fs.pathExists(claudeAuthFile)) {
+        console.log(chalk.blue('[auth] 📁 Host .claude.json file exists, reading...'));
+        const hostConfig = await fs.readJson(claudeAuthFile);
+        
+        console.log(chalk.blue(`[auth] 📋 Host config keys: ${Object.keys(hostConfig).join(', ')}`));
+        
+        // Extract user-scope MCP server configs
+        if (hostConfig.mcpServers && typeof hostConfig.mcpServers === 'object') {
+          console.log(chalk.green(`[auth] ✅ Found root-level mcpServers: ${JSON.stringify(hostConfig.mcpServers)}`));
+          return hostConfig.mcpServers;
+        } else {
+          console.log(chalk.yellow('[auth] ⚠️  No root-level mcpServers found in host .claude.json'));
+          if (hostConfig.mcpServers === undefined) {
+            console.log(chalk.blue('[auth] 📝 mcpServers key is undefined'));
+          } else {
+            console.log(chalk.blue(`[auth] 📝 mcpServers value: ${JSON.stringify(hostConfig.mcpServers)}`));
+          }
+        }
+      } else {
+        console.log(chalk.yellow(`[auth] ⚠️  Host .claude.json file does not exist at: ${claudeAuthFile}`));
+      }
+    } catch (error) {
+      // Log more detailed error information
+      console.log(chalk.red(`[auth] ❌ Error extracting MCP servers from host .claude.json: ${error.message}`));
+      console.log(chalk.red(`[auth] 📍 Error stack: ${error.stack}`));
+    }
+    
+    console.log(chalk.blue('[auth] 📤 Returning empty mcpServers object: {}'));
+    return {};
+  }
+
+  /**
    * Generate Claude CLI settings for onboarding bypass
    * @param {Object} tokenData - Raw token data from ClaudeAuth
-   * @returns {Object} Settings object for Claude CLI
+   * @returns {Promise<Object>} Settings object for Claude CLI
    */
-  static generateClaudeSettings(tokenData) {
+  static async generateClaudeSettings(tokenData) {
+    // Extract MCP server configurations from host file
+    const hostMcpServers = await this.extractHostMcpServers();
+    
     return {
       hasCompletedOnboarding: true, // Skip first-time setup
       numStartups: 2, // Indicate it's been started before
@@ -132,6 +225,8 @@ export class ClaudeAuthHelper {
         'new-user-warmup': 1
       },
       firstStartTime: new Date().toISOString(),
+      // Always inject user-scope MCP server configurations from host (even if empty)
+      mcpServers: hostMcpServers,
       // Project-level configuration for /workspace
       projects: {
         "/workspace": {

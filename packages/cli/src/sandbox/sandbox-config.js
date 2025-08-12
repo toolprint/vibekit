@@ -5,31 +5,7 @@ import SandboxUtils from './sandbox-utils.js';
  */
 export class SandboxConfig {
   /**
-   * Get default volume configuration
-   */
-  static getDefaultVolumeConfig() {
-    return {
-      credentials: {
-        enabled: true,          // Enable credential volumes
-        secureMode: false,      // Start insecure, stub for security
-        filterSensitive: true,  // Remove sensitive config data
-        fallbackEnabled: true   // Fallback to basic mounting on failure
-      },
-      cache: {
-        enabled: true,          // Enable persistent cache volumes
-        types: ['npm', 'node'], // Cache types to create
-        retention: '7d'         // Cache retention policy
-      },
-      volumes: {
-        prefix: 'vibekit',      // Volume name prefix
-        cleanup: 'auto',        // Cleanup policy: auto, manual, never
-        debug: false            // Enable volume inspection
-      }
-    };
-  }
-  /**
-   * Resolve sandbox configuration following Gemini CLI precedence model
-   * Enhanced to include volume configuration
+   * Resolve sandbox configuration following CLI precedence model
    */
   static async resolveSandboxConfig(cliOptions = {}, settings = {}) {
     let sandboxEnabled = false;
@@ -83,56 +59,14 @@ export class SandboxConfig {
       }
     }
 
-    // Resolve volume configuration with precedence
-    const defaultVolumeConfig = this.getDefaultVolumeConfig();
-    const resolvedVolumeConfig = this.resolveVolumeConfig(cliOptions, settings, defaultVolumeConfig);
-
     return {
       enabled: sandboxEnabled,
       type: sandboxEnabled ? sandboxType : 'none',
       source,
-      runtime: sandboxEnabled && (sandboxType === 'docker' || sandboxType === 'podman') ? sandboxType : null,
-      volumes: resolvedVolumeConfig
+      runtime: sandboxEnabled && (sandboxType === 'docker' || sandboxType === 'podman') ? sandboxType : null
     };
   }
 
-  /**
-   * Resolve volume configuration with precedence: CLI > env > settings > defaults
-   */
-  static resolveVolumeConfig(cliOptions = {}, settings = {}, defaults = {}) {
-    const resolved = {
-      credentials: {
-        ...defaults.credentials,
-        ...settings.volumes?.credentials,
-        ...cliOptions.volumes?.credentials
-      },
-      cache: {
-        ...defaults.cache,
-        ...settings.volumes?.cache,
-        ...cliOptions.volumes?.cache
-      },
-      volumes: {
-        ...defaults.volumes,
-        ...settings.volumes?.volumes,
-        ...cliOptions.volumes?.volumes
-      }
-    };
-
-    // Override from environment variables
-    if (process.env.VIBEKIT_CREDENTIALS_ENABLED !== undefined) {
-      resolved.credentials.enabled = process.env.VIBEKIT_CREDENTIALS_ENABLED === 'true';
-    }
-    
-    if (process.env.VIBEKIT_CACHE_ENABLED !== undefined) {
-      resolved.cache.enabled = process.env.VIBEKIT_CACHE_ENABLED === 'true';
-    }
-
-    if (process.env.VIBEKIT_VOLUME_DEBUG !== undefined) {
-      resolved.volumes.debug = process.env.VIBEKIT_VOLUME_DEBUG === 'true';
-    }
-
-    return resolved;
-  }
 
   /**
    * Get sandbox flags from environment

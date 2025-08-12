@@ -404,38 +404,6 @@ sandboxCommand
         
         console.log(`Ready: ${status.ready ? chalk.green('YES') : chalk.yellow('NO')}`);
         
-        // Display volume information
-        if (status.volumes) {
-          console.log('');
-          console.log(chalk.blue('📁 Volume Status'));
-          console.log(chalk.gray('─'.repeat(30)));
-          
-          if (status.volumes.projectId) {
-            console.log(`Project ID: ${chalk.gray(status.volumes.projectId)}`);
-          }
-          
-          if (status.volumes.fallbackMode) {
-            console.log(`Mode: ${chalk.yellow('FALLBACK')} ${chalk.gray('(using basic auth mounting)')}`);
-          } else {
-            console.log(`Mode: ${chalk.green('VOLUMES')} ${chalk.gray('(using credential volumes)')}`);
-          }
-          
-          console.log(`Total Volumes: ${chalk.cyan(status.volumes.totalVolumes)}`);
-          
-          // Display credential bind mount information
-          if (status.volumes.credentialBindMounts) {
-            console.log(`Credential Mounting: ${chalk.green('BIND-MOUNT')} ${chalk.gray('(ephemeral, per-container)')}`);
-            console.log(`  • Mount Path: ${chalk.gray(status.volumes.credentialBindMounts.mountPath)}`);
-            console.log(`  • Status: ${chalk.dim(status.volumes.credentialBindMounts.status)}`);
-          }
-          
-          if (status.volumes.cacheVolumes && status.volumes.cacheVolumes.length > 0) {
-            console.log(`Cache Volumes: ${chalk.cyan(status.volumes.cacheVolumes.length)}`);
-            status.volumes.cacheVolumes.forEach(vol => {
-              console.log(`  • ${chalk.gray(vol.name)} ${chalk.dim('(' + vol.cacheType + ')')}`);
-            });
-          }
-        }
       }
     }
   });
@@ -460,35 +428,11 @@ sandboxCommand
 sandboxCommand
   .command('clean')
   .description('Clean up sandbox containers and images')
-  .option('--volumes', 'Also clean up project volumes')
   .action(async (options) => {
     const { spawn } = await import('child_process');
     
     console.log(chalk.blue('🧹 Cleaning sandbox resources...'));
     
-    // Clean up volumes if requested
-    if (options.volumes) {
-      try {
-        const logger = new Logger('sandbox');
-        const sandboxEngine = new SandboxEngine(process.cwd(), logger);
-        const DockerSandbox = (await import('./sandbox/docker-sandbox.js')).default;
-        const VolumeManager = (await import('./sandbox/volume-manager.js')).VolumeManager;
-        
-        const sandbox = new DockerSandbox(process.cwd(), logger);
-        const projectId = sandbox.getProjectId();
-        
-        console.log(chalk.blue('🗂️  Cleaning project volumes...'));
-        const cleanedCount = await VolumeManager.cleanupProjectVolumes(projectId);
-        
-        if (cleanedCount > 0) {
-          console.log(chalk.green(`✅ Cleaned ${cleanedCount} volumes`));
-        } else {
-          console.log(chalk.gray('ℹ️  No volumes to clean'));
-        }
-      } catch (error) {
-        console.log(chalk.yellow(`⚠️  Could not clean volumes: ${error.message}`));
-      }
-    }
     
     // Remove vibekit sandbox image
     const cleanup = spawn('docker', ['rmi', '-f', 'vibekit-sandbox:latest'], { stdio: 'ignore' });
@@ -506,73 +450,6 @@ sandboxCommand
     });
   });
 
-sandboxCommand
-  .command('volumes')
-  .description('Manage credential and cache volumes')
-  .option('-l, --list', 'List project volumes')
-  .option('-c, --clean', 'Clean up project volumes')
-  .option('-i, --inspect <name>', 'Inspect volume contents (debug)')
-  .action(async (options) => {
-    if (!options.list && !options.clean && !options.inspect) {
-      console.log(chalk.yellow('Please specify an action: --list, --clean, or --inspect <name>'));
-      return;
-    }
-
-    try {
-      const logger = new Logger('sandbox');
-      const DockerSandbox = (await import('./sandbox/docker-sandbox.js')).default;
-      const VolumeManager = (await import('./sandbox/volume-manager.js')).VolumeManager;
-      
-      const sandbox = new DockerSandbox(process.cwd(), logger);
-      const projectId = sandbox.getProjectId();
-
-      if (options.list) {
-        console.log(chalk.blue('📁 Project Volumes'));
-        console.log(chalk.gray('─'.repeat(50)));
-        console.log(`Project ID: ${chalk.gray(projectId)}`);
-        console.log('');
-        
-        const volumes = await VolumeManager.listProjectVolumes(projectId);
-        
-        if (volumes.length === 0) {
-          console.log(chalk.gray('No volumes found for this project'));
-          console.log(chalk.dim('Volumes are created automatically when running commands with valid credentials'));
-        } else {
-          volumes.forEach(volume => {
-            const type = volume.Labels?.['vibekit.type'] || 'unknown';
-            const cacheType = volume.Labels?.['vibekit.cache-type'];
-            const created = volume.Labels?.['vibekit.created'];
-            
-            console.log(`${chalk.green('•')} ${chalk.white(volume.Name)}`);
-            console.log(`  Type: ${chalk.cyan(type)}${cacheType ? ` (${cacheType})` : ''}`);
-            if (created) {
-              console.log(`  Created: ${chalk.gray(new Date(created).toLocaleString())}`);
-            }
-            console.log('');
-          });
-        }
-      }
-
-      if (options.clean) {
-        console.log(chalk.blue('🗂️  Cleaning project volumes...'));
-        const cleanedCount = await VolumeManager.cleanupProjectVolumes(projectId);
-        
-        if (cleanedCount > 0) {
-          console.log(chalk.green(`✅ Cleaned ${cleanedCount} volumes`));
-        } else {
-          console.log(chalk.gray('ℹ️  No volumes to clean'));
-        }
-      }
-
-      if (options.inspect) {
-        console.log(chalk.blue(`🔍 Inspecting volume: ${options.inspect}`));
-        await VolumeManager.inspectVolume(options.inspect);
-      }
-    } catch (error) {
-      console.error(chalk.red('❌ Volume operation failed:'), error.message);
-      process.exit(1);
-    }
-  });
 
 // Auth commands
 const authCommand = program

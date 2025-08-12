@@ -120,6 +120,7 @@ program
     
     process.on('SIGINT', cleanup);
     process.on('SIGTERM', cleanup);
+    process.on('SIGHUP', cleanup);
     process.on('exit', cleanup);
     
     const args = command.args || [];
@@ -176,6 +177,7 @@ program
     
     process.on('SIGINT', cleanup);
     process.on('SIGTERM', cleanup);
+    process.on('SIGHUP', cleanup);
     process.on('exit', cleanup);
     
     const args = command.args || [];
@@ -232,6 +234,7 @@ program
     
     process.on('SIGINT', cleanup);
     process.on('SIGTERM', cleanup);
+    process.on('SIGHUP', cleanup);
     process.on('exit', cleanup);
     
     const args = command.args || [];
@@ -288,6 +291,7 @@ program
     
     process.on('SIGINT', cleanup);
     process.on('SIGTERM', cleanup);
+    process.on('SIGHUP', cleanup);
     process.on('exit', cleanup);
     
     const args = command.args || [];
@@ -344,6 +348,7 @@ program
     
     process.on('SIGINT', cleanup);
     process.on('SIGTERM', cleanup);
+    process.on('SIGHUP', cleanup);
     process.on('exit', cleanup);
     
     const args = command.args || [];

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="500px" src="./assets/vibekit-hero.png" />
+<img width="500px" src="./assets/vibekit-cli.png" />
 
 # VibeKit is the safety layer for your coding agent
 

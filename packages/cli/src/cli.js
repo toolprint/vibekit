@@ -403,6 +403,39 @@ sandboxCommand
         }
         
         console.log(`Ready: ${status.ready ? chalk.green('YES') : chalk.yellow('NO')}`);
+        
+        // Display volume information
+        if (status.volumes) {
+          console.log('');
+          console.log(chalk.blue('📁 Volume Status'));
+          console.log(chalk.gray('─'.repeat(30)));
+          
+          if (status.volumes.projectId) {
+            console.log(`Project ID: ${chalk.gray(status.volumes.projectId)}`);
+          }
+          
+          if (status.volumes.fallbackMode) {
+            console.log(`Mode: ${chalk.yellow('FALLBACK')} ${chalk.gray('(using basic auth mounting)')}`);
+          } else {
+            console.log(`Mode: ${chalk.green('VOLUMES')} ${chalk.gray('(using credential volumes)')}`);
+          }
+          
+          console.log(`Total Volumes: ${chalk.cyan(status.volumes.totalVolumes)}`);
+          
+          // Display credential bind mount information
+          if (status.volumes.credentialBindMounts) {
+            console.log(`Credential Mounting: ${chalk.green('BIND-MOUNT')} ${chalk.gray('(ephemeral, per-container)')}`);
+            console.log(`  • Mount Path: ${chalk.gray(status.volumes.credentialBindMounts.mountPath)}`);
+            console.log(`  • Status: ${chalk.dim(status.volumes.credentialBindMounts.status)}`);
+          }
+          
+          if (status.volumes.cacheVolumes && status.volumes.cacheVolumes.length > 0) {
+            console.log(`Cache Volumes: ${chalk.cyan(status.volumes.cacheVolumes.length)}`);
+            status.volumes.cacheVolumes.forEach(vol => {
+              console.log(`  • ${chalk.gray(vol.name)} ${chalk.dim('(' + vol.cacheType + ')')}`);
+            });
+          }
+        }
       }
     }
   });
@@ -427,10 +460,35 @@ sandboxCommand
 sandboxCommand
   .command('clean')
   .description('Clean up sandbox containers and images')
-  .action(async () => {
+  .option('--volumes', 'Also clean up project volumes')
+  .action(async (options) => {
     const { spawn } = await import('child_process');
     
     console.log(chalk.blue('🧹 Cleaning sandbox resources...'));
+    
+    // Clean up volumes if requested
+    if (options.volumes) {
+      try {
+        const logger = new Logger('sandbox');
+        const sandboxEngine = new SandboxEngine(process.cwd(), logger);
+        const DockerSandbox = (await import('./sandbox/docker-sandbox.js')).default;
+        const VolumeManager = (await import('./sandbox/volume-manager.js')).VolumeManager;
+        
+        const sandbox = new DockerSandbox(process.cwd(), logger);
+        const projectId = sandbox.getProjectId();
+        
+        console.log(chalk.blue('🗂️  Cleaning project volumes...'));
+        const cleanedCount = await VolumeManager.cleanupProjectVolumes(projectId);
+        
+        if (cleanedCount > 0) {
+          console.log(chalk.green(`✅ Cleaned ${cleanedCount} volumes`));
+        } else {
+          console.log(chalk.gray('ℹ️  No volumes to clean'));
+        }
+      } catch (error) {
+        console.log(chalk.yellow(`⚠️  Could not clean volumes: ${error.message}`));
+      }
+    }
     
     // Remove vibekit sandbox image
     const cleanup = spawn('docker', ['rmi', '-f', 'vibekit-sandbox:latest'], { stdio: 'ignore' });
@@ -446,6 +504,297 @@ sandboxCommand
     cleanup.on('error', () => {
       console.log(chalk.yellow('⚠️  Docker not available for cleanup'));
     });
+  });
+
+sandboxCommand
+  .command('volumes')
+  .description('Manage credential and cache volumes')
+  .option('-l, --list', 'List project volumes')
+  .option('-c, --clean', 'Clean up project volumes')
+  .option('-i, --inspect <name>', 'Inspect volume contents (debug)')
+  .action(async (options) => {
+    if (!options.list && !options.clean && !options.inspect) {
+      console.log(chalk.yellow('Please specify an action: --list, --clean, or --inspect <name>'));
+      return;
+    }
+
+    try {
+      const logger = new Logger('sandbox');
+      const DockerSandbox = (await import('./sandbox/docker-sandbox.js')).default;
+      const VolumeManager = (await import('./sandbox/volume-manager.js')).VolumeManager;
+      
+      const sandbox = new DockerSandbox(process.cwd(), logger);
+      const projectId = sandbox.getProjectId();
+
+      if (options.list) {
+        console.log(chalk.blue('📁 Project Volumes'));
+        console.log(chalk.gray('─'.repeat(50)));
+        console.log(`Project ID: ${chalk.gray(projectId)}`);
+        console.log('');
+        
+        const volumes = await VolumeManager.listProjectVolumes(projectId);
+        
+        if (volumes.length === 0) {
+          console.log(chalk.gray('No volumes found for this project'));
+          console.log(chalk.dim('Volumes are created automatically when running commands with valid credentials'));
+        } else {
+          volumes.forEach(volume => {
+            const type = volume.Labels?.['vibekit.type'] || 'unknown';
+            const cacheType = volume.Labels?.['vibekit.cache-type'];
+            const created = volume.Labels?.['vibekit.created'];
+            
+            console.log(`${chalk.green('•')} ${chalk.white(volume.Name)}`);
+            console.log(`  Type: ${chalk.cyan(type)}${cacheType ? ` (${cacheType})` : ''}`);
+            if (created) {
+              console.log(`  Created: ${chalk.gray(new Date(created).toLocaleString())}`);
+            }
+            console.log('');
+          });
+        }
+      }
+
+      if (options.clean) {
+        console.log(chalk.blue('🗂️  Cleaning project volumes...'));
+        const cleanedCount = await VolumeManager.cleanupProjectVolumes(projectId);
+        
+        if (cleanedCount > 0) {
+          console.log(chalk.green(`✅ Cleaned ${cleanedCount} volumes`));
+        } else {
+          console.log(chalk.gray('ℹ️  No volumes to clean'));
+        }
+      }
+
+      if (options.inspect) {
+        console.log(chalk.blue(`🔍 Inspecting volume: ${options.inspect}`));
+        await VolumeManager.inspectVolume(options.inspect);
+      }
+    } catch (error) {
+      console.error(chalk.red('❌ Volume operation failed:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Auth commands
+const authCommand = program
+  .command('auth')
+  .description('Manage authentication');
+
+// Import AuthHelperFactory for agent status checks
+async function getAuthHelperFactory() {
+  const { default: AuthHelperFactory } = await import('./auth/auth-helper-factory.js');
+  return AuthHelperFactory;
+}
+
+authCommand
+  .command('login <agent>')
+  .description('Authenticate with specific agent (claude, codex, grok, gemini)')
+  .action(async (agent) => {
+    const supportedAgents = ['claude'];
+    const plannedAgents = ['codex', 'grok', 'gemini'];
+    
+    if (!supportedAgents.includes(agent) && !plannedAgents.includes(agent)) {
+      console.log(chalk.red(`❌ Unknown agent: ${agent}`));
+      console.log(chalk.gray('Supported agents: claude'));
+      console.log(chalk.gray('Planned agents: codex, grok, gemini'));
+      process.exit(1);
+    }
+    
+    if (plannedAgents.includes(agent)) {
+      console.log(chalk.red(`❌ Authentication for ${agent} is not yet implemented.`));
+      console.log(chalk.blue(`💡 This agent is planned for future release.`));
+      console.log(chalk.gray(`📖 Visit https://docs.vibekit.dev/agents/${agent} for updates.`));
+      process.exit(1);
+    }
+    
+    // Handle Claude authentication
+    if (agent === 'claude') {
+      try {
+        const { ClaudeAuth } = await import('@vibe-kit/auth/node');
+        console.log(chalk.blue('🚀 Starting Claude authentication...'));
+        console.log(chalk.blue('🌐 Opening browser for OAuth flow...'));
+        await ClaudeAuth.authenticate();
+        console.log(chalk.green('✅ Authentication successful!'));
+        console.log(chalk.gray('📝 Credentials saved to ~/.vibekit/claude-oauth-token.json'));
+      } catch (error) {
+        console.error(chalk.red('❌ Authentication failed:'), error.message);
+        process.exit(1);
+      }
+    }
+  });
+
+authCommand
+  .command('status [agent]')
+  .description('Show authentication status for all agents or specific agent')
+  .action(async (agent) => {
+    const AuthHelperFactory = await getAuthHelperFactory();
+    const allAgents = ['claude', 'codex', 'grok', 'gemini'];
+    
+    console.log(chalk.blue('🔐 Authentication Status'));
+    console.log(chalk.gray('─'.repeat(50)));
+    
+    if (agent) {
+      // Show status for specific agent
+      if (!allAgents.includes(agent)) {
+        console.log(chalk.red(`❌ Unknown agent: ${agent}`));
+        process.exit(1);
+      }
+      
+      const status = await AuthHelperFactory.getAuthStatus(agent);
+      
+      if (status.supported) {
+        if (status.authenticated) {
+          let statusLine = `✅ ${agent}    ${chalk.green('Authenticated')}  (OAuth)`;
+          if (status.expiresAt) {
+            const expireStr = status.expiresAt.toLocaleString();
+            statusLine += `     Expires: ${expireStr}`;
+          }
+          console.log(statusLine);
+        } else {
+          console.log(`❌ ${agent}    ${chalk.red('Not authenticated')}     ${status.message}`);
+        }
+      } else {
+        console.log(`🚧 ${agent}    ${chalk.yellow('Implementation pending')}`);
+      }
+    } else {
+      // Show status for all agents
+      for (const agentName of allAgents) {
+        const status = await AuthHelperFactory.getAuthStatus(agentName);
+        
+        if (status.supported) {
+          if (status.authenticated) {
+            let statusLine = `✅ ${agentName.padEnd(8)} ${chalk.green('Authenticated')}  (OAuth)`;
+            if (status.expiresAt) {
+              const expireStr = status.expiresAt.toLocaleString();
+              statusLine += `     Expires: ${expireStr}`;
+            }
+            console.log(statusLine);
+          } else {
+            console.log(`❌ ${agentName.padEnd(8)} ${chalk.red('Not authenticated')}     Run: vibekit auth login ${agentName}`);
+          }
+        } else {
+          console.log(`🚧 ${agentName.padEnd(8)} ${chalk.yellow('Implementation pending')}`);
+        }
+      }
+      
+      console.log('');
+      console.log(chalk.blue('Commands:'));
+      console.log(`  ${chalk.cyan('vibekit auth login <agent>')}    Authenticate with specific agent`);
+      console.log(`  ${chalk.cyan('vibekit auth verify <agent>')}   Test authentication`);
+      console.log(`  ${chalk.cyan('vibekit auth logout <agent>')}   Remove authentication`);
+    }
+  });
+
+authCommand
+  .command('verify <agent>')
+  .description('Test authentication with API call for specific agent')
+  .action(async (agent) => {
+    const supportedAgents = ['claude'];
+    
+    if (!supportedAgents.includes(agent)) {
+      console.log(chalk.red(`❌ Authentication verification for ${agent} is not yet implemented.`));
+      process.exit(1);
+    }
+    
+    if (agent === 'claude') {
+      try {
+        const { ClaudeAuth } = await import('@vibe-kit/auth/node');
+        console.log(chalk.blue('🧪 Testing Claude authentication...'));
+        
+        const result = await ClaudeAuth.verifyWithDetails();
+        
+        if (result.success) {
+          console.log(chalk.green('✅ Claude authentication verified successfully!'));
+          console.log(`Response: ${chalk.gray(result.response)}`);
+        } else {
+          console.log(chalk.red('❌ Claude authentication verification failed'));
+          console.log(`Error: ${chalk.gray(result.error)}`);
+          if (result.status) {
+            console.log(`Status: ${chalk.gray(result.status)}`);
+          }
+        }
+      } catch (error) {
+        console.error(chalk.red('❌ Verification failed:'), error.message);
+        process.exit(1);
+      }
+    }
+  });
+
+authCommand
+  .command('logout <agent>')
+  .description('Clear stored authentication for specific agent')
+  .option('--all', 'Logout all agents')
+  .action(async (agent, options) => {
+    const supportedAgents = ['claude'];
+    
+    if (options.all) {
+      console.log(chalk.blue('🚪 Logging out all agents...'));
+      
+      // Logout Claude
+      try {
+        const { ClaudeAuth } = await import('@vibe-kit/auth/node');
+        await ClaudeAuth.logout();
+        console.log(chalk.green('✅ Claude logged out successfully'));
+      } catch (error) {
+        console.log(chalk.yellow('⚠️  Claude logout failed:'), error.message);
+      }
+      
+      console.log(chalk.green('✅ All available agents logged out'));
+      return;
+    }
+    
+    if (!supportedAgents.includes(agent)) {
+      console.log(chalk.red(`❌ Logout for ${agent} is not yet implemented.`));
+      process.exit(1);
+    }
+    
+    if (agent === 'claude') {
+      try {
+        const { ClaudeAuth } = await import('@vibe-kit/auth/node');
+        await ClaudeAuth.logout();
+        console.log(chalk.green('✅ Claude logged out successfully'));
+      } catch (error) {
+        console.error(chalk.red('❌ Logout failed:'), error.message);
+        process.exit(1);
+      }
+    }
+  });
+
+authCommand
+  .command('import <agent>')
+  .description('Import authentication token for specific agent')
+  .option('--token <token>', 'Import access token directly')
+  .option('--env', 'Import from environment variable')
+  .option('--file <path>', 'Import from JSON file')
+  .action(async (agent, options) => {
+    const supportedAgents = ['claude'];
+    
+    if (!supportedAgents.includes(agent)) {
+      console.log(chalk.red(`❌ Token import for ${agent} is not yet implemented.`));
+      process.exit(1);
+    }
+    
+    if (agent === 'claude') {
+      try {
+        const { ClaudeAuth } = await import('@vibe-kit/auth/node');
+        
+        if (options.token) {
+          await ClaudeAuth.importToken({ accessToken: options.token });
+          console.log(chalk.green('✅ Claude token imported successfully'));
+        } else if (options.env) {
+          await ClaudeAuth.importToken({ fromEnv: true });
+          console.log(chalk.green('✅ Claude token imported from CLAUDE_CODE_OAUTH_TOKEN environment variable'));
+        } else if (options.file) {
+          await ClaudeAuth.importToken({ fromFile: options.file });
+          console.log(chalk.green('✅ Claude token imported from file'));
+        } else {
+          console.log(chalk.yellow('Please specify import source: --token, --env, or --file'));
+          console.log(chalk.gray('Example: vibekit auth import claude --token your-oauth-token'));
+        }
+      } catch (error) {
+        console.error(chalk.red('❌ Import failed:'), error.message);
+        process.exit(1);
+      }
+    }
   });
 
 program

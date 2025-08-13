@@ -33,8 +33,8 @@ export async function setupProxySettings() {
           settings.env = {};
         }
         
-        // Store original ANTHROPIC_BASE_URL as VIBEKIT_PROXY_TARGET_URL if it exists and is not localhost
-        if (settings.env.ANTHROPIC_BASE_URL && !settings.env.ANTHROPIC_BASE_URL.includes('localhost')) {
+        // Store original ANTHROPIC_BASE_URL as VIBEKIT_PROXY_TARGET_URL if it exists
+        if (settings.env.ANTHROPIC_BASE_URL) {
           settings.env.VIBEKIT_PROXY_TARGET_URL = settings.env.ANTHROPIC_BASE_URL;
         }
         

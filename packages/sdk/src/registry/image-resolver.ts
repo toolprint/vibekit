@@ -15,7 +15,9 @@ export interface ImageResolverConfig {
   preferRegistryImages?: boolean;
   pushImages?: boolean;
   privateRegistry?: string;
-  dockerHubUser?: string;
+  dockerHubUser?: string;  // Deprecated - use registryUser instead
+  registryUser?: string;  // Universal registry username
+  registryName?: string;  // Which registry to use (defaults to RegistryManager's default)
   retryAttempts?: number;
   retryDelayMs?: number;
   logger?: {
@@ -59,11 +61,16 @@ export class ImageResolver {
     config: ImageResolverConfig = {},
     registryManager?: RegistryManager
   ) {
+    // Support both registryUser and dockerHubUser for backward compatibility
+    const registryUser = config.registryUser ?? config.dockerHubUser ?? "";
+    
     this.config = {
       preferRegistryImages: config.preferRegistryImages ?? true,
       pushImages: config.pushImages ?? true,
       privateRegistry: config.privateRegistry ?? "",
-      dockerHubUser: config.dockerHubUser ?? "",
+      dockerHubUser: registryUser,  // Keep for backward compatibility
+      registryUser: registryUser,
+      registryName: config.registryName ?? undefined,  // Use RegistryManager's default if not specified
       retryAttempts: config.retryAttempts ?? 3,
       retryDelayMs: config.retryDelayMs ?? 1000,
       logger: config.logger ?? defaultLogger,
@@ -114,7 +121,12 @@ export class ImageResolver {
     // Step 2: Try to pull from user's registry
     if (this.config.preferRegistryImages) {
       try {
-        const registryImage = await this.registryManager.getImageName(agentType, undefined, this.config.dockerHubUser || undefined);
+        // Use configured registry or let RegistryManager use its default
+        const registryImage = await this.registryManager.getImageName(
+          agentType, 
+          this.config.registryName,  // Could be undefined, 'dockerhub', 'ghcr', etc.
+          this.config.registryUser || undefined
+        );
         if (registryImage) {
           await this.registryManager.pullImage(registryImage);
           this.config.logger.info(`Successfully pulled image from registry: ${registryImage}`);
@@ -143,7 +155,11 @@ export class ImageResolver {
         // Push to registry if configured
         if (this.config.pushImages) {
           try {
-            const registryImage = await this.registryManager.getImageName(agentType, undefined, this.config.dockerHubUser || undefined);
+            const registryImage = await this.registryManager.getImageName(
+              agentType, 
+              this.config.registryName,  // Use configured registry or default
+              this.config.registryUser || undefined
+            );
             if (registryImage) {
               await this.dockerClient.tagImage(localTag, registryImage);
               await this.dockerClient.pushImage(registryImage);
@@ -170,9 +186,9 @@ export class ImageResolver {
    * Get the local image tag for an agent type
    */
   private getLocalImageTag(agentType: AgentType): string {
-    // If we have a dockerHubUser, use the full image name
-    if (this.config.dockerHubUser) {
-      return `${this.config.dockerHubUser}/vibekit-${agentType}:latest`;
+    // If we have a registryUser, use the full image name
+    if (this.config.registryUser) {
+      return `${this.config.registryUser}/vibekit-${agentType}:latest`;
     }
     return `vibekit-${agentType}:latest`;
   }

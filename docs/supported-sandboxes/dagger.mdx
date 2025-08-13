@@ -92,7 +92,8 @@ const config: VibeConfig = {
     config: {
       githubToken: process.env.GITHUB_TOKEN,
       preferRegistryImages: true,
-      dockerHubUser: "your-username", // For custom images
+      registryUser: "your-username", // Universal registry username
+      registryName: "dockerhub",     // Optional: specify registry (dockerhub, ghcr, etc.)
     },
   },
 };
@@ -148,8 +149,10 @@ The `createLocalProvider` function accepts these configuration options:
 
 - **`githubToken`** (optional): GitHub personal access token for Git operations and PR creation
 - **`preferRegistryImages`** (optional): Use pre-built registry images for faster startup (default: `true`)
-- **`dockerHubUser`** (optional): Your Docker Hub username for custom optimized images
-- **`privateRegistry`** (optional): Alternative registry URL (e.g., `"ghcr.io"`)
+- **`registryUser`** (optional): Registry username for pulling/pushing custom images (works with any registry)
+- **`registryName`** (optional): Which registry to use (`"dockerhub"`, `"ghcr"`, etc.) - defaults to Docker Hub
+- **`dockerHubUser`** (optional, deprecated): Legacy Docker Hub username - use `registryUser` instead
+- **`privateRegistry`** (optional): Alternative registry URL for enterprise setups
 
 ## Unique Features
 

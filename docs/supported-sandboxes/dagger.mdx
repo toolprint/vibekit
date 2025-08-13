@@ -56,16 +56,7 @@ const vibeKit = new VibeKit()
     apiKey: process.env.ANTHROPIC_API_KEY!,
     model: "claude-sonnet-4-20250514",
   })
-  .withSandbox(provider)
-  .withGithub({
-    token: process.env.GITHUB_TOKEN,      // Git operations handled at SDK level
-    repository: "owner/repo-name",
-  })
-  .withWorkingDirectory("/workspace")     // Optional: custom working directory
-  .withSecrets({                          // Optional: environment variables
-    DATABASE_URL: process.env.DATABASE_URL,
-    API_KEY: process.env.API_KEY,
-  });
+  .withSandbox(provider);
 
 // Generate code
 const result = await vibeKit.generateCode({ 

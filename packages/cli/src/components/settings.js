@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { setupAliases } from '../utils/aliases.js';
+import { revertAnthropicBaseURL } from '../utils/claude-settings.js';
 import proxyManager from '../proxy/manager.js';
 import dashboardManager from '../dashboard/manager.js';
 import CFonts from 'cfonts';
@@ -348,9 +349,18 @@ const Settings = ({ showWelcome = false }) => {
             } catch (error) {
               console.error('\n❌ Failed to start proxy server:', error.message);
             }
-          } else if (!newProxySettings.proxy.enabled && proxyManager.isRunning()) {
-            // Stop proxy server if disabled
-            proxyManager.stop();
+          } else if (!newProxySettings.proxy.enabled) {
+            // Stop proxy server if disabled and running
+            if (proxyManager.isRunning()) {
+              proxyManager.stop();
+            }
+            
+            // Always revert ANTHROPIC_BASE_URL when proxy is disabled, regardless of server status
+            try {
+              await revertAnthropicBaseURL();
+            } catch (error) {
+              console.error('\n❌ Failed to revert ANTHROPIC_BASE_URL:', error.message);
+            }
           }
           break;
         case 'toggle-redaction':

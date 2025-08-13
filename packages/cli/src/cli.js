@@ -85,8 +85,8 @@ program
     const logger = new Logger('claude');
     const settings = await readSettings();
     
-    // Setup proxy settings from Claude settings
-    const originalBaseUrl = await setupProxySettings();
+    // Setup proxy settings from Claude settings only if proxy is enabled
+    const originalBaseUrl = await setupProxySettings(settings.proxy.enabled);
     
     // Get proxy from global option, environment variable, or default if proxy enabled in settings
     let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;

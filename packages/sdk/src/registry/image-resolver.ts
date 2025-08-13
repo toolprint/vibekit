@@ -55,7 +55,7 @@ export class ImageResolver {
   private dockerClient: DockerClient;
   private configManager: ConfigManager;
   private registryManager: RegistryManager;
-  private config: Required<ImageResolverConfig>;
+  private config: Required<Omit<ImageResolverConfig, 'registryName'>> & { registryName?: string };
 
   constructor(
     config: ImageResolverConfig = {},

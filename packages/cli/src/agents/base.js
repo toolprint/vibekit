@@ -349,6 +349,11 @@ class BaseAgent {
         env.HTTPS_PROXY = this.proxy;
         env.http_proxy = this.proxy;
         env.https_proxy = this.proxy;
+        
+        // Pass through VIBEKIT_PROXY_TARGET_URL for proxy server
+        if (process.env.VIBEKIT_PROXY_TARGET_URL) {
+          env.VIBEKIT_PROXY_TARGET_URL = process.env.VIBEKIT_PROXY_TARGET_URL;
+        }
       }
       
       if (isInteractive) {

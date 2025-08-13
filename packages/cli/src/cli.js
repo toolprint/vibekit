@@ -21,6 +21,7 @@ import { render } from 'ink';
 import Settings from './components/settings.js';
 import { setupAliases } from './utils/aliases.js';
 import SandboxEngine from './sandbox/sandbox-engine.js';
+import { setupProxySettings } from './utils/claude-settings.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
@@ -31,6 +32,7 @@ const program = new Command();
 let settingsCache = null;
 let settingsCacheTime = 0;
 const SETTINGS_CACHE_TTL = 30000; // 30 seconds cache
+
 
 // Function to read user settings with caching
 async function readSettings() {
@@ -83,6 +85,9 @@ program
     const logger = new Logger('claude');
     const settings = await readSettings();
     
+    // Setup proxy settings from Claude settings
+    const originalBaseUrl = await setupProxySettings();
+    
     // Get proxy from global option, environment variable, or default if proxy enabled in settings
     let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     let proxyStarted = false;
@@ -94,8 +99,11 @@ program
       shouldStartProxy = !proxyManager.isRunning();
     }
     
-    // Set ANTHROPIC_BASE_URL to route Claude requests through proxy
+    // Set proxy target for the proxy server if we have one
     if (proxy) {
+      if (originalBaseUrl) {
+        process.env.VIBEKIT_PROXY_TARGET_URL = originalBaseUrl;
+      }
       process.env.ANTHROPIC_BASE_URL = proxy;
     }
     

@@ -111,7 +111,7 @@ class ProxyServer {
     this.requestCount++;
     const requestId = this.requestCount;
     
-    process.stdout.write(`[Proxy] ${req.method} ${req.url}\n`);
+    // Removed noisy proxy logs - requests are handled silently
 
     // Parse the target URL - handle relative URLs by prepending API base
     let targetUrl;

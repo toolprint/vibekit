@@ -57,6 +57,12 @@ class BaseAgent {
     await this.showStatusDisplay();
 
     try {
+      // Check if we're already inside a sandbox to prevent double execution
+      if (process.env.VIBEKIT_SANDBOX_ACTIVE) {
+        // We're already inside a sandbox, run directly
+        return await this.runDirect(args);
+      }
+
       // Try sandbox execution first
       const sandboxResult = await this.sandboxEngine.executeWithSandbox(
         this.getAgentCommand(),

@@ -1,8 +1,9 @@
 /**
  * Image Resolver
  * 
- * Provides provider-agnostic image resolution strategy that can be used
- * by any sandbox provider (Dagger, E2B, Northflank, etc.)
+ * Provides Docker image resolution strategy for sandbox providers that use
+ * local Docker images (currently only Dagger). Handles image building, 
+ * caching, and registry operations.
  */
 
 import { existsSync } from "fs";

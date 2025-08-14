@@ -14,7 +14,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "build": "echo 'No build step needed for proxy package'"
+    "build": "echo 'No build step needed for proxy package'",
+    "type-check": "echo 'No TypeScript files to type-check in proxy package'"
   },
   "keywords": [
     "proxy",

@@ -38,7 +38,9 @@ docker --version
 
 ## Configuration
 
-Dagger now supports multiple container registries for storing and sharing pre-built agent images. Choose the registry that best fits your infrastructure and security requirements.
+VibeKit uses a builder pattern with method chaining for type safety and flexibility. Configure your Dagger provider and VibeKit instance:
+
+Dagger supports multiple container registries for storing and sharing pre-built agent images. Choose the registry that best fits your infrastructure and security requirements.
 
 ### Default Configuration (Docker Hub)
 
@@ -47,8 +49,8 @@ import { VibeKit } from "@vibe-kit/sdk";
 import { createLocalProvider } from "@vibe-kit/dagger";
 
 const provider = createLocalProvider({
-  githubToken: process.env.GITHUB_TOKEN, // Optional for Git operations
   preferRegistryImages: true,             // Use optimized images when available
+  registryName: "dockerhub",              // Defaults to DockerHub
   registryUser: "your-dockerhub-username" // Optional: for pushing/pulling images
 });
 
@@ -76,32 +78,6 @@ console.log(`Server running at: ${host}`);
 
 // Clean up
 await vibeKit.kill();
-```
-
-### Using configuration object
-
-```typescript
-import { VibeKit, VibeConfig } from "@vibe-kit/sdk";
-
-const config: VibeConfig = {
-  agent: {
-    type: "claude",
-    provider: "anthropic",
-    apiKey: process.env.ANTHROPIC_API_KEY!,
-    model: "claude-sonnet-4-20250514",
-  },
-  environment: {
-    type: "dagger",
-    config: {
-      githubToken: process.env.GITHUB_TOKEN,
-      preferRegistryImages: true,
-      registryUser: "your-username", // Universal registry username
-      registryName: "dockerhub",     // Optional: specify registry (dockerhub, ghcr, ecr)
-    },
-  },
-};
-
-const vibeKit = new VibeKit(config);
 ```
 
 ### Using GitHub Container Registry
@@ -226,17 +202,26 @@ VIBEKIT_LOG_LEVEL=debug              # Enable debug logging
 Reference them in your code:
 
 ```typescript
+// Dagger provider configuration
 const provider = createLocalProvider({
-  githubToken: process.env.GITHUB_TOKEN,
+  preferRegistryImages: true,
+  dockerHubUser: "your-username",
   // All other config is auto-loaded from env vars
 });
+
+// GitHub configuration at SDK level
+const vibeKit = new VibeKit()
+  .withSandbox(provider)
+  .withGithub({
+    token: process.env.GITHUB_TOKEN,
+    repository: "owner/repo-name",
+  });
 ```
 
 ## Configuration Options
 
 The `createLocalProvider` function accepts these configuration options:
 
-- **`githubToken`** (optional): GitHub personal access token for Git operations and PR creation
 - **`preferRegistryImages`** (optional): Use pre-built registry images for faster startup (default: `true`)
 - **`registryUser`** (optional): Registry username for pulling/pushing custom images (works with any registry)
 - **`registryName`** (optional): Which registry to use - supported values:

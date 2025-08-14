@@ -57,12 +57,19 @@ class BaseAgent {
     await this.showStatusDisplay();
 
     try {
+      // Check if we're already inside a sandbox to prevent double execution
+      if (process.env.VIBEKIT_SANDBOX_ACTIVE) {
+        // We're already inside a sandbox, run directly
+        return await this.runDirect(args);
+      }
+
       // Try sandbox execution first
       const sandboxResult = await this.sandboxEngine.executeWithSandbox(
         this.getAgentCommand(),
         args,
         this.sandboxOptions,
-        this.settings
+        this.settings,
+        this.agentName  // Pass agent name for simplified auth
       );
 
       // If sandbox execution succeeded, return result with analytics
@@ -349,6 +356,11 @@ class BaseAgent {
         env.HTTPS_PROXY = this.proxy;
         env.http_proxy = this.proxy;
         env.https_proxy = this.proxy;
+        
+        // Pass through VIBEKIT_PROXY_TARGET_URL for proxy server
+        if (process.env.VIBEKIT_PROXY_TARGET_URL) {
+          env.VIBEKIT_PROXY_TARGET_URL = process.env.VIBEKIT_PROXY_TARGET_URL;
+        }
       }
       
       if (isInteractive) {

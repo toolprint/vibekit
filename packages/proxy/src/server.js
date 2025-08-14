@@ -2,8 +2,8 @@ import http from 'http';
 import https from 'https';
 import net from 'net';
 import { URL } from 'url';
-import { initializeSensitivePatterns } from '../utils/redaction.js';
-import { getVibeKitProxyTargetURL } from '../utils/claude-settings.js';
+import { initializeSensitivePatterns } from './redaction.js';
+import { getVibeKitProxyTargetURL } from './claude-settings.js';
 
 class ProxyServer {
   constructor(port = 8080) {
@@ -86,32 +86,31 @@ class ProxyServer {
       });
 
       this.server.on('error', (error) => {
-        // Check if error is EADDRINUSE (port already in use)
-        if (error.code === 'EADDRINUSE') {
-          resolve(); // Don't reject, just resolve to avoid error
-        } else {
-          reject(error);
-        }
+        reject(error);
       });
 
-      // Graceful shutdown
-      process.on('SIGINT', () => {
-        this.server.close(() => {
-          process.exit(0);
-        });
-      });
-
-      process.on('SIGTERM', () => {
-        this.server.close(() => process.exit(0));
-      });
+      // Note: Signal handling is done by the main process
     });
   }
 
   async handleHttpRequest(req, res) {
+    // Health check endpoint
+    if (req.url === '/health' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'healthy',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        requestCount: this.requestCount
+      }));
+      return;
+    }
+
     this.requestCount++;
     const requestId = this.requestCount;
     
-    // Removed noisy proxy logs - requests are handled silently
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${req.method} ${req.url} - Request #${requestId}`);
 
     // Parse the target URL - handle relative URLs by prepending API base
     let targetUrl;
@@ -389,6 +388,10 @@ class ProxyServer {
 
   handleHttpsConnect(req, clientSocket, head) {
     this.requestCount++;
+    const requestId = this.requestCount;
+    
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] CONNECT ${req.url} - Tunnel #${requestId}`);
     
     const { hostname, port } = this.parseHostPort(req.url);
 

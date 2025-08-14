@@ -42,6 +42,7 @@
             "group": "Core Features",
             "pages": [
               "cli/local-sandbox",
+              "cli/proxy-server",
               "cli/redaction",
               "cli/observability",
               "cli/agent-support"

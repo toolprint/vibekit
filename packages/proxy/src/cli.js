@@ -118,19 +118,7 @@ async function startProxyWithCheck(port) {
 
   try {
     await proxy.start();
-    console.log(`🌐 VibeKit proxy server running on port ${port}`);
-    console.log(`📊 Ready to handle requests with data redaction`);
-    console.log(`⌨️  Press Ctrl+C to stop`);
   } catch (error) {
-    if (error.code === 'EADDRINUSE') {
-      console.log(`⚠️  Port ${port} is already in use.`);
-      console.log(`💡 Try:`);
-      console.log(`   • vibekit-proxy status -p ${port}  (check what's running)`);
-      console.log(`   • vibekit-proxy stop -p ${port}    (stop existing server)`);
-      console.log(`   • vibekit-proxy -p ${port + 1}     (use different port)`);
-    } else {
-      // Silent error
-    }
     process.exit(1);
   }
 }

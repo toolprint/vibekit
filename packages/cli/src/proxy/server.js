@@ -172,7 +172,25 @@ class ProxyServer {
     });
 
     req.on('end', () => {
-      // Request body captured silently
+      // Log input request to proxy
+      console.log(`[PROXY REQUEST #${requestId}] ${req.method} ${targetUrl.href}`);
+      
+      // Log important headers (redacted)
+      const importantHeaders = ['content-type', 'user-agent', 'authorization', 'originator'];
+      const headerInfo = {};
+      importantHeaders.forEach(header => {
+        if (req.headers[header]) {
+          headerInfo[header] = header === 'authorization' ? 'REDACTED' : req.headers[header];
+        }
+      });
+      if (Object.keys(headerInfo).length > 0) {
+        console.log(`[PROXY REQUEST #${requestId}] Headers:`, JSON.stringify(headerInfo));
+      }
+      
+      if (requestBody) {
+        const redactedBody = this.redactSensitiveContent(requestBody);
+        console.log(`[PROXY REQUEST #${requestId}] Body:`, redactedBody.substring(0, 500) + (redactedBody.length > 500 ? '...' : ''));
+      }
     });
 
 

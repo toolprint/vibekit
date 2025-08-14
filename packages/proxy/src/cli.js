@@ -24,17 +24,13 @@ program
     if (options.daemon) {
       // For daemon mode, check if port is in use first
       if (await isPortInUse(port)) {
-        console.log(`⚠️  Proxy already running on port ${port}`);
         process.exit(1);
       }
-      
-      console.log(`🚀 Starting proxy server on port ${port} in background...`);
       const child = spawn(process.argv[0], [process.argv[1], '--port', port.toString()], {
         detached: true,
         stdio: 'ignore'
       });
       child.unref();
-      console.log(`✅ Proxy server started with PID ${child.pid}`);
     } else {
       await startProxyWithCheck(port);
     }
@@ -48,13 +44,10 @@ program
     const port = parseInt(options.port) || 8080;
     
     try {
-      console.log(`🔍 Looking for proxy server on port ${port}...`);
-      
       // Find and kill process using the port
       const { stdout } = await execAsync(`lsof -ti :${port}`).catch(() => ({ stdout: '' }));
       
       if (!stdout.trim()) {
-        console.log(`⚠️  No process found running on port ${port}`);
         return;
       }
       
@@ -63,17 +56,11 @@ program
       for (const pid of pids) {
         try {
           process.kill(parseInt(pid), 'SIGTERM');
-          console.log(`✅ Stopped proxy server (PID: ${pid})`);
         } catch (error) {
-          if (error.code === 'ESRCH') {
-            console.log(`⚠️  Process ${pid} already stopped`);
-          } else {
-            console.error(`❌ Failed to stop process ${pid}:`, error.message);
-          }
+          // Ignore errors
         }
       }
     } catch (error) {
-      console.error('❌ Failed to stop proxy server:', error.message);
       process.exit(1);
     }
   });
@@ -120,7 +107,6 @@ async function startProxyWithCheck(port) {
   
   // Handle graceful shutdown
   const shutdown = (signal) => {
-    console.log(`\n⚠️  Received ${signal}. Shutting down proxy server...`);
     proxy.stop();
     process.exit(0);
   };
@@ -143,7 +129,7 @@ async function startProxyWithCheck(port) {
       console.log(`   • vibekit-proxy stop -p ${port}    (stop existing server)`);
       console.log(`   • vibekit-proxy -p ${port + 1}     (use different port)`);
     } else {
-      console.error('❌ Failed to start proxy server:', error.message);
+      // Silent error
     }
     process.exit(1);
   }

@@ -117,14 +117,25 @@ class ProxyServer {
     let targetUrl;
     try {
       if (req.url.startsWith('/')) {
-        // Relative URL - prepend API base (use custom target if set, otherwise default)
-        const claudeTargetUrl = await getVibeKitProxyTargetURL();
-        const baseUrl = process.env.VIBEKIT_PROXY_TARGET_URL || 
-                        claudeTargetUrl ||
-                        'https://api.anthropic.com';
+        // Detect if this is a codex request based on headers
+        const isCodexRequest = req.headers['originator'] === 'codex_cli_rs' || 
+                              req.headers['user-agent']?.includes('codex') ||
+                              req.url.startsWith('/responses');
         
+        let baseUrl;
         
-        targetUrl = new URL(req.url, baseUrl);
+        if (isCodexRequest) {
+          // Use OpenAI API for codex requests - ensure /v1 is preserved
+          baseUrl = 'https://api.openai.com/v1/';
+        } else {
+          // Use Anthropic API for other requests (Claude)
+          const claudeTargetUrl = await getVibeKitProxyTargetURL();
+          baseUrl = process.env.VIBEKIT_PROXY_TARGET_URL || 
+                    claudeTargetUrl ||
+                    'https://api.anthropic.com';
+        }
+        
+        targetUrl = new URL(req.url.startsWith('/') ? req.url.substring(1) : req.url, baseUrl);
       } else {
         // Absolute URL
         targetUrl = new URL(req.url);
@@ -187,6 +198,11 @@ class ProxyServer {
         let eventBuffer = '';
         const accumulator = this.sseContentAccumulators.get(requestId);
         
+        // Detect if this is a codex/OpenAI request for different handling
+        const isCodexStream = req.headers['originator'] === 'codex_cli_rs' || 
+                             req.url.startsWith('/responses') ||
+                             targetUrl.hostname.includes('openai');
+        
         proxyRes.on('data', (chunk) => {
           const chunkStr = chunk.toString();
           eventBuffer += chunkStr;
@@ -213,27 +229,66 @@ class ProxyServer {
                 }
               });
               
-              // Handle different event types
-              if (event.type === 'content_block_delta' && event.data?.delta?.text) {
-                // Process chunk with buffering for redaction
-                const redactedChunk = this.processChunkWithBuffer(event.data.delta.text, requestId);
-                
-                if (redactedChunk) {
-                  // Forward the redacted chunk immediately
-                  const redactedEventData = {
-                    type: 'content_block_delta',
-                    index: event.data.index || 0,
-                    delta: {
-                      type: 'text_delta',
-                      text: redactedChunk
-                    }
-                  };
-                  
-                  const redactedEvent = `event: content_block_delta\ndata: ${JSON.stringify(redactedEventData)}\n\n`;
-                  res.write(redactedEvent);
+              let shouldRedactAndForward = false;
+              let textContent = '';
+              
+              if (isCodexStream) {
+                // Handle OpenAI streaming format (actual format used by codex)
+                if (event.data?.delta && event.type === 'response.output_text.delta') {
+                  // Handle delta chunks (response.output_text.delta events)
+                  textContent = event.data.delta;
+                  shouldRedactAndForward = true;
+                } else if (event.data?.text && event.type === 'response.output_text.done') {
+                  // Handle complete text (response.output_text.done events) - MUST be redacted
+                  textContent = event.data.text;
+                  shouldRedactAndForward = true;
                 }
-              } else if (event.type === 'content_block_stop') {
-                // Flush any remaining buffer content
+              } else {
+                // Handle Claude streaming format
+                if (event.type === 'content_block_delta' && event.data?.delta?.text) {
+                  textContent = event.data.delta.text;
+                  shouldRedactAndForward = true;
+                }
+              }
+              
+              if (shouldRedactAndForward && textContent) {
+                // For complete text events, directly redact without buffering
+                let redactedContent;
+                if (isCodexStream && event.type === 'response.output_text.done') {
+                  // For complete text events, apply redaction directly - CRITICAL for security
+                  redactedContent = this.redactSensitiveContent(textContent);
+                } else {
+                  // For streaming deltas, use buffering
+                  redactedContent = this.processChunkWithBuffer(textContent, requestId);
+                }
+                
+                if (redactedContent) {
+                  if (isCodexStream) {
+                    // Forward OpenAI format with redacted content
+                    const redactedData = JSON.parse(JSON.stringify(event.data));
+                    if (redactedData.delta) {
+                      redactedData.delta = redactedContent;
+                    } else if (redactedData.text) {
+                      redactedData.text = redactedContent;
+                    }
+                    const redactedEvent = `event: ${event.type}\ndata: ${JSON.stringify(redactedData)}\n\n`;
+                    res.write(redactedEvent);
+                  } else {
+                    // Forward Claude format with redacted content
+                    const redactedEventData = {
+                      type: 'content_block_delta',
+                      index: event.data.index || 0,
+                      delta: {
+                        type: 'text_delta',
+                        text: redactedContent
+                      }
+                    };
+                    const redactedEvent = `event: content_block_delta\ndata: ${JSON.stringify(redactedEventData)}\n\n`;
+                    res.write(redactedEvent);
+                  }
+                }
+              } else if (event.type === 'content_block_stop' && !isCodexStream) {
+                // Claude-specific: Flush any remaining buffer content
                 const finalChunk = this.flushBuffer(requestId);
                 if (finalChunk) {
                   const finalEventData = {
@@ -251,13 +306,27 @@ class ProxyServer {
                 
                 // Forward the stop event
                 res.write(eventData + '\n\n');
-              } else if (event.type === 'message_delta' && event.data?.usage?.output_tokens) {
-                // Store the final usage data to send with our accumulated content
+              } else if (event.type === 'message_delta' && event.data?.usage?.output_tokens && !isCodexStream) {
+                // Claude-specific: Store the final usage data to send with our accumulated content
                 accumulator.totalTokens = event.data.usage.output_tokens;
                 accumulator.messageData = event.data;
                 // Don't forward this yet - we'll send it after our complete content
-              } else {
-                // Forward all other events as-is (message_start, message_stop, content_block_start, ping, etc.)
+              } else if (isCodexStream && (event.type === 'response.completed' || event.data === '[DONE]')) {
+                // OpenAI-specific: Handle end of stream and flush buffer
+                const finalChunk = this.flushBuffer(requestId);
+                if (finalChunk) {
+                  const finalData = {
+                    type: "response.output_text.delta",
+                    delta: finalChunk
+                  };
+                  const finalEvent = `event: response.output_text.delta\ndata: ${JSON.stringify(finalData)}\n\n`;
+                  res.write(finalEvent);
+                }
+                
+                // Forward the completion event
+                res.write(eventData + '\n\n');
+              } else if (!shouldRedactAndForward) {
+                // Forward all other events as-is (only if we didn't already process and forward them)
                 res.write(eventData + '\n\n');
               }
             }

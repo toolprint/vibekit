@@ -221,6 +221,11 @@ program
       shouldStartProxy = !proxyManager.isRunning();
     }
     
+    // Set OPENAI_BASE_URL for codex instead of ANTHROPIC_BASE_URL
+    if (proxy) {
+      process.env.OPENAI_BASE_URL = proxy;
+    }
+    
     const agentOptions = {
       proxy: proxy,
       shouldStartProxy: shouldStartProxy,

@@ -1,26 +1,21 @@
-import { spawn } from 'child_process';
+import ProxyServer from '@vibe-kit/proxy/src/server.js';
 
 export class ProxyManager {
   constructor() {
-    this.proxyProcess = null;
+    this.proxyServer = null;
     this.port = null;
   }
 
   async start(port = 8080) {
-    if (this.proxyProcess && !this.proxyProcess.killed) {
+    if (this.proxyServer) {
       console.log(`Proxy already running on port ${this.port}`);
       return this.port;
     }
 
     try {
-      // Use npx to run the published @vibe-kit/proxy package
-      this.proxyProcess = spawn('npx', ['@vibe-kit/proxy', 'start'], {
-        env: { ...process.env, PORT: port.toString() },
-        stdio: 'inherit'
-      });
-
-      // Wait a moment for the process to start
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use the ProxyServer class directly
+      this.proxyServer = new ProxyServer(port);
+      await this.proxyServer.start();
       
       this.port = port;
       return port;
@@ -30,15 +25,15 @@ export class ProxyManager {
   }
 
   async stop() {
-    if (this.proxyProcess && !this.proxyProcess.killed) {
-      this.proxyProcess.kill();
-      this.proxyProcess = null;
+    if (this.proxyServer) {
+      await this.proxyServer.stop();
+      this.proxyServer = null;
       this.port = null;
     }
   }
 
   isRunning() {
-    return this.proxyProcess && !this.proxyProcess.killed;
+    return this.proxyServer !== null;
   }
 
   getPort() {

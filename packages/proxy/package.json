@@ -1,6 +1,6 @@
 {
   "name": "@vibe-kit/proxy",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "VibeKit proxy server for secure API routing with built-in data redaction",
   "main": "src/index.js",
   "type": "module",
@@ -30,7 +30,8 @@
   "dependencies": {
     "commander": "^11.0.0",
     "redact-pii": "^3.4.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "fs-extra": "^11.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

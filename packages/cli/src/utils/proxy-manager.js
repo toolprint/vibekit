@@ -57,7 +57,6 @@ export class ProxyManager {
   async ensureProxy(port = 8080) {
     // First check if external proxy is running
     if (await this.detectExternalProxy(port)) {
-      console.log(`External proxy detected on port ${port}`);
       return port;
     }
 

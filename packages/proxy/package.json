@@ -1,6 +1,6 @@
 {
   "name": "@vibe-kit/proxy",
-  "version": "0.0.10",
+  "version": "0.0.20",
   "description": "VibeKit proxy server for secure API routing with built-in data redaction",
   "main": "src/index.js",
   "type": "module",
@@ -14,7 +14,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "build": "echo 'No build step needed for proxy package'"
+    "build": "echo 'No build step needed for proxy package'",
+    "type-check": "echo 'No TypeScript type checking needed for proxy package (JavaScript only)'"
   },
   "keywords": [
     "proxy",

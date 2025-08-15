@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
+import TextInput from 'ink-text-input';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
@@ -16,7 +17,8 @@ const Settings = ({ showWelcome = false }) => {
     },
     proxy: {
       enabled: true,
-      redactionEnabled: true
+      redactionEnabled: true,
+      url: ''
     },
     analytics: {
       enabled: true
@@ -30,6 +32,8 @@ const Settings = ({ showWelcome = false }) => {
   const [currentMenu, setCurrentMenu] = useState('main'); // 'main', 'analytics', 'proxy', 'sandbox', 'ide', 'auth', 'auth-status'
   const [logoRendered, setLogoRendered] = useState(false);
   const [authStatus, setAuthStatus] = useState(null);
+  const [isEditingProxyUrl, setIsEditingProxyUrl] = useState(false);
+  const [proxyUrlInput, setProxyUrlInput] = useState('');
   const { exit } = useApp();
 
   const settingsPath = path.join(os.homedir(), '.vibekit', 'settings.json');
@@ -103,6 +107,11 @@ const Settings = ({ showWelcome = false }) => {
             label: `Redaction: ${settings.proxy.redactionEnabled ? '✓ ON' : '✗ OFF'}`,
             description: 'Toggle redaction of sensitive data in proxy logs',
             action: 'toggle-redaction'
+          },
+          {
+            label: `Proxy URL: ${settings.proxy.url || 'Not set'}`,
+            description: 'Set custom proxy URL (optional)',
+            action: 'edit-proxy-url'
           },
           {
             label: 'Back to Main Menu',
@@ -255,12 +264,34 @@ const Settings = ({ showWelcome = false }) => {
     }
   };
 
+  const handleProxyUrlSubmit = async (value) => {
+    const newProxySettings = {
+      ...settings,
+      proxy: {
+        ...settings.proxy,
+        url: value.trim()
+      }
+    };
+    await saveSettings(newProxySettings);
+    setIsEditingProxyUrl(false);
+    setProxyUrlInput('');
+  };
+
   // Check if we're in a TTY environment
   const isRawModeSupported = process.stdin.isTTY;
 
   if (isRawModeSupported) {
     useInput(async (input, key) => {
       if (loading) return;
+      
+      // Handle escape when editing proxy URL
+      if (isEditingProxyUrl) {
+        if (key.escape) {
+          setIsEditingProxyUrl(false);
+          setProxyUrlInput('');
+        }
+        return;
+      }
 
       if (key.upArrow || input === 'k') {
         setSelectedIndex(prev => (prev > 0 ? prev - 1 : menuItems.length - 1));
@@ -371,6 +402,10 @@ const Settings = ({ showWelcome = false }) => {
             }
           };
           saveSettings(newRedactionSettings);
+          break;
+        case 'edit-proxy-url':
+          setProxyUrlInput(settings.proxy.url || '');
+          setIsEditingProxyUrl(true);
           break;
         case 'toggle-analytics':
           const newAnalyticsSettings = {
@@ -509,6 +544,27 @@ const Settings = ({ showWelcome = false }) => {
       return 'Use ↑/↓/←/→ to navigate, ← or q/Esc to go back, Enter/Space to select';
     }
   };
+
+  // Show text input when editing proxy URL
+  if (isEditingProxyUrl) {
+    return (
+      <Box flexDirection="column" padding={1} alignItems="center" justifyContent="center" height="100%">
+        <Text color="gray">Enter proxy URL (e.g., http://proxy.example.com:8080):</Text>
+        <Text> </Text>
+        <Box>
+          <Text color="cyan">URL: </Text>
+          <TextInput
+            value={proxyUrlInput}
+            onChange={setProxyUrlInput}
+            onSubmit={handleProxyUrlSubmit}
+            placeholder="http://proxy.example.com:8080"
+          />
+        </Box>
+        <Text> </Text>
+        <Text color="gray">Press Enter to save, Esc to cancel</Text>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" padding={1} alignItems={showWelcome ? "center" : undefined}>

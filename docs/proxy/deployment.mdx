@@ -1,0 +1,153 @@
+---
+title: Deployment Overview
+description: "Deploy VibeKit Proxy to production environments on AWS, GCP, and other platforms"
+---
+
+## Cloud Platforms
+
+Choose your preferred cloud platform for detailed deployment instructions:
+
+<CardGroup cols={2}>
+  <Card
+    title="AWS Deployment"
+    icon="aws"
+    href="/proxy/aws-deployment"
+  >
+    Deploy to ECS, Lambda, EC2, EKS with CloudFormation templates and Terraform configurations
+  </Card>
+  <Card
+    title="GCP Deployment"  
+    icon="google"
+    href="/proxy/gcp-deployment"
+  >
+    Deploy to Cloud Run, GKE, Compute Engine, Cloud Functions with comprehensive setup guides
+  </Card>
+</CardGroup>
+
+## Docker Deployment
+
+For any platform that supports Docker containers:
+
+### Basic Dockerfile
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+RUN npm install -g @vibe-kit/proxy
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+CMD ["npx", "@vibe-kit/proxy", "start"]
+```
+
+### Multi-stage Build (Production)
+
+```dockerfile
+FROM node:18-alpine AS builder
+WORKDIR /app
+RUN npm install -g @vibe-kit/proxy
+
+FROM node:18-alpine AS runtime
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S vibekit -u 1001
+WORKDIR /app
+COPY --from=builder /usr/local/lib/node_modules/@vibe-kit/proxy /usr/local/lib/node_modules/@vibe-kit/proxy
+RUN ln -s /usr/local/lib/node_modules/@vibe-kit/proxy/src/cli.js /usr/local/bin/vibekit-proxy
+USER vibekit
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+CMD ["npx", "@vibe-kit/proxy", "start"]
+```
+
+## Local Development
+
+For local testing and development:
+
+### Docker Compose
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  vibekit-proxy:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./logs:/app/logs
+```
+
+### Direct Installation
+
+```bash
+# Install and run locally
+npm install -g @vibe-kit/proxy
+npx @vibe-kit/proxy start --port 8080
+```
+
+## Environment Configuration
+
+Configure the proxy for different environments:
+
+```bash
+# Production environment variables
+NODE_ENV=production
+PORT=8080
+VIBEKIT_PROXY_TARGET_URL=https://api.anthropic.com
+```
+
+## Health Monitoring
+
+The proxy exposes a `/health` endpoint for monitoring:
+
+```json
+{
+  "status": "healthy",
+  "uptime": 3600,
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "requestCount": 1234
+}
+```
+
+## Security Best Practices
+
+- Use HTTPS termination at load balancer
+- Run containers as non-root user
+- Implement rate limiting
+- Restrict network access with security groups/firewall rules
+- Regular security updates
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Port binding errors**: Ensure port 8080 is available
+2. **Memory limits**: Monitor and adjust container memory
+3. **Network connectivity**: Check security groups and firewall rules
+4. **Health check failures**: Verify `/health` endpoint accessibility
+
+### Debugging Commands
+
+```bash
+# Check proxy status
+npx @vibe-kit/proxy status
+
+# View container logs  
+docker logs vibekit-proxy-container
+```
+
+## What's Next?
+
+- Set up [monitoring and observability](/proxy/observability)
+- Configure [custom redaction rules](/proxy/redaction)  
+- Learn about [compliance features](/proxy/compliance)
+- Explore [performance optimization](/proxy/performance)

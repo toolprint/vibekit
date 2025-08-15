@@ -6,7 +6,6 @@ const proxy = new ProxyServer(port);
 
 // Handle graceful shutdown
 const shutdown = (signal) => {
-  console.log(`\n⚠️  Received ${signal}. Shutting down proxy server...`);
   proxy.stop();
   process.exit(0);
 };
@@ -21,10 +20,6 @@ process.on('exit', () => {
 });
 
 proxy.start().then(() => {
-  console.log(`🌐 VibeKit proxy server running on port ${port}`);
-  console.log(`📊 Ready to handle requests with data redaction`);
-  console.log(`⌨️  Press Ctrl+C to stop`);
-}).catch((error) => {
-  console.error('❌ Failed to start proxy server:', error.message);
+}).catch(() => {
   process.exit(1);
 });

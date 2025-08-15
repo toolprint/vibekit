@@ -9,26 +9,26 @@ VibeKit's proxy server intercepts HTTP/HTTPS traffic between coding agents and t
 
 ```bash
 # Start proxy with npx (no installation needed)
-npx vibekit-proxy start
+npx @vibe-kit/proxy start
 
 # Or through VibeKit CLI
 vibekit proxy start
 
 # Check server status
-vibekit-proxy status
+npx @vibe-kit/proxy status
 ```
 
 ### Essential Commands
 
 ```bash
 # Core operations
-vibekit-proxy start       # Start proxy server
-vibekit-proxy stop        # Stop proxy server  
-vibekit-proxy status      # Check server status
+npx @vibe-kit/proxy start       # Start proxy server
+npx @vibe-kit/proxy stop        # Stop proxy server  
+npx @vibe-kit/proxy status      # Check server status
 
 # With options
-vibekit-proxy start -p 3000    # Custom port
-vibekit-proxy start -d         # Run as daemon
+npx @vibe-kit/proxy start -p 3000    # Custom port
+npx @vibe-kit/proxy start -d         # Run as daemon
 ```
 
 ## Installation
@@ -37,7 +37,7 @@ Run directly with npx (recommended) or install globally for frequent use:
 
 ```bash
 # Direct usage (no installation)
-npx vibekit-proxy start
+npx @vibe-kit/proxy start
 
 # Global installation
 npm install -g @vibe-kit/proxy
@@ -127,15 +127,15 @@ vibekit dashboard
 
 ```bash
 # Port already in use
-vibekit-proxy stop -p 8080        # Stop existing proxy
-vibekit-proxy start -p 3000       # Use different port
+npx @vibe-kit/proxy stop -p 8080        # Stop existing proxy
+npx @vibe-kit/proxy start -p 3000       # Use different port
 
 # Connection issues  
-vibekit-proxy status              # Verify proxy is running
+npx @vibe-kit/proxy status              # Verify proxy is running
 curl http://localhost:8080/health # Test health endpoint
 
 # Enable debug logging
-VIBEKIT_DEBUG=1 vibekit-proxy start
+VIBEKIT_DEBUG=1 npx @vibe-kit/proxy start
 ```
 
 The proxy handles shutdown signals gracefully (Ctrl+C, SIGTERM) for clean container deployments.

@@ -28,12 +28,41 @@
   "navigation": {
     "tabs": [
       {
+        "tab": "Proxy",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "proxy/index",
+              "proxy/quickstart"
+            ]
+          },
+          {
+            "group": "Frameworks",
+            "pages": [
+              "proxy/openai-sdk",
+              "proxy/anthropic-sdk",
+              "proxy/vercel-ai-sdk",
+              "proxy/other-frameworks"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "proxy/deployment",
+              "proxy/aws-deployment",
+              "proxy/gcp-deployment"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "CLI",
         "groups": [
           {
             "group": "Getting Started",
             "pages": [
-              "index",
+              "cli/index",
               "cli/installation",
               "cli/quick-reference"
             ]
@@ -150,6 +179,11 @@
           "anchor": "Community",
           "href": "https://discord.gg/spZ7MnqFT4",
           "icon": "discord"
+        },
+        {
+          "anchor": "Website",
+          "href": "https://vibekit.sh",
+          "icon": "globe"
         }
       ]
     }

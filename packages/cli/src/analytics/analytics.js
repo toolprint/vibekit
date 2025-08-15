@@ -232,7 +232,6 @@ class Analytics {
       
       return sessionData;
     } catch (error) {
-      console.error('Failed to save session update:', error.message);
       return null;
     }
   }
@@ -321,7 +320,6 @@ class Analytics {
       
       return this.metrics;
     } catch (error) {
-      console.error('Failed to save analytics:', error.message);
       return null;
     }
   }
@@ -350,7 +348,6 @@ class Analytics {
       
       return this.metrics;
     } catch (error) {
-      console.error('Failed to save analytics synchronously:', error.message);
       return null;
     }
   }
@@ -387,7 +384,6 @@ class Analytics {
         
         allAnalytics.push(...filteredData);
       } catch (error) {
-        console.error(`Failed to read analytics file ${file}:`, error.message);
       }
     }
     

@@ -14,7 +14,7 @@ export class ProxyManager {
 
     try {
       // Use npx to run the published @vibe-kit/proxy package
-      this.proxyProcess = spawn('npx', ['vibekit-proxy', 'start'], {
+      this.proxyProcess = spawn('npx', ['@vibe-kit/proxy', 'start'], {
         env: { ...process.env, PORT: port.toString() },
         stdio: 'inherit'
       });

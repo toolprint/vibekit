@@ -1,0 +1,86 @@
+---
+title: Quickstart
+description: "Get started with VibeKit Proxy in under 5 minutes"
+---
+
+## Installation
+
+Install the VibeKit Proxy package:
+
+```bash
+npm install @vibe-kit/proxy
+```
+
+## Start the Proxy Server
+
+Launch the proxy server:
+
+```bash
+npx @vibe-kit/proxy start
+```
+
+The proxy is now running at `http://localhost:8080` and ready to intercept AI requests.
+
+### Additional Commands
+
+```bash
+# Check proxy status
+npx @vibe-kit/proxy status
+
+# Stop the proxy server
+npx @vibe-kit/proxy stop
+```
+
+## Update Your Application
+
+Simply change your base URL to point to the VibeKit proxy:
+
+### Before
+```javascript
+const client = new OpenAI({
+  baseURL: 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY,
+});
+```
+
+### After
+```javascript
+const client = new OpenAI({
+  baseURL: 'http://localhost:8080/v1',
+  apiKey: process.env.OPENAI_API_KEY,
+});
+```
+
+## Test Your Setup
+
+Make a test request to verify everything is working:
+
+```javascript
+const response = await client.chat.completions.create({
+  model: "gpt-4",
+  messages: [
+    { role: "user", content: "My SSN is 123-45-6789. What can you tell me about privacy?" }
+  ],
+});
+
+console.log(response.choices[0].message.content);
+// The SSN will be automatically redacted in both the request and response
+```
+
+## Configuration Options
+
+You can customize the proxy with these options:
+
+```bash
+# Start with custom port
+npx @vibe-kit/proxy start --port 3000
+
+# Run in background (daemon mode)
+npx @vibe-kit/proxy start --daemon
+
+# Check status on specific port
+npx @vibe-kit/proxy status --port 3000
+
+# Stop proxy on specific port
+npx @vibe-kit/proxy stop --port 3000
+```

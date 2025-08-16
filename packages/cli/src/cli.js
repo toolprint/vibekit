@@ -45,7 +45,7 @@ async function readSettings() {
   const settingsPath = path.join(os.homedir(), '.vibekit', 'settings.json');
   const defaultSettings = {
     sandbox: { enabled: false, type: 'docker' },
-    proxy: { enabled: true, redactionEnabled: true },
+    proxy: { enabled: true, redactionEnabled: true, url: '' },
     analytics: { enabled: true },
     aliases: { enabled: false }
   };
@@ -87,8 +87,8 @@ program
     // Setup proxy settings from Claude settings only if proxy is enabled
     const originalBaseUrl = await setupProxySettings(settings.proxy.enabled);
     
-    // Get proxy from global option, environment variable, or default if proxy enabled in settings
-    let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    // Get proxy from global option, settings, environment variable, or default if proxy enabled in settings
+    let proxy = command.parent.opts().proxy || settings.proxy.url || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     
     // Ensure proxy is running if needed
     if (!proxy && settings.proxy.enabled) {
@@ -149,8 +149,8 @@ program
     const logger = new Logger('gemini');
     const settings = await readSettings();
     
-    // Get proxy from global option, environment variable, or default if proxy enabled in settings
-    let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    // Get proxy from global option, settings, environment variable, or default if proxy enabled in settings
+    let proxy = command.parent.opts().proxy || settings.proxy.url || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     
     // Ensure proxy is running if needed
     if (!proxy && settings.proxy.enabled) {
@@ -203,8 +203,8 @@ program
     const logger = new Logger('codex');
     const settings = await readSettings();
     
-    // Get proxy from global option, environment variable, or default if proxy enabled in settings
-    let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    // Get proxy from global option, settings, environment variable, or default if proxy enabled in settings
+    let proxy = command.parent.opts().proxy || settings.proxy.url || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     
     // Ensure proxy is running if needed
     if (!proxy && settings.proxy.enabled) {
@@ -262,8 +262,8 @@ program
     const logger = new Logger('cursor');
     const settings = await readSettings();
     
-    // Get proxy from global option, environment variable, or default if proxy enabled in settings
-    let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    // Get proxy from global option, settings, environment variable, or default if proxy enabled in settings
+    let proxy = command.parent.opts().proxy || settings.proxy.url || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     
     // Ensure proxy is running if needed
     if (!proxy && settings.proxy.enabled) {
@@ -316,8 +316,8 @@ program
     const logger = new Logger('opencode');
     const settings = await readSettings();
     
-    // Get proxy from global option, environment variable, or default if proxy enabled in settings
-    let proxy = command.parent.opts().proxy || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    // Get proxy from global option, settings, environment variable, or default if proxy enabled in settings
+    let proxy = command.parent.opts().proxy || settings.proxy.url || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     
     // Ensure proxy is running if needed
     if (!proxy && settings.proxy.enabled) {

@@ -1,0 +1,39 @@
+---
+title: Cursor CLI
+description: "Integrate VibeKit Proxy with Cursor CLI for secure AI-powered development"
+---
+
+## Overview
+
+VibeKit Proxy seamlessly integrates with Cursor CLI, Cursor's command-line interface for AI-powered development, providing automatic data redaction and security for your AI-powered development workflow without changing your existing code patterns.
+
+## Installation
+
+First, ensure you have Cursor CLI installed and VibeKit Proxy available:
+
+```bash
+# Install Cursor CLI
+curl https://cursor.com/install -fsS | bash
+
+# Install VibeKit Proxy
+npm install -g @vibe-kit/proxy
+```
+
+## Start the Proxy
+
+Start the VibeKit proxy server:
+
+```bash
+npx @vibe-kit/proxy start --port 8080
+```
+
+## Configuration
+
+Configure Cursor CLI to route through VibeKit Proxy using the `--endpoint` flag:
+
+### Basic Proxy Configuration
+
+```bash
+# Run Cursor CLI with proxy endpoint
+cursor-agent --endpoint http://localhost:8080 "Create a React component for user authentication"
+```

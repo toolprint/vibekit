@@ -38,12 +38,16 @@
             ]
           },
           {
-            "group": "Frameworks",
+            "group": "Supported frameworks",
             "pages": [
-              "proxy/openai-sdk",
               "proxy/anthropic-sdk",
-              "proxy/vercel-ai-sdk",
-              "proxy/other-frameworks"
+              "proxy/claude-code",
+              "proxy/cursor-cli",
+              "proxy/gemini-cli",
+              "proxy/openai-codex",
+              "proxy/openai-sdk",
+              "proxy/other-frameworks",
+              "proxy/vercel-ai-sdk"
             ]
           },
           {

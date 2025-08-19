@@ -96,7 +96,7 @@
           {
             "group": "Get Started",
             "pages": [
-              "sdk/index-sdk",
+              "sdk/index",
               "sdk/quickstart",
               "sdk/ask-mode",
               "sdk/github-integration",

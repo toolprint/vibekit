@@ -9,26 +9,26 @@ VibeKit's proxy server intercepts HTTP/HTTPS traffic between coding agents and t
 
 ```bash
 # Start proxy with npx (no installation needed)
-npx @vibe-kit/proxy start
+npx vibekit-proxy start
 
 # Or through VibeKit CLI
 vibekit proxy start
 
 # Check server status
-npx @vibe-kit/proxy status
+npx vibekit-proxy status
 ```
 
 ### Essential Commands
 
 ```bash
 # Core operations
-npx @vibe-kit/proxy start       # Start proxy server
-npx @vibe-kit/proxy stop        # Stop proxy server  
-npx @vibe-kit/proxy status      # Check server status
+npx vibekit-proxy start       # Start proxy server
+npx vibekit-proxy stop        # Stop proxy server  
+npx vibekit-proxy status      # Check server status
 
 # With options
-npx @vibe-kit/proxy start -p 3000    # Custom port
-npx @vibe-kit/proxy start -d         # Run as daemon
+npx vibekit-proxy start -p 3000    # Custom port
+npx vibekit-proxy start -d         # Run as daemon
 ```
 
 ## Installation
@@ -37,10 +37,10 @@ Run directly with npx (recommended) or install globally for frequent use:
 
 ```bash
 # Direct usage (no installation)
-npx @vibe-kit/proxy start
+npx vibekit-proxy start
 
 # Global installation
-npm install -g @vibe-kit/proxy
+npm install -g vibekit-proxy
 vibekit-proxy start
 
 # Through VibeKit CLI
@@ -65,8 +65,13 @@ curl http://localhost:8080/health
 ## Docker Deployment
 
 ```bash
-# Build from source (published image coming soon)
-docker build -t vibekit-proxy packages/proxy
+# Use published image
+docker run -p 8080:8080 -e PORT=8080 vibekit-proxy
+
+# Or build from vibekit-proxy repository
+git clone https://github.com/ismailpelaseyed/vibekit-proxy.git
+cd vibekit-proxy
+docker build -t vibekit-proxy -f docker/Dockerfile.node .
 docker run -p 8080:8080 -e PORT=8080 vibekit-proxy
 ```
 
@@ -75,7 +80,7 @@ Docker Compose for production:
 version: '3.8'
 services:
   vibekit-proxy:
-    build: packages/proxy
+    image: vibekit-proxy:latest
     ports: ["8080:8080"]
     environment:
       - PORT=8080
@@ -127,15 +132,15 @@ vibekit dashboard
 
 ```bash
 # Port already in use
-npx @vibe-kit/proxy stop -p 8080        # Stop existing proxy
-npx @vibe-kit/proxy start -p 3000       # Use different port
+npx vibekit-proxy stop -p 8080        # Stop existing proxy
+npx vibekit-proxy start -p 3000       # Use different port
 
 # Connection issues  
-npx @vibe-kit/proxy status              # Verify proxy is running
+npx vibekit-proxy status              # Verify proxy is running
 curl http://localhost:8080/health # Test health endpoint
 
 # Enable debug logging
-VIBEKIT_DEBUG=1 npx @vibe-kit/proxy start
+VIBEKIT_DEBUG=1 npx vibekit-proxy start
 ```
 
 The proxy handles shutdown signals gracefully (Ctrl+C, SIGTERM) for clean container deployments.

@@ -46,23 +46,25 @@ VibeKit includes a proxy server for secure API routing with built-in data redact
 ### Local Development
 ```bash
 # Run proxy directly with npx (recommended)
-npx @vibe-kit/proxy start
+npx vibekit-proxy start
 
 # Or with specific commands
-npx @vibe-kit/proxy stop              # Stop proxy  
-npx @vibe-kit/proxy status            # Check status
+npx vibekit-proxy stop              # Stop proxy  
+npx vibekit-proxy status            # Check status
 
 # Or install globally and run
-npm install -g @vibe-kit/proxy
+npm install -g vibekit-proxy
 ```
 
 ### Docker Deployment
 ```bash
 # Use the published image
-docker run -p 8080:8080 -e PORT=8080 vibekit/proxy
+docker run -p 8080:8080 -e PORT=8080 vibekit-proxy
 
-# Or build from source
-docker build -t vibekit-proxy packages/proxy
+# Or build from vibekit-proxy repository
+git clone https://github.com/ismailpelaseyed/vibekit-proxy.git
+cd vibekit-proxy
+docker build -t vibekit-proxy -f docker/Dockerfile.node .
 docker run -p 8080:8080 vibekit-proxy
 ```
 

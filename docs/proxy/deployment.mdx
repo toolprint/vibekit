@@ -28,83 +28,251 @@ Choose your preferred cloud platform for detailed deployment instructions:
 
 ## Docker Deployment
 
-For any platform that supports Docker containers:
+VibeKit Proxy is available as both Node.js and Rust implementations, each with optimized Docker containers.
 
-### Basic Dockerfile
+### Using Pre-built Dockerfiles
 
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-RUN npm install -g @vibe-kit/proxy
-EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
-CMD ["npx", "@vibe-kit/proxy", "start"]
+Clone the vibekit-proxy repository to use the production-ready Dockerfiles:
+
+```bash
+git clone https://github.com/ismailpelaseyed/vibekit-proxy.git
+cd vibekit-proxy
 ```
 
-### Multi-stage Build (Production)
+<CodeGroup>
 
-```dockerfile
+```dockerfile Node.js (docker/Dockerfile.node)
+# Multi-stage build for smaller production image
 FROM node:18-alpine AS builder
-WORKDIR /app
-RUN npm install -g @vibe-kit/proxy
 
-FROM node:18-alpine AS runtime
+WORKDIR /app
+
+# Copy package files
+COPY ../node/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S vibekit -u 1001
+
+# Set working directory
 WORKDIR /app
-COPY --from=builder /usr/local/lib/node_modules/@vibe-kit/proxy /usr/local/lib/node_modules/@vibe-kit/proxy
-RUN ln -s /usr/local/lib/node_modules/@vibe-kit/proxy/src/cli.js /usr/local/bin/vibekit-proxy
+
+# Copy dependencies from builder stage
+COPY --from=builder --chown=vibekit:nodejs /app/node_modules ./node_modules
+
+# Copy application code
+COPY --chown=vibekit:nodejs ../node/src ./src
+COPY --chown=vibekit:nodejs ../node/package.json ./
+
+# Copy shared config
+COPY --chown=vibekit:nodejs ../vibekit.yaml ./
+
+# Switch to non-root user
 USER vibekit
+
+# Expose port
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
-CMD ["npx", "@vibe-kit/proxy", "start"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "http.get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Start the application
+CMD ["node", "src/index.js"]
 ```
+
+```dockerfile Rust (docker/Dockerfile.rust)
+# Build stage
+FROM rust:1.82 as builder
+
+WORKDIR /app
+
+# Copy Cargo files first for better layer caching
+COPY rust/Cargo.toml rust/Cargo.lock ./
+
+# Create a dummy main.rs to build dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release
+RUN rm -rf src
+
+# Copy source code
+COPY rust/src/ ./src/
+
+# Build the actual application
+RUN cargo build --release
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the binary from builder stage
+COPY --from=builder /app/target/release/vibekit-proxy ./vibekit-proxy
+
+# Copy config file
+COPY vibekit.yaml ./vibekit.yaml
+
+# Create non-root user
+RUN useradd -r -s /bin/false vibekit
+RUN chown -R vibekit:vibekit /app
+USER vibekit
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ./vibekit-proxy status || exit 1
+
+# Default command
+CMD ["./vibekit-proxy", "start", "--port", "8080", "--config", "vibekit.yaml"]
+```
+
+</CodeGroup>
+
+### Building and Running
+
+<CodeGroup>
+
+```bash Node.js
+# Build Node.js version
+docker build -f docker/Dockerfile.node -t vibekit-proxy-node .
+
+# Run Node.js version
+docker run -p 8080:8080 -v ./vibekit.yaml:/app/vibekit.yaml vibekit-proxy-node
+```
+
+```bash Rust
+# Build Rust version
+docker build -f docker/Dockerfile.rust -t vibekit-proxy-rust .
+
+# Run Rust version
+docker run -p 8080:8080 -v ./vibekit.yaml:/app/vibekit.yaml vibekit-proxy-rust
+```
+
+</CodeGroup>
 
 ## Local Development
 
-For local testing and development:
-
 ### Docker Compose
 
+Use the included `docker-compose.yml` that runs both implementations:
+
 ```yaml
-# docker-compose.yml
+# docker/docker-compose.yml
 version: '3.8'
+
 services:
-  vibekit-proxy:
-    build: .
+  vibekit-proxy-node:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.node
     ports:
       - "8080:8080"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
+      - PORT=8080
+    volumes:
+      - ../vibekit.yaml:/app/vibekit.yaml:ro
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "node", "-e", "http.get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - vibekit-network
+
+  vibekit-proxy-rust:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rust
+    ports:
+      - "8081:8080"
     volumes:
-      - ./logs:/app/logs
+      - ../vibekit.yaml:/app/vibekit.yaml:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "./vibekit-proxy", "status"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - vibekit-network
+
+networks:
+  vibekit-network:
+    driver: bridge
+```
+
+Start both services:
+```bash
+cd docker
+docker-compose up -d
+```
+
+Or start individual services:
+```bash
+# Node.js only on port 8080
+docker-compose up vibekit-proxy-node -d
+
+# Rust only on port 8081
+docker-compose up vibekit-proxy-rust -d
 ```
 
 ### Direct Installation
 
-```bash
+<CodeGroup>
+
+```bash Node.js
 # Install and run locally
-npm install -g @vibe-kit/proxy
-npx @vibe-kit/proxy start --port 8080
+npm install -g vibekit-proxy
+vibekit-proxy start --port 8080
 ```
 
-## Environment Configuration
+```bash Rust
+# Install and run locally
+cargo install vibekit-proxy
+vibekit-proxy start --port 8080
+```
 
-Configure the proxy for different environments:
+</CodeGroup>
+
+## Configuration
+
+### Config File (vibekit.yaml)
+
+Both implementations use the same configuration format:
+
+```yaml
+models:
+  - model_name: "gpt-4o"
+    provider: "openai"
+    api_base: "https://api.openai.com"
+  
+  - model_name: "claude-3-7-sonnet-20250219"
+    provider: "anthropic"
+    api_base: "https://api.anthropic.com/v1"
+```
+
+### Environment Variables
 
 ```bash
 # Production environment variables
-NODE_ENV=production
 PORT=8080
-VIBEKIT_PROXY_TARGET_URL=https://api.anthropic.com
 ```
 
 ## Health Monitoring
@@ -141,10 +309,13 @@ Common issues and solutions:
 
 ```bash
 # Check proxy status
-npx @vibe-kit/proxy status
+vibekit-proxy status --port 8080
 
 # View container logs  
 docker logs vibekit-proxy-container
+
+# Test health endpoint
+curl http://localhost:8080/health
 ```
 
 ## What's Next?

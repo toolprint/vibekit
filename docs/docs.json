@@ -34,7 +34,8 @@
             "group": "Getting Started",
             "pages": [
               "proxy/index",
-              "proxy/quickstart"
+              "proxy/quickstart",
+              "proxy/configuration"
             ]
           },
           {
@@ -44,6 +45,7 @@
               "proxy/claude-code",
               "proxy/cursor-cli",
               "proxy/gemini-cli",
+              "proxy/litellm",
               "proxy/openai-codex",
               "proxy/openai-sdk",
               "proxy/other-frameworks",

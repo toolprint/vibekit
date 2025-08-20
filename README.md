@@ -72,6 +72,8 @@ docker run -p 8080:8080 vibekit-proxy
 - `PORT` or `VIBEKIT_PROXY_PORT` - Proxy port (default: 8080)
 - `VIBEKIT_PROXY_TARGET_URL` - Target API URL
 
+vibekit-proxy
+
 ### Cloud Deployment
 Deploy to any container platform (AWS ECS, Google Cloud Run, Azure Container Instances, etc.):
 ```bash

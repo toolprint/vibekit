@@ -37,7 +37,7 @@ export interface VibeKitOptions {
 
 export class VibeKit extends EventEmitter {
   private options: Partial<VibeKitOptions> = {};
-  private agent?: any;
+  public agent?: any;
 
   constructor() {
     super();
@@ -136,7 +136,6 @@ export class VibeKit extends EventEmitter {
     };
 
     this.agent = new AgentClass(agentConfig);
-
   }
 
   async generateCode({

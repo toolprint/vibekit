@@ -136,6 +136,7 @@
               "api-reference/generate-code",
               "api-reference/execute-command",
               "api-reference/create-pull-request",
+              "api-reference/merge-pull-request",
               "api-reference/push-to-branch",
               "api-reference/run-tests",
               "api-reference/kill-sandbox",

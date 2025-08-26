@@ -28,71 +28,6 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Proxy",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": [
-              "proxy/index",
-              "proxy/quickstart",
-              "proxy/configuration"
-            ]
-          },
-          {
-            "group": "Supported frameworks",
-            "pages": [
-              "proxy/anthropic-sdk",
-              "proxy/claude-code",
-              "proxy/cursor-cli",
-              "proxy/gemini-cli",
-              "proxy/litellm",
-              "proxy/openai-codex",
-              "proxy/openai-sdk",
-              "proxy/other-frameworks",
-              "proxy/vercel-ai-sdk"
-            ]
-          },
-          {
-            "group": "Deployment",
-            "pages": [
-              "proxy/deployment",
-              "proxy/aws-deployment",
-              "proxy/gcp-deployment"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "CLI",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": [
-              "cli/index",
-              "cli/installation",
-              "cli/quick-reference"
-            ]
-          },
-          {
-            "group": "Core Features",
-            "pages": [
-              "cli/local-sandbox",
-              "cli/proxy-server",
-              "cli/redaction",
-              "cli/observability",
-              "cli/agent-support"
-            ]
-          },
-          {
-            "group": "Configuration",
-            "pages": [
-              "cli/configuration-files",
-              "cli/environment-variables"
-            ]
-          }
-        ]
-      },
-      {
         "tab": "SDK",
         "groups": [
           {
@@ -149,6 +84,36 @@
           }
         ]
       },
+      {
+        "tab": "CLI",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "cli/index",
+              "cli/installation",
+              "cli/quick-reference"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "cli/local-sandbox",
+              "cli/redaction",
+              "cli/observability",
+              "cli/agent-support"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "cli/configuration-files",
+              "cli/environment-variables"
+            ]
+          }
+        ]
+      },
+      
       {
         "tab": "Auth",
         "groups": [

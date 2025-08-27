@@ -1,0 +1,39 @@
+{
+  "name": "claude-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A Node.js/TypeScript template for working with Claude in Blaxel sandboxes",
+  "private": true,
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "auth": "tsx src/index.ts --auth",
+    "dev": "tsx watch src/index.ts",
+    "example:basic": "tsx examples/basic-sandbox.ts",
+    "example:github": "tsx examples/github-clone.ts",
+    "example:claude": "tsx examples/claude-dev.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vibe-kit/blaxel": "file:../../packages/blaxel",
+    "@vibe-kit/sdk": "^0.0.55",
+    "@vibe-kit/auth": "file:../../packages/auth",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.18",
+    "tsx": "^4.19.1",
+    "typescript": "^5.8.3"
+  },
+  "keywords": [
+    "claude",
+    "anthropic",
+    "blaxel",
+    "sandbox",
+    "ai",
+    "vibekit",
+    "oauth",
+    "github"
+  ],
+  "author": "VibeKit",
+  "license": "MIT"
+}
